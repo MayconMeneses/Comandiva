@@ -1,0 +1,50 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    # log-bin-trust-function-creators: sem isso, o MySQL recusa criar trigger
+    # (ER_BINLOG_CREATE_ROUTINE_NEED_SUPER) vindo do usuário de aplicação
+    # (`saas_core`, sem privilégio SUPER de propósito) — necessário pros
+    # triggers append-only de platform_audit_log/subscription_events (ver
+    # saas-core/drizzle/0003_*).
+    command: --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-saas_core}
+      MYSQL_USER: ${MYSQL_USER:-saas_core}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Defina MYSQL_PASSWORD no .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - saas_core_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: mysql://${MYSQL_USER:-saas_core}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-saas_core}
+    ports:
+      - "127.0.0.1:${APP_PORT:-4000}:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  saas_core_mysql_data:

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!-- Cor deve bater com PWA_BRANDING.themeColor em pwa.config.ts (HTML puro
+         não é templável pelo Vite sem build extra — atualize os dois juntos). -->
+    <meta name="theme-color" content="#15120f" />
+    <title>Pub X — Peça online</title>
+    <meta name="description" content="Peça online no Pub X: hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada em Croatá/CE, com acompanhamento do pedido em tempo real." />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pub X" />
+    <meta property="og:title" content="Pub X — Peça online" />
+    <meta property="og:description" content="Hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada em Croatá/CE." />
+    <meta property="og:image" content="/assets/pubx/hero-brand-burger.jpg" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pub X — Peça online" />
+    <meta name="twitter:description" content="Hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada em Croatá/CE." />
+    <meta name="twitter:image" content="/assets/pubx/hero-brand-burger.jpg" />
+
+    <link rel="icon" type="image/svg+xml" href="/pubx-logo.svg" />
+    <!-- Ícone gerado por scripts/generate-pwa-icons.ts (mesmo símbolo do
+         manifest.webmanifest, ver pwa.config.ts) — substitui o jpg antigo
+         (115x87, não-quadrado, comprimido demais pra ficar nítido na home
+         screen do iOS). -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- manifest.webmanifest é gerado e injetado automaticamente pelo
+         vite-plugin-pwa (ver vite.config.ts) a partir de pwa.config.ts —
+         não precisa de <link rel="manifest"> manual aqui. -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:opsz,wght@5..1200,600;5..1200,700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+  </body>
+</html>

@@ -1,0 +1,12 @@
+packages:
+  - "."
+
+patchedDependencies:
+  wouter@3.7.1: patches/wouter@3.7.1.patch
+
+overrides:
+  tailwindcss>nanoid: "3.3.7"
+  # CVEs conhecidos nas versões antigas puxadas por dependências transitivas
+  # (AWS SDK e Express) — presos na mesma linha maior pra não quebrar nada.
+  fast-xml-parser: "5.11.1"
+  body-parser: "1.20.6"

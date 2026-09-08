@@ -1,0 +1,124 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { createServiceRequest, getDb, getOrCreateWalkInCustomer, getOrOpenSessionForTable, getSessionWithOrders, findTableByToken, requestSessionBill } from "../db";
+import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
+import { featureProcedure, publicProcedure, router } from "../_core/trpc";
+import { insertPricedOrder, priceOrder } from "./order";
+import { phoneSchema } from "./customer";
+import { saveCustomerProfile } from "../db/customers";
+
+export const roundItemSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int().min(1).max(20),
+  addonOptionIds: z.array(z.number().int().positive()).default([]),
+  note: z.string().max(500).optional(),
+});
+
+const addRoundSchema = z.object({
+  token: z.string().min(6).max(24),
+  items: z.array(roundItemSchema).min(1, "Adicione pelo menos um item ao pedido."),
+  customerNote: z.string().max(500).optional(),
+  customer: z.object({ name: z.string().min(2).max(160), phone: phoneSchema }).optional(),
+});
+
+/**
+ * Resolve a mesa por token, garante que exista uma comanda aberta e grava uma
+ * nova rodada (um `orders` normal, com fulfillmentType=DINE_IN) vinculada a
+ * ela. Compartilhado entre o pedido público pelo QR Code (`table.addRound`) e
+ * o lançamento manual da equipe pelo admin (`admin.tables.addManualRound`) —
+ * a única diferença entre os dois é quem chama e a nota de histórico.
+ */
+export async function addRoundToTable(params: {
+  tableId: number;
+  items: z.infer<typeof roundItemSchema>[];
+  customerNote?: string;
+  customer?: { name: string; phone: string };
+  historyNote: string;
+  origin: "GARCOM" | "QR_CODE";
+}) {
+  const priced = await priceOrder({ items: params.items, fulfillmentType: "DINE_IN" });
+  const db = await getDb();
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+  const session = await getOrOpenSessionForTable(params.tableId);
+  const customer = params.customer
+    ? await saveCustomerProfile({ phone: params.customer.phone, name: params.customer.name })
+    : await getOrCreateWalkInCustomer();
+  if (!customer) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o cliente." });
+  const { orderId, code } = await insertPricedOrder({
+    db,
+    priced,
+    fulfillmentType: "DINE_IN",
+    origin: params.origin,
+    paymentMethod: null, // decidido no fechamento da comanda (table_bill_payments), não por rodada
+    customerId: customer.id,
+    customerName: customer.name,
+    customerPhone: customer.phone,
+    customerNote: params.customerNote,
+    tableSessionId: session.id,
+    historyNote: params.historyNote,
+    now: Date.now(),
+  });
+  return { orderId, code, sessionId: session.id, totalCents: priced.totalCents };
+}
+
+export const tableRouter = router({
+  // A página da mesa consulta esse token automaticamente a cada 12s — repetir
+  // o mesmo token nunca conta contra o limite (só tentar vários tokens
+  // diferentes conta), senão o próprio cliente sentado na mesa acabaria
+  // bloqueado sozinho depois de alguns minutos com a página aberta.
+  resolve: publicProcedure.input(z.object({ token: z.string().min(6).max(24) })).query(async ({ input, ctx }) => {
+    const limit = checkDistinctRateLimit(`table-resolve:${ctx.req.ip}`, input.token, 20);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
+    const table = await findTableByToken(input.token);
+    if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
+    const session = await getOrOpenSessionForTable(table.id);
+    const detail = await getSessionWithOrders(session.id);
+    return {
+      table: { id: table.id, label: table.label, sector: table.sector },
+      session: detail!.session,
+      orders: detail!.orders.map(order => ({
+        id: order.id,
+        status: order.status,
+        totalCents: order.totalCents,
+        createdAt: order.createdAt,
+        items: order.items.map(item => ({ id: item.id, productName: item.productName, quantity: item.quantity, lineTotalCents: item.lineTotalCents })),
+      })),
+      totalCents: detail!.totalCents,
+      paidCents: detail!.paidCents,
+      balanceDueCents: detail!.balanceDueCents,
+      waiterRequested: detail!.waiterRequested,
+    };
+  }),
+  addRound: featureProcedure("extra_rounds").input(addRoundSchema).mutation(async ({ input, ctx }) => {
+    const limit = checkRateLimit(`table-add-round:${ctx.req.ip}`);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
+    const table = await findTableByToken(input.token);
+    if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
+    return addRoundToTable({
+      tableId: table.id,
+      items: input.items,
+      customerNote: input.customerNote,
+      customer: input.customer,
+      historyNote: "Rodada pedida pela mesa via QR Code",
+      origin: "QR_CODE",
+    });
+  }),
+  requestBill: featureProcedure("request_bill").input(z.object({ token: z.string().min(6).max(24) })).mutation(async ({ input, ctx }) => {
+    const limit = checkRateLimit(`table-request-bill:${ctx.req.ip}`);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
+    const table = await findTableByToken(input.token);
+    if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
+    const session = await getOrOpenSessionForTable(table.id);
+    await requestSessionBill(session.id);
+    return { success: true };
+  }),
+  callWaiter: featureProcedure("call_waiter").input(z.object({ token: z.string().min(6).max(24) })).mutation(async ({ input, ctx }) => {
+    const limit = checkRateLimit(`table-call-waiter:${ctx.req.ip}`);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
+    const table = await findTableByToken(input.token);
+    if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
+    const session = await getOrOpenSessionForTable(table.id);
+    await createServiceRequest(session.id);
+    return { success: true };
+  }),
+});

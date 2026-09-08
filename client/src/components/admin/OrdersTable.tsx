@@ -1,0 +1,26 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
+import { ChevronRight, ClipboardList, Printer } from "lucide-react";
+import { Loading, money, nextAction, tone, labels } from "./shared";
+
+const ORIGIN_TAG: Record<string, string> = { GARCOM: "Garçom", QR_CODE: "QR Code", BALCAO: "Balcão" };
+
+function OrderActions({ order }: { order: { id: number; status: string; fulfillmentType: "DELIVERY" | "PICKUP" | "DINE_IN" } }) {
+  const utils = trpc.useUtils(); const update = trpc.admin.updateOrderStatus.useMutation({ onSuccess: () => { void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate(); } });
+  const action = order.status === "PREPARING"
+    ? order.fulfillmentType === "DELIVERY" ? { status: "OUT_FOR_DELIVERY" as const, label: "Saiu para entrega" }
+    : order.fulfillmentType === "DINE_IN" ? { status: "READY_FOR_PICKUP" as const, label: "Pronto para servir" }
+    : { status: "READY_FOR_PICKUP" as const, label: "Pronto para retirada" }
+    : order.status === "READY_FOR_PICKUP" && order.fulfillmentType === "DINE_IN" ? { status: "COMPLETED" as const, label: "Marcar como servido" }
+    : nextAction[order.status];
+  const canCancel = ["PENDING", "ACCEPTED", "PREPARING"].includes(order.status);
+  return <div className="flex items-center justify-end gap-2"><button type="button" onClick={() => window.open(`/admin/comprovante/${order.id}`, "_blank", "noopener,noreferrer")} className="rounded-lg border border-[#d9c9b4] p-1.5 text-[#725645] hover:border-[#b4472d] hover:text-[#b4472d]" aria-label="Abrir comprovante para impressão"><Printer className="h-3.5 w-3.5" /></button>{canCancel && <button type="button" disabled={update.isPending} onClick={() => update.mutate({ orderId: order.id, status: "CANCELLED", note: "Cancelado pelo restaurante" })} className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-50">Cancelar</button>}{action ? <Button size="sm" disabled={update.isPending} onClick={() => update.mutate({ orderId: order.id, status: action.status })} className="h-8 rounded-lg bg-[#b4472d] text-xs hover:bg-[#943722]">{update.isPending ? "Atualizando…" : action.label}<ChevronRight className="ml-1 h-3.5 w-3.5" /></Button> : <span className="text-xs text-muted-foreground">Sem novas ações</span>}</div>;
+}
+
+export default function OrdersTable({ compact = false }: { compact?: boolean }) {
+  const orders = trpc.admin.orders.useQuery({ limit: compact ? 10 : 60 });
+  if (orders.isLoading) return <Loading />; if (orders.error) return <p className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{orders.error.message}</p>;
+  if (!orders.data?.length) return <div className="rounded-2xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-10 text-center"><ClipboardList className="mx-auto mb-3 h-8 w-8 text-[#b89e7a]" /><p className="font-display text-xl font-bold">Nenhum pedido por enquanto.</p><p className="mt-1 text-sm text-muted-foreground">Os próximos pedidos aparecerão aqui automaticamente.</p></div>;
+  return <div className="overflow-hidden rounded-2xl border border-[#e4d8c8] bg-[#fffdf8]"><div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead className="bg-[#f8f1e7] text-xs font-bold uppercase tracking-[.12em] text-[#786c60]"><tr><th className="px-5 py-4">Pedido</th><th className="px-5 py-4">Cliente</th><th className="px-5 py-4">Tipo</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Total</th><th className="px-5 py-4 text-right">Ação</th></tr></thead><tbody>{orders.data.map(order => <tr key={order.id} className="border-t border-[#eee5d9] text-sm"><td className="px-5 py-4"><p className="font-bold">{order.publicCode}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></td><td className="px-5 py-4"><p className="font-medium">{order.customerName}</p><p className="mt-1 text-xs text-muted-foreground">{order.customerPhone}</p></td><td className="px-5 py-4">{order.fulfillmentType === "DELIVERY" ? "Entrega" : order.fulfillmentType === "DINE_IN" ? "Mesa" : "Retirada"}{ORIGIN_TAG[order.origin] ? <span className="ml-1 text-xs text-muted-foreground">· {ORIGIN_TAG[order.origin]}</span> : null}</td><td className="px-5 py-4"><div className="flex flex-wrap gap-1.5"><Badge className={`border-0 ${tone[order.status]}`}>{labels[order.status]}</Badge>{order.paymentMethod === "CARD_ONLINE" ? <Badge className={`border-0 ${order.paymentStatus === "PAID" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{order.paymentStatus === "PAID" ? "Pago" : "Aguard. pagamento"}</Badge> : null}</div></td><td className="px-5 py-4 font-semibold">{money(order.totalCents)}</td><td className="px-5 py-4 text-right"><OrderActions order={order} /></td></tr>)}</tbody></table></div></div>;
+}

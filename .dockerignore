@@ -1,0 +1,17 @@
+# Segredos — nunca devem entrar no contexto/imagem de build
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+backups/
+*.log
+
+.git/
+.vscode/
+.idea/
+
+docs/
+*.md
+!README-INDEPENDENT.md

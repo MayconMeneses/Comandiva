@@ -1,0 +1,12 @@
+# Segredos — nunca devem entrar no contexto/imagem de build
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+*.log
+
+.git/
+.vscode/
+.idea/

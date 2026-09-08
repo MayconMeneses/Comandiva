@@ -1,0 +1,1 @@
+ALTER TABLE `orders` ADD `discountCents` int DEFAULT 0 NOT NULL;

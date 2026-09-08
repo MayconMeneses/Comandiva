@@ -1,0 +1,169 @@
+import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
+import { initTRPC, TRPCError } from "@trpc/server";
+import superjson from "superjson";
+import { getStaffPermissionsByUserId } from "../db/users";
+import type { TrpcContext } from "./context";
+import { ENV } from "./env";
+import { getLicenseSnapshot, type FeatureId } from "./license";
+import type { StaffPermissionArea } from "./permissions";
+
+type FeatureLockedInfo = { featureId: FeatureId; requiredPlanKey: string | null; requiredPlanName: string | null };
+
+const t = initTRPC.context<TrpcContext>().create({
+  transformer: superjson,
+  errorFormatter({ shape, error }) {
+    const cause = error.cause as { featureLocked?: FeatureLockedInfo } | undefined;
+    if (!cause?.featureLocked) return shape;
+    return { ...shape, data: { ...shape.data, featureLocked: cause.featureLocked } };
+  },
+});
+
+export const router = t.router;
+export const mergeRouters = t.mergeRouters;
+export const publicProcedure = t.procedure;
+
+const requireUser = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
+
+export const protectedProcedure = t.procedure.use(requireUser);
+
+/**
+ * Guarda "só usuário real" — sem fallback de sessão de suporte, pros pontos
+ * mais sensíveis que ficam de fora do Modo Suporte mesmo com escrita liberada
+ * no resto: credenciais de gateway de pagamento e gestão de outras contas
+ * admin/staff (ver server/routers/admin/paymentGateways.ts e team.ts).
+ */
+export const adminOnlyProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user || ctx.user.role !== 'admin') {
+      throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
+// Reporta pro saas-core (best-effort) toda mutation feita sob uma sessão de
+// suporte — nunca sob login real, e nunca deixa uma falha de rede derrubar a
+// mutation em si. Ver saas-core/server/routers/support.ts::logWrite.
+function reportSupportWrite(procedurePath: string, supportSession: NonNullable<TrpcContext["supportSession"]>) {
+  if (!ENV.saasCoreUrl || !ENV.saasCoreApiKey) return;
+  fetch(`${ENV.saasCoreUrl.replace(/\/+$/, "")}/api/trpc/support.logWrite`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${ENV.saasCoreApiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ supportSessionId: supportSession.supportSessionId, procedurePath }),
+  }).catch(() => {});
+}
+
+const auditSupportWrite = t.middleware(async ({ ctx, next, path, type }) => {
+  const result = await next();
+  if (result.ok && type === "mutation" && !ctx.user && ctx.supportSession) {
+    reportSupportWrite(path, ctx.supportSession);
+  }
+  return result;
+});
+
+/**
+ * Aceita admin real OU uma sessão de suporte válida — Modo Suporte tem acesso
+ * de leitura E escrita completo por padrão; os poucos pontos que devem ficar
+ * de fora mesmo em modo suporte usam adminOnlyProcedure acima em vez desta.
+ * Sessão real sempre tem prioridade se as duas existirem no mesmo navegador.
+ * Toda mutation feita sob sessão de suporte é reportada ao saas-core
+ * (auditSupportWrite) — ver [[project_saas_whitelabel_transformation]].
+ */
+export const adminProcedure = t.procedure
+  .use(
+    t.middleware(async opts => {
+      const { ctx, next } = opts;
+      if (ctx.user && ctx.user.role === "admin") return next({ ctx: { ...ctx, user: ctx.user } });
+      if (ctx.supportSession) return next({ ctx: { ...ctx, user: null, supportSession: ctx.supportSession } });
+      throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+    }),
+  )
+  .use(auditSupportWrite);
+
+export const restaurantProcedure = t.procedure
+  .use(
+    t.middleware(async opts => {
+      const { ctx, next } = opts;
+      if (ctx.user && (ctx.user.role === "admin" || ctx.user.role === "staff")) return next({ ctx: { ...ctx, user: ctx.user } });
+      if (ctx.supportSession) return next({ ctx: { ...ctx, user: null, supportSession: ctx.supportSession } });
+      throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+    }),
+  )
+  .use(auditSupportWrite);
+
+/**
+ * Igual `restaurantProcedure` (admin sempre passa, sessão de suporte sempre
+ * passa — ambos já têm acesso total), mas uma conta STAFF só passa se essa
+ * área específica estiver na lista de permissões extras dela (ver
+ * server/_core/permissions.ts). Sem nenhuma permissão extra configurada
+ * (`permissions: null`, o padrão), staff continua exatamente como hoje: sem
+ * acesso a essas áreas — isso é aditivo, nunca tira acesso de ninguém.
+ */
+export function restaurantProcedureFor(area: StaffPermissionArea) {
+  return t.procedure
+    .use(
+      t.middleware(async opts => {
+        const { ctx, next } = opts;
+        if (ctx.user?.role === "admin") return next({ ctx: { ...ctx, user: ctx.user } });
+        if (ctx.supportSession) return next({ ctx: { ...ctx, user: null, supportSession: ctx.supportSession } });
+        if (ctx.user?.role === "staff") {
+          const areas = await getStaffPermissionsByUserId(ctx.user.id);
+          if (areas.includes(area)) return next({ ctx: { ...ctx, user: ctx.user } });
+        }
+        throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+      }),
+    )
+    .use(auditSupportWrite);
+}
+
+/**
+ * Middleware de gate por plano — empilhável em cima de qualquer procedure
+ * (public/protected/admin/restaurant) quando o endpoint precisa também
+ * checar se o plano atual do restaurante libera essa feature. O erro carrega
+ * `featureLocked` (via errorFormatter acima) pro frontend distinguir "sem
+ * permissão" de "bloqueado por plano" e oferecer upgrade em vez de só negar.
+ */
+export function requireFeature(featureId: FeatureId) {
+  return t.middleware(async ({ next }) => {
+    const snapshot = await getLicenseSnapshot();
+    if (!snapshot.features.includes(featureId)) {
+      const required = snapshot.lockedFeatures[featureId];
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `Este recurso não está disponível no plano ${snapshot.planKey}.`,
+        cause: {
+          featureLocked: {
+            featureId,
+            requiredPlanKey: required?.requiredPlanKey ?? null,
+            requiredPlanName: required?.requiredPlanName ?? null,
+          } satisfies FeatureLockedInfo,
+        },
+      });
+    }
+    return next();
+  });
+}
+
+/** Açúcar pro caso público (mesa/QR): equivalente a publicProcedure.use(requireFeature(...)). */
+export const featureProcedure = (featureId: FeatureId) => t.procedure.use(requireFeature(featureId));

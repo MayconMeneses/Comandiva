@@ -1,0 +1,39 @@
+import { bigint, index, int, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+
+export const restaurantStatusValues = ["active", "suspended", "cancelled"] as const;
+export type RestaurantStatus = (typeof restaurantStatusValues)[number];
+
+/**
+ * Registro de clientes (restaurantes) do SaaS. Guarda só o necessário pra
+ * cobrança/plano — nunca cardápio, pedidos ou clientes do restaurante, que
+ * continuam 100% no deployment próprio de cada um.
+ */
+export const restaurants = mysqlTable(
+  "restaurants",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    name: varchar("name", { length: 160 }).notNull(),
+    contactName: varchar("contactName", { length: 160 }),
+    contactEmail: varchar("contactEmail", { length: 320 }),
+    contactPhone: varchar("contactPhone", { length: 24 }),
+    // A API key em si nunca é armazenada — só o hash (sha256) e um prefixo
+    // curto pra identificação em telas/logs (ex.: "rk_live_a1b2...").
+    apiKeyHash: varchar("apiKeyHash", { length: 64 }).notNull(),
+    apiKeyPrefix: varchar("apiKeyPrefix", { length: 16 }).notNull(),
+    status: mysqlEnum("status", restaurantStatusValues).notNull().default("active"),
+    // URL pública do deployment deste restaurante (ex.: https://pubx.exemplo.com) —
+    // usada só pelo Modo Suporte pra montar o link de handoff. Nula até ser
+    // configurada (restaurante recém-criado pode não ter URL de produção ainda).
+    deploymentUrl: varchar("deploymentUrl", { length: 500 }),
+    notes: text("notes"),
+    createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
+  },
+  table => [
+    uniqueIndex("restaurants_api_key_hash_unique").on(table.apiKeyHash),
+    index("restaurants_status_idx").on(table.status),
+  ],
+);
+
+export type Restaurant = typeof restaurants.$inferSelect;
+export type InsertRestaurant = typeof restaurants.$inferInsert;

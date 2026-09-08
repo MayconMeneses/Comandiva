@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* Paleta neutra própria do Painel Master — deliberadamente distinta da
+   identidade visual do Pub X (client/index principal), pra nunca confundir
+   visualmente "estou no painel de UM restaurante" com "estou vendo TODOS os
+   restaurantes". */
+@theme {
+  --color-ink: #0f172a;
+  --color-ink-soft: #475569;
+  --color-paper: #f8fafc;
+  --color-paper-raised: #ffffff;
+  --color-border: #e2e8f0;
+  --color-accent: #4338ca;
+  --color-accent-hover: #3730a3;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}

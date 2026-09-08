@@ -1,0 +1,171 @@
+# Project TODO
+
+- [x] Definir a linguagem visual elegante, responsiva e acessível para as áreas pública e administrativa.
+- [x] Criar o modelo relacional para clientes, endereços, categorias, produtos, complementos, pedidos, itens, pagamentos e auditoria.
+- [x] Aplicar a migração de banco de dados do sistema de pedidos.
+- [x] Implementar APIs tipadas e validadas para catálogo público, clientes, checkout, pedidos e operações administrativas.
+- [x] Criar dados operacionais iniciais de cardápio sem avaliações, depoimentos ou classificações fictícias.
+- [x] Criar a entidade relacional de pagamentos vinculada aos pedidos, com método, status, valor, referência e trilha de auditoria.
+- [x] Construir a página pública do restaurante com cabeçalho, categorias, disponibilidade e catálogo de produtos.
+- [x] Implementar detalhes de produto, adicionais configuráveis, observações e seleção de quantidade.
+- [x] Implementar carrinho persistente com edição de itens, subtotal, taxa de entrega e total.
+- [x] Implementar checkout de retirada e delivery com identificação por telefone, cadastro de cliente e confirmação de endereço.
+- [x] Criar acompanhamento público do pedido e atualização de status operacional.
+- [x] Construir painel administrativo protegido para fila de pedidos, atualização de status e gestão de disponibilidade do cardápio.
+- [x] Implementar cadastros administrativos de categorias, produtos e complementos.
+- [x] Completar o fluxo operacional para delivery e retirada, com cancelamento administrativo compatível com cada status.
+- [x] Adicionar edição e ativação completa de categorias, produtos, grupos de complementos e opções existentes.
+- [x] Implementar resumo financeiro e relatórios de pedidos por período.
+- [x] Criar comprovante de pedido otimizado para impressão e preparar o ponto de integração para impressão automática local.
+- [x] Escrever e executar testes automatizados para validações, cálculo de pedido e fluxos críticos da API.
+- [x] Verificar a interface em desktop e celular, corrigir falhas e validar a compilação final.
+- [x] Documentar a arquitetura, as escolhas técnicas, as permissões de acesso e os próximos passos para integrar uma impressora local ou um provedor oficial de SMS/WhatsApp.
+- [x] Extrair e validar os produtos, preços, disponibilidade e referências visuais do arquivo PubX fornecido.
+- [x] Substituir o cardápio inicial pelos dados oficiais e aplicar a paleta/identidade visual presente no material recebido.
+- [x] Transcrever e validar integralmente todos os produtos, preços e categorias legíveis das imagens fornecidas.
+- [x] Conciliar o banco de dados com o cardápio oficial, revisando itens remanescentes do cardápio inicial que não constem no material.
+- [x] Aplicar a identidade visual oficial de forma consistente no site público e no painel administrativo.
+- [x] Adicionar testes dos fluxos críticos de criação de pedido, atualização de status e fila de impressão.
+- [x] Executar build de produção e revisar visualmente o painel administrativo em desktop e celular.
+- [x] Aplicar a identidade visual de forma explícita e uniforme nos principais componentes públicos e administrativos.
+- [x] Cobrir em testes os caminhos bem-sucedidos de criação de pedido, atualização de status e confirmação da fila de impressão.
+- [x] Aplicar a marca do Pub X explicitamente nas telas de acesso administrativo, comprovante e estados principais restantes.
+- [x] Cobrir em teste os caminhos bem-sucedidos de criação, mudança de status e confirmação da fila de impressão.
+- [x] Aplicar logotipo e identidade Pub X diretamente no comprovante imprimível e revisar estados principais.
+- [x] Tratar erro e permitir nova tentativa na tela de relatórios por período.
+- [x] Reduzir e padronizar o tamanho das imagens nos cartões do cardápio público.
+- [x] Reorganizar o cardápio em categorias claras: hambúrgueres, hambúrgueres artesanais, pizzas, pizzas especiais, pizzas doces, espetinhos, petiscos e refrigerantes.
+- [x] Criar uma área de promoções no cardápio público e uma estrutura administrativa para controlar sua exibição.
+- [x] Ocultar categorias sem produtos da vitrine pública e manter refrigerantes pronto para preenchimento pelo painel.
+- [x] Reduzir novamente os cartões de produto e organizar cada categoria como um trilho lateral navegável, evitando uma página extensa.
+- [x] Analisar a referência de navegação indicada pelo usuário e adaptar seus princípios de experiência ao cardápio do Pub X, sem reutilizar marca ou conteúdo.
+- [x] Extrair novamente dos arquivos do Pub X os pratos executivos e de almoço com dados confirmados.
+- [x] Cadastrar a categoria e os itens oficiais de almoço executivo com preço confirmado no cardápio.
+- [x] Criar destaque de descoberta para almoço executivo na vitrine pública.
+- [x] Confirmar preços e composições das refeições para duas a três pessoas antes de habilitá-las para pedido.
+- [x] Cadastrar e destacar refeições compartilháveis após a confirmação dos dados comerciais.
+- [x] Cadastrar as refeições individuais, pratos do dia, refeições para duas a três pessoas e guarnições confirmados nas novas imagens.
+- [x] Criar e ativar a promoção de happy hour com itens, valores e período de terça a sexta-feira.
+- [x] Compactar a faixa de promoções em uma passagem lateral no celular, evitando excesso de altura na página.
+- [x] Exibir uma confirmação após adicionar ou editar um item, permitindo continuar comprando ou abrir o carrinho para finalizar.
+- [x] Tornar cartões de promoção clicáveis e levá-los às categorias ou produtos correspondentes do cardápio.
+- [x] Configurar os adicionais e valores confirmados para os hambúrgueres tradicionais e artesanais.
+- [x] Cadastrar as categorias de pastéis e caldos com itens e preços confirmados nas imagens enviadas.
+- [x] Criar uma seção final de atendimento, benefícios e atalhos de pedido para equilibrar a página pública.
+- [x] Padronizar altura, proporção e enquadramento das imagens em todos os cartões de produto do cardápio.
+- [x] Substituir o acompanhamento público por código por uma busca de pedidos usando o telefone do cliente.
+- [x] Corrigir a autorização da conta proprietária no painel administrativo do restaurante.
+- [x] Exibir validação no formulário quando o telefone de acompanhamento estiver incompleto ou inválido.
+- [x] Listar os pedidos em andamento encontrados para o telefone, permitindo escolher qual acompanhar.
+- [x] Corrigir o atalho de acesso no rodapé para abrir a área correta da equipe do restaurante.
+- [x] Criar uma área operacional separada para a equipe atualizar pedidos como aceito, em preparo e saiu para entrega.
+- [x] Exibir o nome cadastrado na confirmação de cliente existente durante o checkout.
+- [x] Corrigir a regra que rebaixa a conta proprietária após novo login Local.
+- [x] Criar contas de acesso próprias da equipe com usuário, senha protegida e permissão operacional.
+- [x] Integrar o login próprio à área de pedidos e permitir ao proprietário gerir os acessos criados.
+- [x] Criar rotas de entrega configuráveis com taxa, prazo e disponibilidade próprios.
+- [x] Aplicar a rota selecionada ao cálculo e à confirmação de entrega no checkout.
+- [x] Adicionar gestão administrativa para cadastrar, editar, pausar e excluir rotas de entrega.
+- [x] Conferir e cadastrar bebidas oficiais, incluindo refrigerantes, sucos e água, no cardápio público.
+- [x] Cadastrar Coca-Cola, Kuat, Guaraná Antarctica, sucos por sabor e água mineral com os valores informados.
+- [x] Reforçar a legibilidade, o fundo e o estado ativo da navegação administrativa.
+- [x] Permitir cadastrar imagens de produtos por URL ou upload de arquivo de até 20 MB.
+- [x] Integrar o envio de imagem ao formulário de produto, preenchendo a imagem automaticamente após o upload.
+- [x] Cobrir o formulário de produto com as opções de URL externa e arquivo de até 20 MB.
+- [x] Substituir o modal antigo de Novo item pelo único formulário com URL ou upload direto de imagem.
+- [x] Validar o fluxo unificado de criação de produto com imagem no painel administrativo.
+- [x] Remover o modal legado de Novo item e manter um único formulário de produto com URL ou upload.
+- [x] Validar funcionalmente o cadastro de produto pela URL e pelo upload, com preenchimento automático da imagem.
+- [x] Corrigir o painel lateral no celular para usar fundo opaco e textos de alto contraste.
+- [x] Adicionar ações visíveis de editar e excluir a cada produto existente no cardápio administrativo.
+- [x] Garantir que produtos excluídos não sejam retornados no catálogo administrativo.
+- [x] Exibir confirmação e mensagens de erro ao editar ou excluir produtos existentes.
+- [x] Validar a persistência da edição e da exclusão lógica de produtos no fluxo administrativo.
+- [x] Cobrir comportamentalmente a edição de produto e a ocultação de produto arquivado nas consultas administrativas.
+- [x] Testar a consulta administrativa do catálogo para confirmar que produtos arquivados não são exibidos.
+- [x] Simular produto ativo e produto arquivado na consulta administrativa para comprovar o filtro da listagem.
+- [x] Permitir ao administrador consultar, editar e excluir informações de pedidos recebidos com registro de alteração.
+- [x] Permitir ao administrador associar, substituir ou excluir uma imagem/comprovante de apoio em cada pedido.
+- [x] Destacar no painel a opção de tirar produtos do cardápio temporariamente e reativá-los depois.
+- [x] Adicionar limpeza explícita e auditada de observações administrativas de um pedido.
+- [x] Permitir substituir uma imagem/comprovante existente sem removê-la antes.
+- [x] Adicionar botões de status na aba Pedidos para aceitar, iniciar preparo, enviar para rota, liberar retirada e concluir pedidos.
+- [x] Destacar pedidos aguardando aceite e mostrar o próximo status permitido em cada pedido.
+- [x] Validar o fluxo operacional de status diretamente na aba Pedidos.
+- [x] Reforçar a priorização visual dos pedidos aguardando aceite na aba Pedidos com destaque específico e ordenação prioritária.
+- [x] Adicionar teste comportamental do mapeamento de próxima etapa e do acionamento de atualização de status na aba Pedidos.
+- [x] Cobrir o handler do botão da aba Pedidos, verificando que o clique dispara a atualização com o próximo status e o ID correto.
+- [x] Restaurar a barra de gestão de acessos administrativos no painel principal.
+- [x] Permitir ao administrador principal cadastrar administradores adicionais sem limite artificial de quantidade.
+- [x] Conceder aos administradores adicionais acesso completo a clientes, produtos, pedidos, rotas, relatórios e demais módulos administrativos.
+- [x] Permitir editar, pausar, reativar e remover administradores adicionais com proteção contra remoção do administrador principal.
+- [x] Testar a criação, autenticação, permissões e gestão dos administradores adicionais na interface administrativa.
+- [x] Testar criação bem-sucedida de administrador adicional via team.create com role admin.
+- [x] Testar autenticação de administrador local via team.login e retorno de role admin.
+- [x] Testar acesso de administrador adicional aos procedimentos centrais de clientes, catálogo, pedidos, rotas e visão geral.
+- [x] Testar na interface a edição, pausa, reativação, remoção e proteção do administrador principal.
+- [x] Testar que um administrador adicional autenticado consegue acessar visão geral, clientes, catálogo, pedidos e rotas.
+- [x] Adicionar teste de interface para reativar uma conta pausada.
+- [x] Adicionar descrição acessível ao modal de gestão de acessos e eliminar os warnings da suíte.
+- [x] Substituir a imagem atual ao lado do nome Pub X pelo logotipo enviado no cabeçalho público e administrativo.
+- [x] Validar o enquadramento do novo logotipo em desktop e celular e publicar a alteração.
+- [x] Salvar um novo checkpoint/publicação após a troca do logotipo.
+- [x] Conferir e cobrir qualquer cabeçalho restante que ainda use a imagem antiga.
+- [x] Adicionar seletor claro/escuro abaixo da marca Pub X na tela inicial.
+- [x] Persistir a preferência de tema no navegador e respeitar a escolha na vitrine pública.
+- [x] Validar contraste, acessibilidade, responsividade e funcionamento do seletor de tema.
+- [x] Adicionar teste de interação real para alternar Claro/Escuro e verificar a persistência em localStorage.
+- [x] Validar em navegador a troca para Escuro, o recarregamento e a legibilidade resultante em desktop e celular.
+- [x] Validar com assert no navegador que clicar em Escuro aplica a classe dark e ativa o botão Escuro.
+- [x] Validar no navegador, em desktop e celular, que o tema escolhido permanece aplicado após recarregar e mantém textos e controles legíveis.
+- [x] Validar no navegador móvel, com assert, a persistência do tema escuro após recarregar.
+- [x] Confirmar por assert a legibilidade mínima do cabeçalho e da vitrine no tema escuro em mobile.
+- [x] Executar uma validação móvel simulada no navegador com viewport lógica de 390px, mantendo os asserts de persistência e contraste documentados.
+- [x] Comparar por assert móvel simulado as cores computadas do fundo e do título no tema escuro.
+- [x] Rerodar e registrar a evidência móvel completa com persistência, classe dark, botão ativo e contraste.
+- [x] Reconfirmar e reforçar a presença do seletor Claro/Escuro abaixo da marca Pub X na tela inicial.
+- [x] Revalidar a interação, a persistência e a publicação do seletor de tema.
+- [x] Salvar um novo checkpoint/publicação após a implementação do seletor de tema claro/escuro.
+- [x] Validar a versão publicada após o checkpoint para confirmar que o seletor aparece e funciona no ambiente entregue.
+- [x] Inventariar a estrutura completa do projeto, arquivos, dependências, assets e dados acessíveis.
+- [x] Centralizar configurações em variáveis de ambiente e criar `.env.example` sem segredos reais.
+- [x] Documentar e preparar a separação entre frontend, backend/API, banco, storage e serviços externos.
+- [x] Entregar schema, migrations, seeds, scripts e estratégia de migração dos dados atuais.
+- [x] Criar scripts de backup e restauração e documentar o procedimento operacional.
+- [x] Criar Dockerfile/Docker Compose ou documentar tecnicamente eventual incompatibilidade.
+- [x] Escrever guia completo de instalação, execução, build, deploy, domínio, HTTPS e serviços externos.
+- [x] Auditar todas as dependências Local, URLs, SDKs, APIs, autenticação, storage, filas, jobs e credenciais.
+- [x] Gerar pacote integral exportável e validar sua integridade sem expor segredos.
+- [x] Inventariar a estrutura completa do projeto, arquivos, dependências, assets e dados acessíveis.
+- [x] Centralizar configurações em variáveis de ambiente e criar `.env.example` sem segredos reais.
+- [x] Documentar e preparar a separação entre frontend, backend/API, banco, storage e serviços externos.
+- [x] Entregar schema, migrations, seeds, scripts e estratégia de migração dos dados atuais.
+- [x] Criar scripts de backup e restauração e documentar o procedimento operacional.
+- [x] Criar Dockerfile/Docker Compose ou documentar tecnicamente eventual incompatibilidade.
+- [x] Escrever guia completo de instalação, execução, build, deploy, domínio, HTTPS e serviços externos.
+- [x] Auditar todas as dependências Local, URLs, SDKs, APIs, autenticação, storage, filas, jobs e credenciais.
+- [x] Criar teste final em ambiente limpo simulando instalação do zero.
+- [x] Gerar ZIP integral exportável e validar sua integridade sem expor segredos.
+- [x] Corrigir erro de sintaxe detectado no script `scripts/backup-db.mjs` e revalidar os scripts operacionais.
+- [x] Refatorar a configuração genérica para concentrar DB, auth, storage, URLs e integrações, mantendo dependências Local somente em modo legado documentado.
+- [x] Gerar e versionar uma migration inicial real a partir de `drizzle/schema.ts` e validá-la em uma base vazia.
+- [x] Executar teste de instalação do zero com banco independente real, APIs e autenticação local; upload/storage independente permanece condicionado a S3/MinIO com credenciais próprias.
+- [x] Completar ou substituir os assets que não puderam ser baixados e registrar cada exceção no manifesto.
+- [x] Corrigir o smoke test independente para usar POST no login tRPC e repetir a validação de autenticação local.
+- [x] Validar upload end-to-end contra um bucket S3/MinIO independente com credenciais próprias.
+- [x] Documentar a exportação de dados de produção e objetos privados atuais como etapa condicionada ao acesso autenticado ao banco e ao storage de origem, sem inventar dados inacessíveis.
+- [x] Isolar os adaptadores legados Local como compatibilidade opcional; no modo independente eles não são registrados nem exigidos, e sua remoção definitiva fica condicionada à migração de dados privados de origem.
+- [x] Refatorar `client/src/const.ts` e `client/src/main.tsx` para remover o fluxo Local obrigatório e usar configuração genérica/local.
+- [x] Desativar explicitamente autenticação externa, storageProxy e runtime Local quando `` e ``.
+- [x] Executar upload end-to-end em S3/MinIO independente real e validar o arquivo no sistema.
+- [x] Repetir a instalação limpa completa após validar o storage independente.
+
+- [x] Auditar e remover todas as referências textuais, URLs, variáveis, plugins, SDKs, rotas, arquivos e dependências Local do código-fonte exportável.
+- [x] Substituir autenticação e storage por interfaces exclusivamente genéricas/local/S3, sem adaptadores Local.
+- [x] Remover metadados, scripts, comentários e artefatos proprietários Local do pacote independente.
+- [x] Reexecutar testes, build, smoke test e auditoria de referências após a remoção completa.
+- [x] Gerar e entregar novo ZIP totalmente independente, sem qualquer ocorrência de Local no conteúdo do código exportável.
+
+- [x] Garantir execução ponta a ponta fora da Local com banco próprio, autenticação local, storage S3/MinIO, frontend e backend configurados por ambiente.
+- [x] Remover do pacote exportável toda dependência proprietária não necessária ao modo independente e comprovar ausência de chamadas obrigatórias externas.
+- [x] Revalidar o fluxo completo independente e entregar um novo pacote funcional com instruções claras de inicialização.
