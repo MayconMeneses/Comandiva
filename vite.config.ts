@@ -44,6 +44,15 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         globPatterns: ["**/*.{js,css,html,svg,ico,png,woff2}"],
+        // Chunks exclusivos de equipe (nunca carregados no load inicial de
+        // "/", graças ao React.lazy em App.tsx) — sem isso, o precache do
+        // install baixava ~319KB desses chunks em segundo plano pra QUALQUER
+        // visitante anônimo do cardápio, reintroduzindo pela porta do Service
+        // Worker o mesmo desperdício que o code-splitting resolveu no bundle
+        // da página. TableSession (/mesa) e DataRights (/meus-dados) ficam de
+        // fora desta lista de propósito — são rotas públicas de verdade, só
+        // não fazem parte do load inicial.
+        globIgnores: ["**/Admin-*.js", "**/RestaurantOrders-*.js", "**/SupportEntry-*.js", "**/TeamLoginCard-*.js"],
         // Cardápio é uma SPA (wouter) — toda navegação cai no mesmo
         // index.html; nunca deixar isso interceptar chamadas de API.
         navigateFallback: "/index.html",

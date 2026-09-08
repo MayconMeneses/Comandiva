@@ -163,3 +163,22 @@ export async function markOrderPaymentPaidByPublicCode(publicCode: string, provi
   }
   return { found: true as const, orderId: order.id };
 }
+
+// Espelha markOrderPaymentPaidByPublicCode, mas pro caso de o Mercado Pago
+// reportar recusa/cancelamento/estorno via webhook (não só aprovação). Sem
+// isso, um pagamento recusado no lado do MP deixava o pedido silenciosamente
+// PENDING pra sempre, sem sinalizar a recusa pra equipe. orders.paymentStatus
+// nunca muda aqui — o enum dele é só PENDING/PAID (nunca representou "falhou"
+// nem "estornado"); quem carrega esse detalhe é sempre payments.status, já
+// exposto em getOrderWithDetails/attachOrderDetails.
+export async function markOrderPaymentFailedByPublicCode(publicCode: string, providerReference: string, status: "CANCELLED" | "REFUNDED") {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const [order] = await db.select().from(orders).where(eq(orders.publicCode, publicCode)).limit(1);
+  if (!order) return { found: false as const };
+  const now = Date.now();
+  const updates: Partial<typeof payments.$inferInsert> = { status, providerReference, updatedAt: now };
+  if (status === "REFUNDED") updates.refundedAt = now;
+  await db.update(payments).set(updates).where(eq(payments.orderId, order.id));
+  return { found: true as const, orderId: order.id };
+}

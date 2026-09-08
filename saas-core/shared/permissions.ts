@@ -5,7 +5,7 @@
  * sempre tem tudo, "member" só o que foi marcado, aditivo e nunca o
  * contrário. Compartilhado entre client (checkboxes) e server (validação).
  */
-export const GRANTABLE_MASTER_AREAS = ["restaurantes", "planos", "auditoria", "modo_suporte", "billing", "equipe"] as const;
+export const GRANTABLE_MASTER_AREAS = ["restaurantes", "planos", "auditoria", "modo_suporte", "billing", "equipe", "manutencao"] as const;
 export type MasterPermissionArea = (typeof GRANTABLE_MASTER_AREAS)[number];
 
 export const MASTER_AREA_LABELS: Record<MasterPermissionArea, string> = {
@@ -15,4 +15,8 @@ export const MASTER_AREA_LABELS: Record<MasterPermissionArea, string> = {
   modo_suporte: "Modo Suporte (acessar o painel de um restaurante)",
   billing: "Cobrança (configurar/ajustar assinatura de um restaurante)",
   equipe: "Equipe (gerenciar outras contas do Painel Master)",
+  // Hoje é só leitura (versão rodando) — deploy/rollback disparado por aqui
+  // ainda não existe de verdade, precisa de decisão de arquitetura antes
+  // (como o Master alcançaria a VPS com segurança).
+  manutencao: "Manutenção (ver versão/saúde do sistema)",
 };

@@ -7,6 +7,16 @@ import { createContext } from "./context";
 import { registerMercadoPagoBillingWebhook } from "./mercadoPagoWebhook";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const APP_VERSION = (() => {
+  try {
+    return (JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf-8")) as { version?: string }).version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+})();
 
 process.on("uncaughtException", error => {
   console.error("[fatal] uncaughtException:", error);
@@ -32,6 +42,17 @@ async function startServer() {
     );
     process.exit(1);
   }
+  // Diferente dos segredos acima, este é aviso — não trava o boot (a própria
+  // documentação em .env.example já chama de "opcional mas recomendada").
+  // Risco é mitigado porque o handler do webhook sempre reconsulta a API
+  // oficial do Mercado Pago antes de confiar em qualquer coisa; mesmo assim,
+  // vale saber que a assinatura não está sendo validada em produção.
+  if (ENV.mercadoPagoAccessToken && !ENV.mercadoPagoWebhookSecret) {
+    console.warn(
+      "[boot] MERCADO_PAGO_ACCESS_TOKEN configurado mas MERCADO_PAGO_WEBHOOK_SECRET está em branco — " +
+        "notificações de cobrança não têm verificação de assinatura. Configure em Central de vendedores → Webhooks.",
+    );
+  }
 
   const app = express();
   const server = createServer(app);
@@ -46,6 +67,7 @@ async function startServer() {
     next();
   });
   app.get("/healthz", (_req, res) => res.status(200).json({ ok: true }));
+  app.get("/version", (_req, res) => res.status(200).json({ version: APP_VERSION, commit: process.env.GIT_COMMIT ?? "unknown" }));
   app.use(express.json({ limit: "1mb" }));
   // Cobrança da mensalidade do SaaS (restaurante-cliente pagando a
   // plataforma) — rota HTTP simples, fora do tRPC, porque quem chama é o

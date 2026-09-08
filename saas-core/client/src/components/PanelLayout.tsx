@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { label: "Planos", path: "/planos", area: "planos" },
   { label: "Auditoria", path: "/auditoria", area: "auditoria" },
   { label: "Equipe", path: "/equipe", area: "equipe" },
+  { label: "Manutenção", path: "/manutencao", area: "manutencao" },
 ] as const;
 
 export function PanelLayout({ children }: { children: React.ReactNode }) {

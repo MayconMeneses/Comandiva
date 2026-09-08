@@ -1,10 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { eq } from "drizzle-orm";
 import { paymentGateways } from "../../drizzle/schema";
-import { markOrderPaymentPaidByPublicCode } from "../db";
+import { markOrderPaymentFailedByPublicCode, markOrderPaymentPaidByPublicCode } from "../db";
 import { getMercadoPagoPayment, verifyMercadoPagoWebhookSignature } from "./mercadoPago";
 import { getDb } from "../db";
 import { checkRateLimit } from "./rateLimit";
+
+let warnedMissingSecretOnce = false;
 
 export async function handleMercadoPagoWebhook(req: Request, res: Response) {
   // Responder rápido é parte do contrato do Mercado Pago (eles reenviam se
@@ -57,6 +59,14 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
         res.status(200).json({ received: true });
         return;
       }
+    } else if (!warnedMissingSecretOnce) {
+      // Diferente do JWT_SECRET, isto não trava o boot — a chave secreta do
+      // webhook é configurada por restaurante (Admin → Conta), não por env
+      // global, então não dá pra checar antes do primeiro webhook chegar. A
+      // consulta à API do MP logo abaixo já protege contra corpo forjado
+      // mesmo sem assinatura, mas fica sem essa camada extra até configurar.
+      warnedMissingSecretOnce = true;
+      console.warn("[webhook] Gateway Mercado Pago ativo sem 'chave secreta' de webhook configurada (Admin → Conta) — notificações não têm verificação de assinatura.");
     }
 
     // Nunca confiamos no corpo do webhook em si — qualquer um pode fazer POST
@@ -64,8 +74,16 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
     // nosso access token. Se o ID não existir ou não bater com um pedido
     // nosso (external_reference), simplesmente não acontece nada.
     const payment = await getMercadoPagoPayment(gateway.apiKey, String(paymentId));
-    if (payment.status === "approved" && payment.externalReference) {
-      await markOrderPaymentPaidByPublicCode(payment.externalReference, String(payment.id));
+    if (payment.externalReference) {
+      if (payment.status === "approved") {
+        await markOrderPaymentPaidByPublicCode(payment.externalReference, String(payment.id));
+      } else if (payment.status === "rejected" || payment.status === "cancelled") {
+        await markOrderPaymentFailedByPublicCode(payment.externalReference, String(payment.id), "CANCELLED");
+      } else if (payment.status === "refunded" || payment.status === "charged_back") {
+        await markOrderPaymentFailedByPublicCode(payment.externalReference, String(payment.id), "REFUNDED");
+      }
+      // "pending"/"in_process" não exigem ação — o pagamento já nasce
+      // PENDING (default do schema) e continua assim até o MP notificar de novo.
     }
   } catch (error) {
     console.error("[webhook] Falha ao processar notificação do Mercado Pago:", error);

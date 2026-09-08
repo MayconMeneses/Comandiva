@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { GRANTABLE_MASTER_AREAS } from "../shared/permissions";
 import { parseMasterPermissions, serializeMasterPermissions } from "./_core/permissions";
 
 describe("parseMasterPermissions / serializeMasterPermissions", () => {
@@ -39,7 +40,7 @@ describe("getPlatformAdminById — owner vs member", () => {
       select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ id: 1, name: "Dono", email: "a@a.com", passwordHash: "x", role: "owner", permissions: null, active: true, lastSignedInAt: null, createdAt: 0, updatedAt: 0 }] }) }) }),
     });
     const admin = await getPlatformAdminById(1);
-    expect(admin?.permissions).toEqual(["restaurantes", "planos", "auditoria", "modo_suporte", "billing", "equipe"]);
+    expect(admin?.permissions).toEqual([...GRANTABLE_MASTER_AREAS]);
   });
 
   it("member só recebe as áreas realmente salvas na coluna permissions", async () => {

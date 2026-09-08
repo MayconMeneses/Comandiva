@@ -3,6 +3,7 @@ import AuditLog from "./pages/AuditLog";
 import Dashboard from "./pages/Dashboard";
 import Equipe from "./pages/Equipe";
 import Login from "./pages/Login";
+import Manutencao from "./pages/Manutencao";
 import NotFound from "./pages/NotFound";
 import Plans from "./pages/Plans";
 import RestaurantDetail from "./pages/RestaurantDetail";
@@ -18,6 +19,7 @@ export default function App() {
       <Route path="/planos" component={Plans} />
       <Route path="/auditoria" component={AuditLog} />
       <Route path="/equipe" component={Equipe} />
+      <Route path="/manutencao" component={Manutencao} />
       <Route component={NotFound} />
     </Switch>
   );

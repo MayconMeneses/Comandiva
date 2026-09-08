@@ -9,6 +9,19 @@ import { serveStatic, setupVite } from "./vite";
 import { sendOwnerAlert } from "./alerts";
 import { registerMercadoPagoWebhook } from "./mercadoPagoWebhook";
 import { ENV } from "./env";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+// Lido via fs (não import direto do JSON) pra não depender de suporte a
+// import attributes no esbuild/tsc — package.json já é copiado pra
+// ./package.json na imagem de produção (ver infra/Dockerfile).
+const APP_VERSION = (() => {
+  try {
+    return (JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf-8")) as { version?: string }).version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+})();
 
 process.on("uncaughtException", error => {
   console.error("[fatal] uncaughtException:", error);
@@ -70,6 +83,11 @@ async function startServer() {
   // Healthcheck simples para Docker/monitoramento — sem autenticação, sem tocar no banco.
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ ok: true });
+  });
+  // Sem autenticação, de propósito (mesmo raciocínio do /healthz) — só
+  // identifica qual código está rodando, não expõe nenhum dado do restaurante.
+  app.get("/version", (_req, res) => {
+    res.status(200).json({ version: APP_VERSION, commit: process.env.GIT_COMMIT ?? "unknown" });
   });
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "150mb" }));

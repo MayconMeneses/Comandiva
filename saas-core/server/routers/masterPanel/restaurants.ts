@@ -11,7 +11,7 @@ import {
   setRestaurantStatus,
   updateRestaurantContact,
 } from "../../db/restaurants";
-import { assignPlan, getSubscriptionForRestaurant, updateSubscriptionStatus } from "../../db/subscriptions";
+import { assignPlan, getSubscriptionForRestaurant, listSubscriptionEventsForRestaurant, updateSubscriptionStatus } from "../../db/subscriptions";
 import { recordPlatformAuditLog } from "../../db/auditLog";
 import { platformAdminProcedureFor, router } from "../../_core/trpc";
 
@@ -52,6 +52,10 @@ export const masterPanelRestaurantsRouter = router({
     if (!detail) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
     return detail;
   }),
+
+  subscriptionEvents: restaurantsProcedure
+    .input(z.object({ restaurantId: z.number().int().positive() }))
+    .query(({ input }) => listSubscriptionEventsForRestaurant(input.restaurantId)),
 
   assignPlan: restaurantsProcedure
     .input(z.object({ restaurantId: z.number().int().positive(), planKey: z.enum(planKeyValues) }))

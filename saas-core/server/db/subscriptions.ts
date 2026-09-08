@@ -63,6 +63,19 @@ export async function listBillingPaymentsForSubscription(subscriptionId: number)
   return db.select().from(billingPayments).where(eq(billingPayments.subscriptionId, subscriptionId)).orderBy(desc(billingPayments.createdAt));
 }
 
+// Histórico de mudanças de plano/status de UM restaurante — já era gravado
+// corretamente por recordEvent() em toda mudança (self-service, webhook ou
+// operador), só nunca teve leitura por restaurante exposta (só existia
+// agregado, em db/dashboard.ts). Resolve restaurantId -> subscriptionId
+// primeiro porque subscription_events é indexado por subscriptionId.
+export async function listSubscriptionEventsForRestaurant(restaurantId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  const current = await getSubscriptionForRestaurant(restaurantId);
+  if (!current) return [];
+  return db.select().from(subscriptionEvents).where(eq(subscriptionEvents.subscriptionId, current.subscription.id)).orderBy(desc(subscriptionEvents.createdAt)).limit(limit);
+}
+
 export async function getSubscriptionByGatewaySubscriptionId(gatewaySubscriptionId: string) {
   const db = await getDb();
   if (!db) return undefined;

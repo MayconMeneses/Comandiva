@@ -6,9 +6,11 @@ import { verifyMercadoPagoWebhookSignature } from "./_core/mercadoPago";
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
   getMercadoPagoPayment: vi.fn(),
+  markOrderPaymentPaidByPublicCode: vi.fn(),
+  markOrderPaymentFailedByPublicCode: vi.fn(),
 }));
 
-vi.mock("./db", () => ({ getDb: mocks.getDb, markOrderPaymentPaidByPublicCode: vi.fn() }));
+vi.mock("./db", () => ({ getDb: mocks.getDb, markOrderPaymentPaidByPublicCode: mocks.markOrderPaymentPaidByPublicCode, markOrderPaymentFailedByPublicCode: mocks.markOrderPaymentFailedByPublicCode }));
 vi.mock("./_core/mercadoPago", async importOriginal => ({
   ...(await importOriginal<typeof import("./_core/mercadoPago")>()),
   getMercadoPagoPayment: mocks.getMercadoPagoPayment,
@@ -122,5 +124,31 @@ describe("webhook do Mercado Pago", () => {
     const { req, res, getResult } = fakeReqRes(undefined);
     await expect(handleMercadoPagoWebhook(req, res)).resolves.not.toThrow();
     expect(getResult().statusCode).toBe(200);
+  });
+
+  it("pagamento recusado (rejected) marca o pagamento do pedido como CANCELLED", async () => {
+    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: null }] }) }) }) });
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "rejected", externalReference: "PX-ABC1234" });
+    const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await handleMercadoPagoWebhook(req, res);
+    expect(mocks.markOrderPaymentFailedByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", "CANCELLED");
+    expect(mocks.markOrderPaymentPaidByPublicCode).not.toHaveBeenCalled();
+  });
+
+  it("pagamento estornado (refunded) marca o pagamento do pedido como REFUNDED", async () => {
+    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: null }] }) }) }) });
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "refunded", externalReference: "PX-ABC1234" });
+    const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await handleMercadoPagoWebhook(req, res);
+    expect(mocks.markOrderPaymentFailedByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", "REFUNDED");
+  });
+
+  it("pagamento pendente/em processo não muda nada (nem paga, nem falha)", async () => {
+    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: null }] }) }) }) });
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "in_process", externalReference: "PX-ABC1234" });
+    const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await handleMercadoPagoWebhook(req, res);
+    expect(mocks.markOrderPaymentFailedByPublicCode).not.toHaveBeenCalled();
+    expect(mocks.markOrderPaymentPaidByPublicCode).not.toHaveBeenCalled();
   });
 });

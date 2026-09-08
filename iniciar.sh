@@ -77,6 +77,7 @@ else
 fi
 
 echo "==> Subindo banco de dados, storage e aplicação..."
+export GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
 docker compose -f docker-compose.independent.yml up -d --build
 
 echo ""

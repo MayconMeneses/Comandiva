@@ -11,6 +11,22 @@ const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 const PLAN_KEYS = ["essencial", "profissional", "premium"] as const;
 const SUBSCRIPTION_STATUSES = ["trial", "active", "payment_pending", "past_due", "cancel_at_period_end", "canceled", "suspended", "ended"] as const;
 const RESTAURANT_STATUSES = ["active", "suspended", "cancelled"] as const;
+const SUBSCRIPTION_EVENT_LABEL: Record<string, string> = {
+  created: "Assinatura criada (cadastro do restaurante)",
+  plan_changed: "Plano alterado (operador)",
+  status_changed: "Status alterado (operador)",
+  plan_upgraded: "Upgrade aplicado",
+  downgrade_scheduled: "Downgrade agendado",
+  downgrade_applied: "Downgrade aplicado",
+  downgrade_cancelled: "Downgrade cancelado",
+  checkout_started: "Checkout iniciado",
+  cancellation_scheduled: "Cancelamento agendado",
+  cancellation_undone: "Cancelamento desfeito",
+  cancellation_finalized: "Cancelamento efetivado",
+  mercadopago_preapproval_created: "Assinatura Mercado Pago criada",
+  mercadopago_status_changed: "Status sincronizado do Mercado Pago",
+  plan_activated_from_payment: "Plano ativado (pagamento confirmado)",
+};
 
 type Tab = "dados" | "plano" | "pagamentos";
 
@@ -48,6 +64,7 @@ export default function RestaurantDetail() {
     onSuccess: data => { window.open(data.entryUrl, "_blank", "noopener,noreferrer"); setPendingSupportEntry(false); },
   });
   const startBilling = trpc.masterPanel.billing.startMercadoPagoSubscription.useMutation({ onSuccess: invalidate });
+  const subscriptionEvents = trpc.masterPanel.restaurants.subscriptionEvents.useQuery({ restaurantId }, { enabled: tab === "plano" });
 
   if (detail.isLoading) return <PanelLayout><p className="text-sm text-ink-soft">Carregando…</p></PanelLayout>;
   if (detail.error || !detail.data) return <PanelLayout><p className="text-sm text-red-700">Restaurante não encontrado.</p></PanelLayout>;
@@ -278,6 +295,24 @@ export default function RestaurantDetail() {
                 Link gerado — envie pro dono do restaurante autorizar: <a className="text-accent underline" href={startBilling.data.authorizationUrl} target="_blank" rel="noopener noreferrer">{startBilling.data.authorizationUrl}</a>
               </p>
             ) : null}
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Histórico de mudanças</p>
+            {subscriptionEvents.isLoading ? (
+              <p className="mt-1 text-xs text-ink-soft">Carregando…</p>
+            ) : subscriptionEvents.data?.length ? (
+              <ul className="mt-2 space-y-1.5">
+                {subscriptionEvents.data.map(event => (
+                  <li key={event.id} className="text-xs text-ink-soft">
+                    {new Date(event.createdAt).toLocaleString("pt-BR")} · {SUBSCRIPTION_EVENT_LABEL[event.eventType] ?? event.eventType}
+                    {event.actor ? ` · ${event.actor}` : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-xs text-ink-soft">Nenhuma mudança registrada ainda.</p>
+            )}
           </div>
         </div>
       ) : null}
