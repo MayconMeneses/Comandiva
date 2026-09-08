@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  app-principal:
+    name: App principal (Pub X)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Versão fixa (10.4.1), igual ao "packageManager" do package.json da
+      # raiz — evitar auto-detecção porque o job do saas-core (abaixo) usa
+      # uma versão diferente do pnpm no próprio package.json dele.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm run build
+      - run: pnpm test
+
+  saas-core:
+    name: saas-core (billing / Painel Master)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: saas-core
+    steps:
+      - uses: actions/checkout@v4
+      # Versão fixa (11.24.0), igual ao "packageManager" de saas-core/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: saas-core/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm run build
+      - run: pnpm test
