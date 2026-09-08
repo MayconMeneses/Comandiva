@@ -12,7 +12,7 @@ export default function About() {
       <header className="border-b bg-[#fffdf8]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
-          <span className="font-display text-xl font-bold">Pub X</span>
+          <span className="font-display text-xl font-bold">MM System Creator</span>
           <span className="w-32" />
         </div>
       </header>
@@ -22,7 +22,7 @@ export default function About() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#15120f] via-[#15120f]/85 to-[#15120f]/30" />
         <div className="page-shell relative py-16 sm:py-24">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-[#e9c98f]">Nossa história</p>
-          <h1 className="mt-3 max-w-2xl font-display text-4xl font-bold leading-tight sm:text-5xl">Sobre o Pub X</h1>
+          <h1 className="mt-3 max-w-2xl font-display text-4xl font-bold leading-tight sm:text-5xl">Sobre o MM System Creator</h1>
         </div>
       </section>
 
@@ -30,7 +30,7 @@ export default function About() {
         <div className="space-y-6 whitespace-pre-line text-sm leading-7 text-[#3a2f25]">
           {settings.data?.aboutText ? settings.data.aboutText : (
             <>
-              <p>O <strong>Pub X</strong> nasceu da vontade de servir comida boa, feita com atenção aos detalhes, num ambiente descontraído — o tipo de lugar para relaxar depois de um dia cheio, reunir os amigos ou simplesmente pedir aquele hambúrguer que você está com vontade. Estamos em Croatá/CE, preparando cada prato na hora, para chegar até você (ou até a sua mesa) com a mesma qualidade de quem come no salão.</p>
+              <p>O <strong>MM System Creator</strong> nasceu da vontade de servir comida boa, feita com atenção aos detalhes, num ambiente descontraído — o tipo de lugar para relaxar depois de um dia cheio, reunir os amigos ou simplesmente pedir aquele hambúrguer que você está com vontade. Estamos em Croatá/CE, preparando cada prato na hora, para chegar até você (ou até a sua mesa) com a mesma qualidade de quem come no salão.</p>
 
               <p>Nosso cardápio reúne hambúrgueres artesanais, pizzas de massa bem trabalhada, porções para dividir e bebidas geladas — sempre com ingredientes selecionados e um olho atento ao ponto certo de cada preparo. Trabalhamos com entrega e retirada no balcão, para você escolher o jeito mais prático de aproveitar.</p>
 

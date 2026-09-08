@@ -4,6 +4,7 @@ import { billingPayments, features, planFeatures, planLimits, plans, subscriptio
 import { createSubscriptionPreapproval, updateSubscriptionPreapproval } from "../_core/mercadoPagoBilling";
 import { ENV } from "../_core/env";
 import { getPlanByKey } from "./plans";
+import { PLATFORM_NAME } from "../../shared/branding";
 
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -211,7 +212,7 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
     // webhook (applyPreapprovalStatus acima), nunca antes.
     const preapproval = await createSubscriptionPreapproval({
       accessToken: ENV.mercadoPagoAccessToken,
-      reason: `Assinatura Pub X SaaS — plano ${targetPlan.name}`,
+      reason: `Assinatura ${PLATFORM_NAME} — plano ${targetPlan.name}`,
       externalReference: `restaurant:${input.restaurantId}`,
       payerEmail: input.payerEmail,
       backUrl: input.backUrl,

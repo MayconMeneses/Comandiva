@@ -14,7 +14,7 @@ describe("mídia de produtos e navegação administrativa", () => {
 
   it("usa o logotipo enviado no cabeçalho administrativo", () => {
     expect(sidebarSource).toContain("/pubx-logo.svg");
-    expect(sidebarSource).toContain('alt="Logotipo Pub X"');
+    expect(sidebarSource).toContain('alt="Logotipo MM System Creator"');
   });
 
   it("mantém a barra de gestão de acessos no painel principal", () => {

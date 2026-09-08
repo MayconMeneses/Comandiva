@@ -17,7 +17,7 @@ export const adminSettingsRouter = router({
     return settings;
   }),
   sendTestAlert: adminProcedure.mutation(async () => {
-    await sendOwnerAlert("Teste de notificação", "Se você recebeu esta mensagem, os alertas do Pub X estão funcionando corretamente.", "test");
+    await sendOwnerAlert("Teste de notificação", "Se você recebeu esta mensagem, os alertas do MM System Creator estão funcionando corretamente.", "test");
     return { success: true };
   }),
   updateSettings: adminProcedure.input(z.object({ isAcceptingOrders: z.boolean(), deliveryFeeCents: z.number().int().min(0).max(999999), minimumOrderCents: z.number().int().min(0).max(9999999), estimatedDeliveryMin: z.number().int().min(1).max(240), estimatedDeliveryMax: z.number().int().min(1).max(360), openingHours: z.string().min(2).max(255), logoUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), pixKey: z.string().max(255).optional(), pixQrCodeUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), lunchStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), lunchEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), promotionCategoryImageUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), address: z.string().max(2000).optional(), phone: z.string().max(24).optional(), aboutText: z.string().max(5000).optional() }).superRefine((value, context) => {

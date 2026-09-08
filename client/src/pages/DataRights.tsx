@@ -63,7 +63,7 @@ export default function DataRights() {
       <header className="border-b bg-[#fffdf8]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/politica-de-privacidade")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Política de Privacidade</button>
-          <span className="font-display text-xl font-bold">Pub X</span>
+          <span className="font-display text-xl font-bold">MM System Creator</span>
           <span className="w-40" />
         </div>
       </header>
@@ -158,7 +158,7 @@ export default function DataRights() {
           <div className="mt-7 flex flex-col items-center gap-3 rounded-2xl bg-[#fffdf8] p-8 text-center shadow-[0_12px_35px_rgba(53,34,17,.06)]">
             <CheckCircle2 className="h-10 w-10 text-emerald-600" />
             <h2 className="font-display text-2xl font-bold">Dados removidos</h2>
-            <p className="max-w-sm text-sm leading-6 text-muted-foreground">Seu nome, telefone e endereço foram anonimizados. Obrigado por usar o Pub X.</p>
+            <p className="max-w-sm text-sm leading-6 text-muted-foreground">Seu nome, telefone e endereço foram anonimizados. Obrigado por usar o MM System Creator.</p>
             <Button onClick={() => setLocation("/")} className="mt-2 h-10 rounded-xl bg-[#b4472d] hover:bg-[#943722]">Voltar ao cardápio</Button>
           </div>
         )}

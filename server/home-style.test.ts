@@ -21,7 +21,7 @@ describe("cartões públicos do cardápio", () => {
 
   it("usa o logotipo enviado no cabeçalho público", () => {
     expect(homeSource).toContain("/pubx-logo.svg");
-    expect(homeSource).toContain('alt="Logotipo Pub X"');
+    expect(homeSource).toContain('alt="Logotipo MM System Creator"');
   });
 
   it("aplica o mesmo contêiner de mídia a cada produto de qualquer categoria", () => {

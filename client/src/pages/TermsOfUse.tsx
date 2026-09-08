@@ -9,7 +9,7 @@ export default function TermsOfUse() {
       <header className="border-b bg-[#fffdf8]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
-          <span className="font-display text-xl font-bold">Pub X</span>
+          <span className="font-display text-xl font-bold">MM System Creator</span>
           <span className="w-32" />
         </div>
       </header>
@@ -21,17 +21,17 @@ export default function TermsOfUse() {
         <div className="prose prose-sm mt-8 max-w-none space-y-6 text-[#3a2f25]">
           <section>
             <h2 className="font-display text-xl font-bold">1. Aceitação</h2>
-            <p>Ao fazer um pedido pelo site do Pub X, você concorda com estes Termos de Uso e com a nossa <a href="/politica-de-privacidade" className="font-semibold text-[#b4472d] underline">Política de Privacidade</a>.</p>
+            <p>Ao fazer um pedido pelo site do MM System Creator, você concorda com estes Termos de Uso e com a nossa <a href="/politica-de-privacidade" className="font-semibold text-[#b4472d] underline">Política de Privacidade</a>.</p>
           </section>
 
           <section>
             <h2 className="font-display text-xl font-bold">2. Pedidos e pagamento</h2>
-            <p>Os preços exibidos no cardápio já incluem os valores dos itens; a taxa de entrega, quando aplicável, é somada no checkout antes da confirmação. Aceitamos as formas de pagamento indicadas na tela de finalização do pedido (Pix, dinheiro, cartão na entrega e, quando disponível, cartão online). Ao escolher pagamento com cartão online, você será redirecionado para a página segura da processadora de pagamento — o Pub X não tem acesso aos dados do seu cartão.</p>
+            <p>Os preços exibidos no cardápio já incluem os valores dos itens; a taxa de entrega, quando aplicável, é somada no checkout antes da confirmação. Aceitamos as formas de pagamento indicadas na tela de finalização do pedido (Pix, dinheiro, cartão na entrega e, quando disponível, cartão online). Ao escolher pagamento com cartão online, você será redirecionado para a página segura da processadora de pagamento — o MM System Creator não tem acesso aos dados do seu cartão.</p>
           </section>
 
           <section>
             <h2 className="font-display text-xl font-bold">3. Documento fiscal</h2>
-            <p>Conforme a legislação tributária aplicável — incluindo, no Estado do Ceará, a Instrução Normativa SEFAZ-CE nº 87/2025, que exige a vinculação do comprovante de pagamento eletrônico ao documento fiscal (NF-e/NFC-e) — o Pub X emite o documento fiscal correspondente à venda sempre que exigido, associando os dados da transação (forma de pagamento, valor e identificação do estabelecimento) à nota fiscal.</p>
+            <p>Conforme a legislação tributária aplicável — incluindo, no Estado do Ceará, a Instrução Normativa SEFAZ-CE nº 87/2025, que exige a vinculação do comprovante de pagamento eletrônico ao documento fiscal (NF-e/NFC-e) — o MM System Creator emite o documento fiscal correspondente à venda sempre que exigido, associando os dados da transação (forma de pagamento, valor e identificação do estabelecimento) à nota fiscal.</p>
           </section>
 
           <section>
@@ -46,7 +46,7 @@ export default function TermsOfUse() {
 
           <section>
             <h2 className="font-display text-xl font-bold">6. Responsabilidades</h2>
-            <p>É responsabilidade do cliente informar corretamente o endereço de entrega e um telefone de contato válido. O Pub X não se responsabiliza por atrasos ou não-entrega decorrentes de informações incorretas fornecidas no pedido.</p>
+            <p>É responsabilidade do cliente informar corretamente o endereço de entrega e um telefone de contato válido. O MM System Creator não se responsabiliza por atrasos ou não-entrega decorrentes de informações incorretas fornecidas no pedido.</p>
           </section>
 
           <section>

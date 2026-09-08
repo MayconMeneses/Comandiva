@@ -6,6 +6,7 @@ import { recordPlatformAuditLog } from "../../db/auditLog";
 import { createSubscriptionPreapproval } from "../../_core/mercadoPagoBilling";
 import { ENV } from "../../_core/env";
 import { platformAdminProcedureFor, router } from "../../_core/trpc";
+import { PLATFORM_NAME } from "../../../shared/branding";
 
 export const masterPanelBillingRouter = router({
   /**
@@ -27,7 +28,7 @@ export const masterPanelBillingRouter = router({
 
     const preapproval = await createSubscriptionPreapproval({
       accessToken: ENV.mercadoPagoAccessToken,
-      reason: `Assinatura Pub X SaaS — plano ${current.plan.name}`,
+      reason: `Assinatura ${PLATFORM_NAME} — plano ${current.plan.name}`,
       externalReference: `restaurant:${restaurant.id}`,
       payerEmail: restaurant.contactEmail,
       backUrl: input.backUrl,

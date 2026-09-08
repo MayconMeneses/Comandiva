@@ -51,8 +51,8 @@ function formatAlert(subject: string, message: string, severity: AlertSeverity, 
   const horario = new Date(now).toLocaleString("pt-BR", { timeZone: "America/Fortaleza" });
   const safeMessage = truncate(redactSecrets(message), MAX_MESSAGE_LENGTH);
   return {
-    subject: `[Pub X] ${subject}`,
-    text: `${emoji} ${severity}\nSistema: Pub X\nAmbiente: ${environment}\nEvento: ${subject}\n\n${safeMessage}\n\nHorário: ${horario}`,
+    subject: `[MM System Creator] ${subject}`,
+    text: `${emoji} ${severity}\nSistema: MM System Creator\nAmbiente: ${environment}\nEvento: ${subject}\n\n${safeMessage}\n\nHorário: ${horario}`,
   };
 }
 

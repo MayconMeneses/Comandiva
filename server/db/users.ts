@@ -110,7 +110,7 @@ export async function listRestaurantAccessAccounts() {
   const result = credentials.map(credential => {
     const user = userById.get(credential.userId);
     return user && (user.role === "staff" || user.role === "admin")
-      ? { id: credential.id, userId: user.id, name: user.name ?? "Equipe Pub X", username: credential.username, role: user.role, active: credential.active, permissions: parseStaffPermissions(credential.permissions), createdAt: credential.createdAt, lastSignedInAt: credential.lastSignedInAt, isOwner: user.openId === ENV.primaryAdminOpenId }
+      ? { id: credential.id, userId: user.id, name: user.name ?? "Equipe MM System Creator", username: credential.username, role: user.role, active: credential.active, permissions: parseStaffPermissions(credential.permissions), createdAt: credential.createdAt, lastSignedInAt: credential.lastSignedInAt, isOwner: user.openId === ENV.primaryAdminOpenId }
       : undefined;
   });
   return result.filter((account): account is NonNullable<typeof account> => Boolean(account));

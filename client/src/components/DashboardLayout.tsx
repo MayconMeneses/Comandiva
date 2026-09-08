@@ -98,7 +98,7 @@ export default function DashboardLayout({
                     Acesse o painel do restaurante
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-                    Entre com sua conta administrativa para operar o Pub X.
+                    Entre com sua conta administrativa para operar o MM System Creator.
             </p>
           </div>
           <p className="w-full rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
@@ -216,8 +216,8 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <img src={settings.data?.logoUrl || "/pubx-logo.svg"} alt="Logotipo Pub X" className="h-10 w-16 shrink-0 object-contain" />
-                    <span className="font-display font-semibold tracking-tight truncate">Pub X</span>
+                    <img src={settings.data?.logoUrl || "/pubx-logo.svg"} alt="Logotipo MM System Creator" className="h-10 w-16 shrink-0 object-contain" />
+                    <span className="font-display font-semibold tracking-tight truncate">MM System Creator</span>
                     <a href="/" target="_blank" rel="noopener noreferrer" className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-[#e1d0bb] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#613b2a] shadow-sm transition-colors hover:bg-[#f2e3d4]" title="Abrir o site de pedidos">
                       <ExternalLink className="h-3.5 w-3.5" />Ver site
                     </a>
