@@ -484,6 +484,10 @@ export const orders = mysqlTable(
     // pedido. O índice antigo só custava escrita sem beneficiar leitura nenhuma.
     index("orders_customer_phone_created_idx").on(table.customerPhone, table.createdAt),
     index("orders_table_session_idx").on(table.tableSessionId),
+    // Serve ORDER BY createdAt DESC sem filtro de status (admin.operationalSnapshot /
+    // getAdminOrders, consultado a cada 10s por cada aba do painel operacional) — os
+    // índices compostos acima começam por status/customerPhone e não servem essa ordenação.
+    index("orders_created_idx").on(table.createdAt),
   ],
 );
 
@@ -527,7 +531,12 @@ export const orderStatusHistory = mysqlTable(
     changedByUserId: int("changedByUserId"),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
   },
-  table => [index("order_status_history_order_idx").on(table.orderId, table.createdAt)],
+  table => [
+    index("order_status_history_order_idx").on(table.orderId, table.createdAt),
+    // Serve getRecentAuditEntries (tela de Auditoria): ORDER BY createdAt DESC global,
+    // sem orderId fixo — o índice composto acima (orderId, createdAt) não serve essa consulta.
+    index("order_status_history_created_idx").on(table.createdAt),
+  ],
 );
 
 /** Auditoria das correções administrativas efetuadas em pedidos recebidos. */
@@ -541,7 +550,12 @@ export const orderChangeLogs = mysqlTable(
     details: text("details").notNull(),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
   },
-  table => [index("order_change_logs_order_idx").on(table.orderId, table.createdAt)],
+  table => [
+    index("order_change_logs_order_idx").on(table.orderId, table.createdAt),
+    // Mesmo motivo do índice acima em order_status_history: getRecentAuditEntries
+    // ordena globalmente por createdAt sem orderId fixo.
+    index("order_change_logs_created_idx").on(table.createdAt),
+  ],
 );
 
 export const printJobs = mysqlTable(

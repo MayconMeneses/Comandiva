@@ -78,6 +78,25 @@ export async function getStaffPermissionsByUserId(userId: number): Promise<Staff
   return parseStaffPermissions(credential?.permissions);
 }
 
+/**
+ * `active` da credencial de acesso (staff/admin) desse usuário — checado a
+ * cada request autenticado (ver server/_core/sdk.ts::authenticateRequest)
+ * pra revogar sessões já emitidas quando a conta é pausada (team.setActive)
+ * ou trocada de senha, já que o JWT em si não sabe disso (mesmo padrão do
+ * saas-core: ctx.platformAdmin.active recarregado do banco a cada request,
+ * ver saas-core/server/_core/trpc.ts). `undefined` = sem credencial
+ * cadastrada pra esse userId (não deve acontecer pra role staff/admin, já
+ * que a única forma de logar é authenticateRestaurantAccount, que sempre
+ * exige uma linha em restaurant_staff_credentials — mas não é tratado como
+ * revogação pra não travar login por um dado legado/inconsistente).
+ */
+export async function getStaffCredentialActiveStatus(userId: number): Promise<boolean | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [credential] = await db.select({ active: restaurantStaffCredentials.active }).from(restaurantStaffCredentials).where(eq(restaurantStaffCredentials.userId, userId)).limit(1);
+  return credential?.active;
+}
+
 export async function createRestaurantStaffAccount(input: { name: string; username: string; password: string }) {
   return createRestaurantAccessAccount({ ...input, role: "staff" });
 }

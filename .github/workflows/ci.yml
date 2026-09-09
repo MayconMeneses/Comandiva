@@ -11,6 +11,23 @@ jobs:
   app-principal:
     name: App principal (Pub X)
     runs-on: ubuntu-latest
+    # Banco real só pra este job testar a migration de verdade (drizzle-kit
+    # migrate) contra um MySQL de fato, não contra mock. Sobe junto do job
+    # inteiro (não é escopado a um step só) e fica acessível em 127.0.0.1
+    # porque o job roda direto na máquina do runner, não em container.
+    services:
+      db:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ci_app_principal
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       # Versão fixa (10.4.1), igual ao "packageManager" do package.json da
@@ -25,8 +42,31 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # Auditoria de vulnerabilidades de dependências — hoje (2026-09) o app
+      # principal tem 82 vulnerabilidades conhecidas (3 críticas) ainda não
+      # corrigidas. `continue-on-error: true` de propósito: isso é só pra dar
+      # visibilidade no log do CI, ainda NÃO bloqueia merge. Trocar pra
+      # bloqueante depois que as críticas existentes forem corrigidas.
+      - name: Auditoria de vulnerabilidades (não bloqueia ainda)
+        run: pnpm audit --audit-level=critical
+        continue-on-error: true
+      - name: Lint
+        run: pnpm run lint
       - run: pnpm run check
+      # Aplica as migrations reais (drizzle/*.sql) contra o MySQL do serviço
+      # acima, igual ao que acontece no boot do container de produção
+      # (infra/entrypoint.sh → drizzle-kit migrate). Pega migration quebrada
+      # ou fora de ordem antes de chegar em produção.
+      - name: Migration contra banco real (drizzle-kit migrate)
+        run: pnpm run db:migrate
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/ci_app_principal
       - run: pnpm run build
+      # Builda a imagem Docker real (mesmo Dockerfile usado em produção) só
+      # pra garantir que o build da imagem não está quebrado — não publica/faz
+      # push, só valida localmente no runner.
+      - name: Build imagem Docker (app principal)
+        run: docker build -f infra/Dockerfile .
       - run: pnpm test
 
   saas-core:
@@ -35,6 +75,21 @@ jobs:
     defaults:
       run:
         working-directory: saas-core
+    # Mesma lógica do job acima: banco real só pra testar a migration deste
+    # serviço (schema/tabelas próprias do saas-core, nunca dado de restaurante).
+    services:
+      db:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ci_saas_core
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       # Versão fixa (11.24.0), igual ao "packageManager" de saas-core/package.json.
@@ -47,6 +102,27 @@ jobs:
           cache: pnpm
           cache-dependency-path: saas-core/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # Auditoria de vulnerabilidades — saas-core tem 9 vulnerabilidades
+      # conhecidas hoje (1 crítica), ainda não corrigidas. Mesma lógica do
+      # job acima: só visibilidade por enquanto, não bloqueia merge.
+      - name: Auditoria de vulnerabilidades (não bloqueia ainda)
+        run: pnpm audit --audit-level=critical
+        continue-on-error: true
+      - name: Lint
+        run: pnpm run lint
       - run: pnpm run check
+      # Aplica as migrations reais do saas-core contra o MySQL do serviço
+      # acima (mesmo comando usado no deploy real deste serviço).
+      - name: Migration contra banco real (drizzle-kit migrate)
+        run: pnpm run db:migrate
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/ci_saas_core
       - run: pnpm run build
+      # Builda a imagem Docker real do saas-core — contexto é a pasta
+      # saas-core (não a raiz do repo), por isso o working-directory é
+      # sobrescrito de volta pra raiz só neste step (o job inteiro usa
+      # "saas-core" como default acima). Só valida o build, não publica.
+      - name: Build imagem Docker (saas-core)
+        working-directory: .
+        run: docker build -f saas-core/infra/Dockerfile saas-core
       - run: pnpm test

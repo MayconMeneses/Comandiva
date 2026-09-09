@@ -46,30 +46,35 @@ export async function getDashboardSummary() {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
 
-  const restaurantsByStatus = await db.select({ status: restaurants.status, total: count() }).from(restaurants).groupBy(restaurants.status);
+  const monthStart = startOfCurrentMonthMs();
 
-  const activeSubscriptionsByPlan = await db
-    .select({ planKey: plans.key, planName: plans.name, priceCents: plans.priceCents, total: count() })
-    .from(subscriptions)
-    .innerJoin(plans, eq(subscriptions.planId, plans.id))
-    .where(eq(subscriptions.status, "active"))
-    .groupBy(plans.key, plans.name, plans.priceCents);
+  // Nenhuma destas 7 consultas depende do resultado de outra — todas rodam
+  // em paralelo em vez de uma atrás da outra sequencialmente.
+  const [restaurantsByStatus, activeSubscriptionsByPlan, [newCustomersRow], planChangeEvents, allPlans, [paymentsRow], signupsTrend] = await Promise.all([
+    db.select({ status: restaurants.status, total: count() }).from(restaurants).groupBy(restaurants.status),
+    db
+      .select({ planKey: plans.key, planName: plans.name, priceCents: plans.priceCents, total: count() })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(eq(subscriptions.status, "active"))
+      .groupBy(plans.key, plans.name, plans.priceCents),
+    db
+      .select({ total: count() })
+      .from(subscriptionEvents)
+      .where(and(eq(subscriptionEvents.eventType, "created"), gte(subscriptionEvents.createdAt, monthStart))),
+    db
+      .select()
+      .from(subscriptionEvents)
+      .where(and(eq(subscriptionEvents.eventType, "plan_changed"), gte(subscriptionEvents.createdAt, monthStart))),
+    db.select().from(plans),
+    db.select({ total: count() }).from(billingPayments),
+    getSignupsTrend(db),
+  ]);
 
   // MRR = preço do plano × nº de assinaturas ativas nele — válido mesmo sem
   // cobrança real integrada ainda, porque é a própria definição de MRR.
   const mrrCents = activeSubscriptionsByPlan.reduce((total, row) => total + row.priceCents * row.total, 0);
 
-  const monthStart = startOfCurrentMonthMs();
-  const [newCustomersRow] = await db
-    .select({ total: count() })
-    .from(subscriptionEvents)
-    .where(and(eq(subscriptionEvents.eventType, "created"), gte(subscriptionEvents.createdAt, monthStart)));
-
-  const planChangeEvents = await db
-    .select()
-    .from(subscriptionEvents)
-    .where(and(eq(subscriptionEvents.eventType, "plan_changed"), gte(subscriptionEvents.createdAt, monthStart)));
-  const allPlans = await db.select().from(plans);
   const positionByKey = new Map(allPlans.map(plan => [plan.key, plan.position]));
   let upgrades = 0;
   let downgrades = 0;
@@ -84,10 +89,6 @@ export async function getDashboardSummary() {
     else if (afterPos < beforePos) downgrades += 1;
     else lateral += 1;
   }
-
-  const [paymentsRow] = await db.select({ total: count() }).from(billingPayments);
-
-  const signupsTrend = await getSignupsTrend(db);
 
   return {
     restaurantsByStatus,

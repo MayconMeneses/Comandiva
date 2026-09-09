@@ -25,6 +25,12 @@ export const masterPanelTeamRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      // Escalação de privilégio: só quem já é "owner" pode criar outra conta
+      // "owner" (acesso total irrestrito) — um "member" com a área "equipe"
+      // liberada só pode criar/gerenciar outras contas "member".
+      if (input.role === "owner" && ctx.platformAdmin.role !== "owner") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Só uma conta owner pode criar outra conta owner." });
+      }
       const result = await createPlatformAdmin(input);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,

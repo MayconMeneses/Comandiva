@@ -91,3 +91,31 @@ echo ""
 echo " Para parar tudo:"
 echo "   docker compose -f docker-compose.independent.yml down"
 echo "============================================================"
+
+# ------------------------------------------------------------
+# Smoke test pós-deploy (opcional): confere se a aplicação subiu
+# de verdade (home + login) usando scripts/smoke-independent.mjs.
+# Nunca aborta o script — só avisa se algo parecer errado, pra
+# confirmação manual ficar por conta do usuário.
+# ------------------------------------------------------------
+echo ""
+echo "==> Aguardando a aplicação inicializar para rodar o smoke test..."
+sleep 8
+
+if command -v node >/dev/null 2>&1; then
+  SMOKE_USERNAME_VALUE=$(grep -m1 '^BOOTSTRAP_ADMIN_USERNAME=' "$ENV_FILE" 2>/dev/null | cut -d '=' -f2-)
+  SMOKE_PASSWORD_VALUE=$(grep -m1 '^BOOTSTRAP_ADMIN_PASSWORD=' "$ENV_FILE" 2>/dev/null | cut -d '=' -f2-)
+  APP_PORT_VALUE=$(grep -m1 '^APP_PORT=' "$ENV_FILE" 2>/dev/null | cut -d '=' -f2-)
+  APP_PORT_VALUE="${APP_PORT_VALUE:-3000}"
+
+  if SMOKE_BASE_URL="http://localhost:${APP_PORT_VALUE}" \
+     SMOKE_USERNAME="${SMOKE_USERNAME_VALUE:-admin}" \
+     SMOKE_PASSWORD="${SMOKE_PASSWORD_VALUE}" \
+     node scripts/smoke-independent.mjs; then
+    echo "==> Smoke test pós-deploy: OK (home e login responderam)."
+  else
+    echo "⚠️  Smoke test falhou, confirme login manualmente em http://localhost:${APP_PORT_VALUE}"
+  fi
+else
+  echo "⚠️  Node não encontrado no host — pulando smoke test automático. Confirme login manualmente em http://localhost:${APP_PORT_VALUE:-3000}"
+fi

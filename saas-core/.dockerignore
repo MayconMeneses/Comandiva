@@ -10,3 +10,10 @@ dist/
 .git/
 .vscode/
 .idea/
+
+# Backups de banco de dados — nunca devem entrar no contexto/imagem de build
+backups/
+*.sql
+*.sql.gz
+*.tar.gz
+*.tar.gz.enc

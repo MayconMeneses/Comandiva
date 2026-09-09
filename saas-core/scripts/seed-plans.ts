@@ -21,9 +21,6 @@ const FEATURES: { featureId: string; name: string; category: string; minPlan: Pl
   { featureId: "call_waiter", name: "Chamar garçom", category: "mesas", minPlan: "profissional" },
   { featureId: "request_bill", name: "Solicitar conta", category: "mesas", minPlan: "profissional" },
   { featureId: "extra_rounds", name: "Rodadas extras", category: "mesas", minPlan: "profissional" },
-  { featureId: "advanced_reports", name: "Relatórios avançados", category: "relatorios", minPlan: "profissional" },
-  { featureId: "custom_domain", name: "Domínio próprio", category: "branding", minPlan: "premium" },
-  { featureId: "advanced_branding", name: "Personalização visual avançada", category: "branding", minPlan: "premium" },
 ];
 
 const LIMITS: Record<PlanKey, Record<"users" | "tables", number | null>> = {

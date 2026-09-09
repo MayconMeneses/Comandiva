@@ -11,3 +11,10 @@ dist/
 
 .DS_Store
 Thumbs.db
+
+# Backups de banco de dados — nunca versionar dump nenhum
+backups/
+*.sql
+*.sql.gz
+*.tar.gz
+*.tar.gz.enc

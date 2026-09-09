@@ -69,10 +69,15 @@ describe("API de criação de pedidos", () => {
 
   it("aplica rate limit em order.createCardPayment por IP — a 9ª tentativa em pouco tempo é rejeitada", async () => {
     const context = { user: null, req: { ip: "203.0.113.78", protocol: "https", headers: {} }, res: {} } as TrpcContext;
+    // publicCode + customerPhone (não mais orderId cru) — precisa passar na
+    // validação do Zod pra chegar no resolver; o pedido inexistente falha
+    // depois, dentro do handler, o que já é suficiente pra provar que o rate
+    // limit foi consultado.
+    const input = { publicCode: "PX-0000000", customerPhone: "85999991234" };
     for (let attempt = 0; attempt < 8; attempt++) {
       const caller = appRouter.createCaller(context);
-      await caller.order.createCardPayment({ orderId: 999999 }).catch(() => {});
+      await caller.order.createCardPayment(input).catch(() => {});
     }
-    await expect(appRouter.createCaller(context).order.createCardPayment({ orderId: 999999 })).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+    await expect(appRouter.createCaller(context).order.createCardPayment(input)).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
   });
 });

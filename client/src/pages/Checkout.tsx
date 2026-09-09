@@ -51,7 +51,7 @@ export default function Checkout() {
   const createOrder = trpc.order.create.useMutation({ onSuccess: result => {
     clearCart();
     if (paymentMethod === "CARD_ONLINE") {
-      createCardPayment.mutate({ orderId: result.orderId }, {
+      createCardPayment.mutate({ publicCode: result.publicCode, customerPhone: normalizedPhone }, {
         onSuccess: payment => { window.location.href = payment.redirectUrl; },
         onError: () => { setLocation(`/acompanhar?telefone=${normalizedPhone}`); },
       });

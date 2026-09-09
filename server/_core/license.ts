@@ -7,9 +7,6 @@ export const FEATURE_IDS = [
   "call_waiter",
   "request_bill",
   "extra_rounds",
-  "advanced_reports",
-  "custom_domain",
-  "advanced_branding",
 ] as const;
 export type FeatureId = (typeof FEATURE_IDS)[number];
 

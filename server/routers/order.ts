@@ -19,7 +19,7 @@ import {
 } from "../../drizzle/schema";
 import { addressMatchesRoute, calculateCartTotal, formatCurrency, normalizePhone } from "../../shared/orderDomain";
 import { CURRENT_TERMS_VERSION } from "../../shared/legal";
-import { getActiveOrdersByPhone, getDb, getOrderWithDetails, getStoreSettings, saveCustomerProfile } from "../db";
+import { getActiveOrdersByPhone, getDb, getOrderByTrackingCode, getStoreSettings, saveCustomerProfile } from "../db";
 import { createMercadoPagoCheckout } from "../_core/mercadoPago";
 import { ENV } from "../_core/env";
 import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
@@ -118,7 +118,13 @@ export async function priceOrder(input: { items: CheckoutInput["items"]; fulfill
         throw new TRPCError({ code: "BAD_REQUEST", message: `${group.name}: selecione entre ${group.minSelections} e ${group.maxSelections} opções.` });
       }
     });
-    const addons = selectedOptions.filter(Boolean) as typeof options;
+    // Nome do grupo já resolvido aqui (a partir de `groups`, já carregado em
+    // bloco acima) — evita insertPricedOrder ter que fazer um SELECT em
+    // addonGroups por adicional dentro do loop de itens.
+    const addons = (selectedOptions.filter(Boolean) as typeof options).map(option => ({
+      ...option,
+      groupName: groups.find(group => group.id === option.groupId)?.name ?? "Adicional",
+    }));
     const unitPriceCents = product.priceCents + addons.reduce((total, addon) => total + addon.priceCents, 0);
     return { product, quantity: item.quantity, note: item.note, addons, unitPriceCents, lineTotalCents: unitPriceCents * item.quantity };
   });
@@ -234,10 +240,9 @@ export async function insertPricedOrder(params: {
     });
     const orderItemId = Number(inserted[0].insertId);
     for (const addon of pricedItem.addons) {
-      const group = (await db.select().from(addonGroups).where(eq(addonGroups.id, addon.groupId)).limit(1))[0];
       await db.insert(orderItemAddons).values({
         orderItemId,
-        addonGroupName: group?.name ?? "Adicional",
+        addonGroupName: addon.groupName,
         addonOptionName: addon.name,
         unitPriceCents: addon.priceCents,
         quantity: 1,
@@ -340,12 +345,17 @@ export const orderRouter = router({
     const [gateway] = await db.select({ provider: paymentGateways.provider }).from(paymentGateways).where(eq(paymentGateways.active, true)).limit(1);
     return { available: Boolean(gateway) && gateway.provider === "MERCADO_PAGO" };
   }),
-  createCardPayment: publicProcedure.input(z.object({ orderId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
+  // Exige publicCode + customerPhone (mesmo padrão de getOrderByTrackingCode,
+  // usado em order.track) — nunca aceitar um orderId numérico cru vindo do
+  // cliente aqui: um visitante anônimo conseguiria enumerar pedidos de outras
+  // pessoas e disparar geração de link de pagamento pra pedidos que não são
+  // dele.
+  createCardPayment: publicProcedure.input(z.object({ publicCode: z.string().min(4).max(16), customerPhone: phoneSchema })).mutation(async ({ input, ctx }) => {
     const limit = checkRateLimit(`order-card-payment:${ctx.req.ip}`);
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas tentativas de pagamento. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
-    const order = await getOrderWithDetails(input.orderId);
+    const order = await getOrderByTrackingCode(input.publicCode, input.customerPhone);
     if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
     const [gateway] = await db.select().from(paymentGateways).where(eq(paymentGateways.active, true)).limit(1);
     if (!gateway || !gateway.apiKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Pagamento online não está configurado no momento. Escolha outra forma de pagamento." });

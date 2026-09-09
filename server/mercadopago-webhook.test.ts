@@ -85,6 +85,7 @@ describe("webhook do Mercado Pago", () => {
     await handleMercadoPagoWebhook(req, res);
     expect(getResult().statusCode).toBe(200);
     expect(mocks.getMercadoPagoPayment).toHaveBeenCalledWith("token", "123");
+    expect(mocks.markOrderPaymentPaidByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123");
   });
 
   it("com chave secreta configurada: assinatura inválida ignora sem consultar a API", async () => {

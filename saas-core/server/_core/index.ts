@@ -1,12 +1,14 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
+import { sql } from "drizzle-orm";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerMercadoPagoBillingWebhook } from "./mercadoPagoWebhook";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
+import { getDb } from "../db/client";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -67,6 +69,23 @@ async function startServer() {
     next();
   });
   app.get("/healthz", (_req, res) => res.status(200).json({ ok: true }));
+  // Readiness real: confirma que o banco responde antes de dizer "pronto"
+  // (diferente do /healthz, que é deliberadamente cego a isso). Timeout curto
+  // pra não deixar o healthcheck do Docker travado esperando uma conexão presa.
+  app.get("/readyz", async (_req, res) => {
+    try {
+      const db = await getDb();
+      if (!db) throw new Error("Banco de dados não conectado");
+      await Promise.race([
+        db.execute(sql`SELECT 1`),
+        new Promise((_resolve, reject) => setTimeout(() => reject(new Error("Timeout ao consultar o banco")), 2000)),
+      ]);
+      res.status(200).json({ ok: true });
+    } catch (error) {
+      console.warn("[readyz] Banco de dados indisponível:", error);
+      res.status(503).json({ ok: false });
+    }
+  });
   app.get("/version", (_req, res) => res.status(200).json({ version: APP_VERSION, commit: process.env.GIT_COMMIT ?? "unknown" }));
   app.use(express.json({ limit: "1mb" }));
   // Cobrança da mensalidade do SaaS (restaurante-cliente pagando a

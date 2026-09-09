@@ -81,7 +81,8 @@ export default function Equipe() {
             <div>
               <label className="text-xs font-medium text-ink-soft">Tipo de acesso</label>
               <select value={role} onChange={event => setRole(event.target.value as Role)} className="mt-1 h-9 w-full rounded-lg border border-border bg-paper-raised px-2 text-sm text-ink">
-                <option value="owner">{ROLE_LABEL.owner}</option>
+                {/* "owner" tem acesso total irrestrito — só quem já é owner pode criar outro owner (o backend também recusa, isso aqui é só UX). */}
+                {currentAdmin?.role === "owner" ? <option value="owner">{ROLE_LABEL.owner}</option> : null}
                 <option value="member">{ROLE_LABEL.member}</option>
               </select>
             </div>

@@ -26,4 +26,8 @@ COPY --from=build /app/shared ./shared
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY infra/entrypoint.sh ./infra/entrypoint.sh
 RUN chmod +x ./infra/entrypoint.sh
+# Não rodar como root dentro do container — node:22-slim já traz o usuário
+# "node" (uid 1000) pronto pra isso.
+RUN chown -R node:node /app
+USER node
 ENTRYPOINT ["./infra/entrypoint.sh"]

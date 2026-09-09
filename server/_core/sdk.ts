@@ -95,6 +95,20 @@ class SessionService {
     const user = await db.getUserByOpenId(session.openId);
     if (!user) throw ForbiddenError("Usuário não encontrado");
 
+    // Revogação ativa: o JWT em si só prova que foi emitido validamente um
+    // dia (assinatura + prazo), nunca que a conta continua liberada agora —
+    // sem isto, pausar uma conta (team.setActive) ou trocar a senha
+    // (team.update) não tinha efeito nenhum sobre sessões já emitidas, que
+    // seguiam válidas até o token expirar sozinho (por padrão, ONE_YEAR_MS).
+    // Mesmo padrão já usado no saas-core (ctx.platformAdmin.active recarregado
+    // do banco a cada request, ver saas-core/server/_core/trpc.ts). Só se
+    // aplica a staff/admin: é o único jeito de um token existir hoje (login
+    // sempre passa por authenticateRestaurantAccount).
+    if (user.role === "staff" || user.role === "admin") {
+      const active = await db.getStaffCredentialActiveStatus(user.id);
+      if (active === false) throw ForbiddenError("Sessão inválida");
+    }
+
     // `lastSignedIn` só precisa ser aproximado (é exibido como "visto por
     // último", nunca usado em regra de negócio) — regravar a cada request
     // custava um INSERT...ON DUPLICATE KEY UPDATE a cada poll do admin (a

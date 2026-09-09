@@ -16,9 +16,6 @@ const FEATURE_LABELS: Record<string, { name: string; description: string }> = {
   call_waiter: { name: "Chamar garçom", description: "Botão de chamar a equipe direto da mesa." },
   request_bill: { name: "Solicitar conta", description: "Cliente pede a conta pela própria mesa." },
   extra_rounds: { name: "Rodadas extras", description: "Lançar novos pedidos numa comanda de mesa já aberta." },
-  advanced_reports: { name: "Relatórios avançados", description: "Filtros e relatórios de vendas mais detalhados." },
-  custom_domain: { name: "Domínio próprio", description: "Usar o domínio do seu restaurante em vez do padrão." },
-  advanced_branding: { name: "Personalização visual avançada", description: "Cores, identidade visual e marca personalizadas." },
 };
 
 const LIMIT_LABELS: Record<string, string> = { users: "Contas de equipe", tables: "Mesas" };

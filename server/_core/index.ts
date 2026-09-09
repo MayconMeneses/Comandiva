@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import { sql } from "drizzle-orm";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -9,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { sendOwnerAlert } from "./alerts";
 import { registerMercadoPagoWebhook } from "./mercadoPagoWebhook";
 import { ENV } from "./env";
+import { getDb } from "../db/client";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -83,6 +85,23 @@ async function startServer() {
   // Healthcheck simples para Docker/monitoramento — sem autenticação, sem tocar no banco.
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ ok: true });
+  });
+  // Readiness real: confirma que o banco responde antes de dizer "pronto"
+  // (diferente do /healthz, que é deliberadamente cego a isso). Timeout curto
+  // pra não deixar o healthcheck do Docker travado esperando uma conexão presa.
+  app.get("/readyz", async (_req, res) => {
+    try {
+      const db = await getDb();
+      if (!db) throw new Error("Banco de dados não conectado");
+      await Promise.race([
+        db.execute(sql`SELECT 1`),
+        new Promise((_resolve, reject) => setTimeout(() => reject(new Error("Timeout ao consultar o banco")), 2000)),
+      ]);
+      res.status(200).json({ ok: true });
+    } catch (error) {
+      console.warn("[readyz] Banco de dados indisponível:", error);
+      res.status(503).json({ ok: false });
+    }
   });
   // Sem autenticação, de propósito (mesmo raciocínio do /healthz) — só
   // identifica qual código está rodando, não expõe nenhum dado do restaurante.

@@ -29,7 +29,7 @@ vi.mock("./_core/mercadoPagoBilling", async importOriginal => {
 vi.mock("./_core/env", () => ({ ENV: { get mercadoPagoAccessToken() { return mocks.mercadoPagoAccessToken; } } }));
 
 import { plans, subscriptions } from "../drizzle/schema";
-import { applyDueScheduledChanges, startOrChangePlan } from "./db/subscriptions";
+import { applyDueScheduledChanges, reactivateScheduledCancellation, scheduleCancellation, startOrChangePlan } from "./db/subscriptions";
 
 const PLAN_BASICO = { id: 1, key: "essencial", name: "Essencial", priceCents: 14990, position: 1 };
 const PLAN_PRO = { id: 2, key: "profissional", name: "Profissional", priceCents: 24990, position: 2 };
@@ -44,6 +44,7 @@ function buildDbStub(subscriptionRow: Record<string, unknown> | undefined) {
   // já ter sido zerado pela própria applyDueScheduledChanges nesse meio-tempo.
   const originalScheduledPlanId = subscriptionRow?.scheduledPlanId as number | null | undefined;
   const updateCalls: Array<{ table: string; values: Record<string, unknown> }> = [];
+  const insertCalls: Array<Record<string, unknown>> = [];
 
   const db = {
     select(fields?: unknown) {
@@ -85,10 +86,17 @@ function buildDbStub(subscriptionRow: Record<string, unknown> | undefined) {
       };
     },
     insert() {
-      return { values: async () => {} };
+      // Captura os eventos de auditoria gravados por recordEvent() — usado
+      // pelos testes de cancelamento/reativação abaixo pra confirmar que o
+      // evento certo foi (ou não foi, no caso idempotente) gravado.
+      return {
+        values: async (values: Record<string, unknown>) => {
+          insertCalls.push(values);
+        },
+      };
     },
   };
-  return { db, updateCalls, getCurrent: () => currentSubscription };
+  return { db, updateCalls, insertCalls, getCurrent: () => currentSubscription };
 }
 
 describe("startOrChangePlan", () => {
@@ -187,5 +195,89 @@ describe("applyDueScheduledChanges", () => {
     await applyDueScheduledChanges(10);
     expect(stub.updateCalls.length).toBe(0);
     expect(mocks.updateSubscriptionPreapproval).not.toHaveBeenCalled();
+  });
+});
+
+describe("scheduleCancellation", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("assinatura ativa: agenda o cancelamento pro fim do ciclo atual e grava evento de auditoria", async () => {
+    const periodEnd = Date.now() + 100_000;
+    const stub = buildDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "active", currentPeriodEnd: periodEnd, scheduledPlanId: null, gatewaySubscriptionId: "pre-1", cancelReason: null });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const result = await scheduleCancellation({ restaurantId: 7, reason: "muito caro", actor: "restaurant:7" });
+
+    expect(result).toEqual({ effectiveAt: periodEnd });
+    const finalState = stub.getCurrent();
+    expect(finalState?.status).toBe("cancel_at_period_end");
+    expect(finalState?.cancelReason).toBe("muito caro");
+    expect(finalState?.scheduledPlanId).toBe(null); // cancelar cancela também qualquer downgrade que estivesse agendado
+    expect(stub.insertCalls).toHaveLength(1);
+    expect(stub.insertCalls[0]).toMatchObject({ eventType: "cancellation_scheduled" });
+  });
+
+  it("já cancelada (status 'canceled'): idempotente — não muda nada nem grava evento de novo", async () => {
+    const periodEnd = Date.now() + 100_000;
+    const stub = buildDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "canceled", currentPeriodEnd: periodEnd, scheduledPlanId: null, gatewaySubscriptionId: "pre-1", cancelReason: "já cancelado antes" });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const result = await scheduleCancellation({ restaurantId: 7, reason: "de novo", actor: "restaurant:7" });
+
+    expect(result).toEqual({ effectiveAt: periodEnd });
+    expect(stub.updateCalls.length).toBe(0);
+    expect(stub.insertCalls.length).toBe(0);
+    expect(stub.getCurrent()?.cancelReason).toBe("já cancelado antes"); // não sobrescreve o motivo original
+  });
+
+  it("já com cancelamento agendado ('cancel_at_period_end'): idempotente — não duplica evento", async () => {
+    const periodEnd = Date.now() + 100_000;
+    const stub = buildDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "cancel_at_period_end", currentPeriodEnd: periodEnd, scheduledPlanId: null, gatewaySubscriptionId: "pre-1", cancelReason: "motivo original" });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const result = await scheduleCancellation({ restaurantId: 7, reason: "motivo novo", actor: "restaurant:7" });
+
+    expect(result).toEqual({ effectiveAt: periodEnd });
+    expect(stub.updateCalls.length).toBe(0);
+    expect(stub.insertCalls.length).toBe(0);
+  });
+
+  it("restaurante sem assinatura cadastrada: lança erro", async () => {
+    const stub = buildDbStub(undefined);
+    mocks.getDb.mockResolvedValue(stub.db);
+    await expect(scheduleCancellation({ restaurantId: 999, actor: "restaurant:999" })).rejects.toThrow("Restaurante sem assinatura cadastrada.");
+  });
+});
+
+describe("reactivateScheduledCancellation", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("com cancelamento agendado: volta pra 'active', zera o cancelReason e grava evento de auditoria", async () => {
+    const stub = buildDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "cancel_at_period_end", currentPeriodEnd: Date.now() + 100_000, scheduledPlanId: null, gatewaySubscriptionId: "pre-1", cancelReason: "muito caro" });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const result = await reactivateScheduledCancellation({ restaurantId: 7, actor: "restaurant:7" });
+
+    expect(result).toEqual({ success: true });
+    const finalState = stub.getCurrent();
+    expect(finalState?.status).toBe("active");
+    expect(finalState?.cancelReason).toBe(null);
+    expect(stub.insertCalls).toHaveLength(1);
+    expect(stub.insertCalls[0]).toMatchObject({ eventType: "cancellation_undone" });
+  });
+
+  it("sem nada agendado (assinatura já ativa): rejeita com erro claro, sem tocar no banco", async () => {
+    const stub = buildDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "active", currentPeriodEnd: Date.now() + 100_000, scheduledPlanId: null, gatewaySubscriptionId: "pre-1", cancelReason: null });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    await expect(reactivateScheduledCancellation({ restaurantId: 7, actor: "restaurant:7" })).rejects.toThrow("Não há cancelamento agendado para desfazer.");
+    expect(stub.updateCalls.length).toBe(0);
+    expect(stub.insertCalls.length).toBe(0);
+  });
+
+  it("restaurante sem assinatura cadastrada: lança erro", async () => {
+    const stub = buildDbStub(undefined);
+    mocks.getDb.mockResolvedValue(stub.db);
+    await expect(reactivateScheduledCancellation({ restaurantId: 999, actor: "restaurant:999" })).rejects.toThrow("Restaurante sem assinatura cadastrada.");
   });
 });

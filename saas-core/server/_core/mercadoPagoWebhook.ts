@@ -42,17 +42,34 @@ export async function handleMercadoPagoBillingWebhook(req: Request, res: Respons
       }
     }
 
-    const { alreadyProcessed } = await markWebhookEventOnce({ gateway: "mercadopago", gatewayEventId: `${type}:${dataId}`, result: "received" });
-    if (alreadyProcessed) {
-      res.status(200).json({ received: true });
-      return;
-    }
-
+    // A chave de dedup PRECISA incluir o status atual, não só `${type}:${dataId}`:
+    // `data.id` é o id da própria preapproval/cobrança, que não muda entre
+    // notificações de estados diferentes (pending -> authorized -> cancelled
+    // são notificações DIFERENTES sobre o MESMO data.id). Sem o status na
+    // chave, a segunda notificação (ex: cliente autoriza de verdade) era
+    // descartada como "já processada" pela primeira (criação, status
+    // pending), e a assinatura ficava travada em payment_pending pra sempre.
+    // O status de verdade só existe consultando a API do Mercado Pago (o
+    // corpo do webhook nunca traz o status) — por isso a consulta acontece
+    // ANTES da checagem de idempotência, com o valor consultado reaproveitado
+    // na aplicação abaixo (nunca consultado duas vezes). Retry idêntico do
+    // Mercado Pago da MESMA notificação (mesmo data.id, mesmo status) continua
+    // gerando a mesma chave e sendo descartado normalmente.
     if (type === "subscription_preapproval") {
       const preapproval = await getSubscriptionPreapproval(ENV.mercadoPagoAccessToken, dataId);
+      const { alreadyProcessed } = await markWebhookEventOnce({ gateway: "mercadopago", gatewayEventId: `${type}:${dataId}:${preapproval.status}`, result: "received" });
+      if (alreadyProcessed) {
+        res.status(200).json({ received: true });
+        return;
+      }
       await applyPreapprovalStatus({ preapprovalId: preapproval.id, mpStatus: preapproval.status, payerId: preapproval.payerId });
     } else {
       const payment = await getAuthorizedPayment(ENV.mercadoPagoAccessToken, dataId);
+      const { alreadyProcessed } = await markWebhookEventOnce({ gateway: "mercadopago", gatewayEventId: `${type}:${dataId}:${payment.status}`, result: "received" });
+      if (alreadyProcessed) {
+        res.status(200).json({ received: true });
+        return;
+      }
       if (payment.preapprovalId) {
         const subscription = await getSubscriptionByGatewaySubscriptionId(payment.preapprovalId);
         if (subscription) {

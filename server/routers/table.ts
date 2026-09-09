@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createServiceRequest, getDb, getOrCreateWalkInCustomer, getOrOpenSessionForTable, getSessionWithOrders, findTableByToken, requestSessionBill } from "../db";
 import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
+import { getLicenseSnapshot } from "../_core/license";
 import { featureProcedure, publicProcedure, router } from "../_core/trpc";
 import { insertPricedOrder, priceOrder } from "./order";
 import { phoneSchema } from "./customer";
@@ -67,6 +68,32 @@ export const tableRouter = router({
   // diferentes conta), senão o próprio cliente sentado na mesa acabaria
   // bloqueado sozinho depois de alguns minutos com a página aberta.
   resolve: publicProcedure.input(z.object({ token: z.string().min(6).max(24) })).query(async ({ input, ctx }) => {
+    // Mesmo gate de plano das ações filhas (addRound/requestBill/callWaiter),
+    // aplicado aqui manualmente (em vez de featureProcedure) só pra poder usar
+    // uma mensagem apropriada pro cliente final escaneando o QR Code — o
+    // texto padrão de requireFeature ("recurso não disponível no plano X")
+    // vaza vocabulário de plano/assinatura que não faz sentido pra quem só
+    // quer ver a comanda da mesa. Sem isso, uma mesa com QR já impresso
+    // continuava abrindo normalmente mesmo depois de um downgrade que remove
+    // "tables_qr", só travando nas sub-ações — confuso pro cliente e um furo
+    // na garantia de bloqueio 100% backend. Snapshot de licença é único por
+    // deployment (cada restaurante roda seu próprio container isolado, ver
+    // CLAUDE.md), então não há restaurantId nenhum pra resolver aqui.
+    const snapshot = await getLicenseSnapshot();
+    if (!snapshot.features.includes("tables_qr")) {
+      const required = snapshot.lockedFeatures.tables_qr;
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Mesa indisponível no momento. Peça ajuda à equipe.",
+        cause: {
+          featureLocked: {
+            featureId: "tables_qr",
+            requiredPlanKey: required?.requiredPlanKey ?? null,
+            requiredPlanName: required?.requiredPlanName ?? null,
+          },
+        },
+      });
+    }
     const limit = checkDistinctRateLimit(`table-resolve:${ctx.req.ip}`, input.token, 20);
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
     const table = await findTableByToken(input.token);
