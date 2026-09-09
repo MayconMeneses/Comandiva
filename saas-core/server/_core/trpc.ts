@@ -1,5 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { timingSafeEqual } from "node:crypto";
+import { ZodError } from "zod";
 import type { TrpcContext } from "./context";
 import { ENV } from "./env";
 import type { MasterPermissionArea } from "./permissions";
@@ -10,7 +11,14 @@ import type { MasterPermissionArea } from "./permissions";
 // (client/src/lib/trpc.ts). Se o frontend um dia precisar de superjson,
 // precisa ser adicionado aqui E lá ao mesmo tempo, ou client/servidor
 // discordam do formato do payload.
-const t = initTRPC.context<TrpcContext>().create({});
+const t = initTRPC.context<TrpcContext>().create({
+  errorFormatter({ shape, error }) {
+    // Sem isso, erro de validação (Zod) mostra o JSON bruto de issues[] pro
+    // usuário final em vez da mensagem amigável que o schema já define.
+    const zodMessage = error.cause instanceof ZodError ? error.cause.issues[0]?.message : undefined;
+    return zodMessage ? { ...shape, message: zodMessage } : shape;
+  },
+});
 
 export const router = t.router;
 export const publicProcedure = t.procedure;

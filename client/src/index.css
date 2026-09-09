@@ -115,7 +115,7 @@ button:disabled { cursor: not-allowed; }
 
 @media print {
   article .font-display::before {
-    content: url("/pubx-logo.svg");
+    content: url("/mm-logo-icon.png");
     display: block;
     height: 28px;
     margin-bottom: 4px;

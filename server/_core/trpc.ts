@@ -1,6 +1,7 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
+import { ZodError } from "zod";
 import { getStaffPermissionsByUserId } from "../db/users";
 import type { TrpcContext } from "./context";
 import { ENV } from "./env";
@@ -13,8 +14,15 @@ const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
     const cause = error.cause as { featureLocked?: FeatureLockedInfo } | undefined;
-    if (!cause?.featureLocked) return shape;
-    return { ...shape, data: { ...shape.data, featureLocked: cause.featureLocked } };
+    // Erro de validação (Zod) chega em error.cause com a mensagem já amigável
+    // em cada issue — sem isso, shape.message vira o JSON bruto de issues[],
+    // que os formulários mostram direto pro usuário final (ex: campo "usuário").
+    const zodMessage = error.cause instanceof ZodError ? error.cause.issues[0]?.message : undefined;
+    return {
+      ...shape,
+      message: zodMessage ?? shape.message,
+      data: cause?.featureLocked ? { ...shape.data, featureLocked: cause.featureLocked } : shape.data,
+    };
   },
 });
 

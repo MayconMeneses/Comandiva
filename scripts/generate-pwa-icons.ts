@@ -1,65 +1,60 @@
-// Gera os ícones do PWA (manifest.webmanifest + apple-touch-icon) a partir do
-// logo já existente em client/public/pubx-logo.svg — não inventa nenhuma
-// marca/forma nova. O círculo laranja e o glifo branco em forma de "P" usados
-// aqui são os MESMOS paths/cores daquele arquivo (só recortamos o wordmark
-// completo — que tem texto "Pub X" — para o selo circular, porque um ícone
-// quadrado pequeno (192px) não tem espaço legível pra texto).
+// Gera os ícones do PWA + favicon a partir da logo oficial em
+// client/public/mm-logo-icon.png (marca "MM System Creator", já um PNG
+// quadrado com fundo próprio — nenhuma forma é desenhada aqui).
 //
-// Rodar de novo sempre que o logo mudar (troca de marca branca/cliente):
+// Rodar de novo sempre que a logo mudar (troca de marca/cliente):
 //   npx tsx scripts/generate-pwa-icons.ts
 //
 // Saída: client/public/icons/{icon-192,icon-512,maskable-512,apple-touch-icon}.png
+//        client/public/{favicon-32,favicon-16}.png
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { PWA_BRANDING } from "../pwa.config";
 
-const OUT_DIR = path.resolve(import.meta.dirname, "../client/public/icons");
-
-// viewBox quadrado (0,0,160,160) recortado do pubx-logo.svg original (320x160):
-// mantém o fundo escuro, o círculo laranja (cx=80,cy=80,r=45) e o glifo "P"
-// branco (mesmo path do original), que já ficam bem centralizados nesse
-// recorte. O texto "Pub X" e o pedaço do "u" cor creme do wordmark original
-// ficam de fora — não cabem de forma legível num ícone quadrado pequeno.
-// A margem generosa ao redor do círculo (35px de 160, ~22%) já deixa esse
-// desenho dentro da "safe zone" que ícones maskable exigem (conteúdo dentro
-// de um raio de 40% a partir do centro), então o mesmo SVG serve tanto para
-// os ícones normais quanto para o maskable.
-function buildSquareIconSvg(): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
-  <rect width="160" height="160" fill="${PWA_BRANDING.backgroundColor}"/>
-  <circle cx="80" cy="80" r="45" fill="#b4472d"/>
-  <path d="M62 104V55h21c17 0 27 8 27 22s-10 22-27 22H74v5H62Zm12-17h9c10 0 15-3 15-10s-5-10-15-10h-9v20Z" fill="#fffaf3"/>
-</svg>`;
-}
-
-async function renderPng(svg: string, size: number): Promise<Buffer> {
-  return sharp(Buffer.from(svg), { density: 384 })
-    .resize(size, size)
-    .png()
-    .toBuffer();
-}
+const PUBLIC_DIR = path.resolve(import.meta.dirname, "../client/public");
+const SOURCE = path.join(PUBLIC_DIR, "mm-logo-icon.png");
+const ICONS_DIR = path.join(PUBLIC_DIR, "icons");
 
 async function main() {
-  await mkdir(OUT_DIR, { recursive: true });
-  const svg = buildSquareIconSvg();
+  await mkdir(ICONS_DIR, { recursive: true });
 
-  const targets: Array<{ file: string; size: number }> = [
-    { file: "icon-192.png", size: 192 },
-    { file: "icon-512.png", size: 512 },
-    // Mesmo desenho, servido também como "maskable" no manifest — a margem
-    // já existente ao redor do círculo cobre a safe zone exigida.
-    { file: "maskable-512.png", size: 512 },
+  const targets: Array<{ file: string; size: number; dir: string; safeZonePad?: number }> = [
+    { file: "icon-192.png", size: 192, dir: ICONS_DIR },
+    { file: "icon-512.png", size: 512, dir: ICONS_DIR },
+    // Ícone "maskable" — sistemas Android recortam até 40% das bordas, então
+    // precisa de margem extra além da que a própria logo já tem.
+    { file: "maskable-512.png", size: 512, dir: ICONS_DIR, safeZonePad: 0.2 },
     // Tamanho recomendado pela Apple pra ícone de home screen no iOS.
-    { file: "apple-touch-icon.png", size: 180 },
+    { file: "apple-touch-icon.png", size: 180, dir: ICONS_DIR },
+    { file: "favicon-32.png", size: 32, dir: PUBLIC_DIR },
+    { file: "favicon-16.png", size: 16, dir: PUBLIC_DIR },
   ];
 
-  for (const { file, size } of targets) {
-    const png = await renderPng(svg, size);
-    await writeFile(path.join(OUT_DIR, file), png);
-    console.log(`[pwa-icons] gerado ${path.join("client/public/icons", file)} (${size}x${size}, ${(png.length / 1024).toFixed(1)} KB)`);
+  const bg = await sampleCornerColor();
+
+  for (const { file, size, dir, safeZonePad = 0 } of targets) {
+    const png = await renderSquare(size, bg, safeZonePad);
+    await sharp(png).toFile(path.join(dir, file));
+    console.log(`[pwa-icons] gerado ${path.relative(PUBLIC_DIR, path.join(dir, file))} (${size}x${size})`);
   }
+}
+
+async function sampleCornerColor(): Promise<{ r: number; g: number; b: number }> {
+  const { data, info } = await sharp(SOURCE).raw().toBuffer({ resolveWithObject: true });
+  const [r, g, b] = [data[0], data[1], data[2]];
+  void info;
+  return { r, g, b };
+}
+
+async function renderSquare(size: number, bg: { r: number; g: number; b: number }, safeZonePad: number): Promise<Buffer> {
+  const inner = Math.round(size * (1 - safeZonePad));
+  const resized = await sharp(SOURCE).resize(inner, inner, { fit: "contain", background: bg }).png().toBuffer();
+  if (safeZonePad === 0) return resized;
+  return sharp({ create: { width: size, height: size, channels: 4, background: bg } })
+    .composite([{ input: resized, gravity: "center" }])
+    .png()
+    .toBuffer();
 }
 
 main().catch(error => {
