@@ -1,4 +1,4 @@
-import { asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { addonGroups, addonOptions, categories, events, faqItems, products, promotionAddonDefaults, promotionProducts, promotions } from "../../drizzle/schema";
 import { isCategoryCurrentlyAvailable } from "../../shared/orderDomain";
 import { cached, CATALOG_CACHE_TTL_MS, getDb } from "./client";
@@ -9,7 +9,10 @@ async function fetchCatalog() {
   if (!db) throw new Error("Banco de dados indisponível");
   const [categoryRows, productRows, groupRows, optionRows, settings] = await Promise.all([
     db.select().from(categories).where(eq(categories.active, true)).orderBy(asc(categories.sortOrder)),
-    db.select().from(products).where(isNull(products.archivedAt)).orderBy(asc(products.sortOrder)),
+    // Cardápio público: só produto disponível E não arquivado. Indisponível
+    // some da vitrine em vez de aparecer desabilitado — o admin continua
+    // vendo tudo (consulta própria, sempre fresca) pra poder reativar.
+    db.select().from(products).where(and(isNull(products.archivedAt), eq(products.available, true))).orderBy(asc(products.sortOrder)),
     db.select().from(addonGroups).where(eq(addonGroups.active, true)).orderBy(asc(addonGroups.sortOrder)),
     db.select().from(addonOptions).orderBy(asc(addonOptions.sortOrder)),
     getStoreSettings(),

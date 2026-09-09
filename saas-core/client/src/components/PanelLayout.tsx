@@ -44,7 +44,11 @@ export function PanelLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </aside>
-      <main className="flex-1 p-6">{children}</main>
+      <main className="relative flex-1 overflow-hidden p-6">
+        {/* Marca d'água — puramente decorativa, atrás do conteúdo real (z-0 vs z-10), sem interceptar clique. */}
+        <img src="/mm-logo-full.png" alt="" aria-hidden="true" className="pointer-events-none absolute bottom-0 right-0 z-0 w-[32rem] max-w-[70vw] -translate-y-8 translate-x-16 opacity-[0.04] select-none" />
+        <div className="relative z-10">{children}</div>
+      </main>
     </div>
   );
 }
