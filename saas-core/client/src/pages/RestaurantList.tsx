@@ -2,6 +2,7 @@ import { PanelLayout } from "@/components/PanelLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { copyToClipboard } from "@/lib/clipboard";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Link } from "wouter";
@@ -83,7 +84,7 @@ export default function RestaurantList() {
                     variant="outline"
                     onClick={async () => {
                       try {
-                        await navigator.clipboard.writeText(create.data!.apiKey);
+                        await copyToClipboard(create.data!.apiKey);
                         setCopied(true);
                       } catch {
                         setCopied(false);

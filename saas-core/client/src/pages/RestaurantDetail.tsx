@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
+import { copyToClipboard } from "@/lib/clipboard";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { useParams } from "wouter";
@@ -189,7 +190,7 @@ export default function RestaurantDetail() {
                     variant="outline"
                     onClick={async () => {
                       try {
-                        await navigator.clipboard.writeText(rotatedApiKey);
+                        await copyToClipboard(rotatedApiKey);
                         setCopiedRotatedKey(true);
                       } catch {
                         setCopiedRotatedKey(false);
