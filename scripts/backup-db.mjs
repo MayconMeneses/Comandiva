@@ -46,19 +46,29 @@ if (s3Bucket && s3AccessKeyId && s3SecretAccessKey) {
   const client = new S3Client({ region: s3Region, endpoint: s3Endpoint || undefined, forcePathStyle: Boolean(s3Endpoint), credentials: { accessKeyId: s3AccessKeyId, secretAccessKey: s3SecretAccessKey } });
   const storageDir = `${workDir}/storage`;
   let continuationToken;
-  do {
-    const page = await client.send(new ListObjectsV2Command({ Bucket: s3Bucket, ContinuationToken: continuationToken }));
-    for (const object of page.Contents ?? []) {
-      if (!object.Key) continue;
-      const destPath = `${storageDir}/${object.Key}`;
-      await mkdir(destPath.slice(0, destPath.lastIndexOf("/")), { recursive: true });
-      const got = await client.send(new GetObjectCommand({ Bucket: s3Bucket, Key: object.Key }));
-      await pipeline(got.Body, createWriteStream(destPath));
-      storageFileCount++;
+  try {
+    do {
+      const page = await client.send(new ListObjectsV2Command({ Bucket: s3Bucket, ContinuationToken: continuationToken }));
+      for (const object of page.Contents ?? []) {
+        if (!object.Key) continue;
+        const destPath = `${storageDir}/${object.Key}`;
+        await mkdir(destPath.slice(0, destPath.lastIndexOf("/")), { recursive: true });
+        const got = await client.send(new GetObjectCommand({ Bucket: s3Bucket, Key: object.Key }));
+        await pipeline(got.Body, createWriteStream(destPath));
+        storageFileCount++;
+      }
+      continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (continuationToken);
+    console.log(`[backup] ${storageFileCount} arquivo(s) de storage baixado(s).`);
+  } catch (error) {
+    if (error?.Code === "NoSuchBucket" || error?.name === "NoSuchBucket") {
+      // Bucket só é criado no primeiro upload de imagem (ver server/storage.ts) — instalação
+      // nova sem nenhuma imagem enviada ainda não é uma falha, só não há nada pra baixar.
+      console.log("[backup] Bucket de storage ainda não existe (nenhuma imagem enviada até agora) — pulando, backup segue só com o banco.");
+    } else {
+      throw error;
     }
-    continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
-  } while (continuationToken);
-  console.log(`[backup] ${storageFileCount} arquivo(s) de storage baixado(s).`);
+  }
 } else {
   console.warn("[backup] S3_BUCKET/S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY não configurados — backup não incluirá as imagens do storage.");
 }
