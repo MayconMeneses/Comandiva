@@ -30,5 +30,8 @@ desktop.ini
 !.vscode/extensions.json
 .idea/
 
+# Overrides locais do Claude Code (nunca versionar — específico de cada máquina)
+.claude/settings.local.json
+
 # Testes/cobertura
 coverage/
