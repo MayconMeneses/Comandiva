@@ -8,7 +8,11 @@ export const ENV = {
   // Painel Master (Super Admin) — autenticação própria, nada a ver com
   // operatorToken (scripts/CLI) nem com a API key de restaurante.
   platformJwtSecret: process.env.PLATFORM_JWT_SECRET ?? "",
-  platformSessionCookieName: process.env.PLATFORM_SESSION_COOKIE_NAME ?? "platform_session",
+  // `||` (não `??`) de propósito — um .env com a variável presente mas em
+  // branco (comum quando o arquivo é gerado com todas as chaves listadas)
+  // não pode virar um nome de cookie vazio: a lib `cookie` rejeita nome
+  // vazio com "argument name is invalid", quebrando o login inteiro.
+  platformSessionCookieName: process.env.PLATFORM_SESSION_COOKIE_NAME || "platform_session",
   bootstrapSuperadminName: process.env.BOOTSTRAP_SUPERADMIN_NAME ?? "",
   bootstrapSuperadminEmail: process.env.BOOTSTRAP_SUPERADMIN_EMAIL ?? "",
   bootstrapSuperadminPassword: process.env.BOOTSTRAP_SUPERADMIN_PASSWORD ?? "",
