@@ -46,7 +46,15 @@ const PERMISSIVE_DEFAULT: LicenseSnapshot = {
 };
 
 function buildSnapshot(row: Awaited<ReturnType<typeof getOrCreateLicenseCache>>): LicenseSnapshot {
-  if (!row) return PERMISSIVE_DEFAULT;
+  // `!row.lastSyncOk` cobre o caso "linha existe mas nunca sincronizou de
+  // verdade ainda" (acabou de ser criada por getOrCreateLicenseCache, com
+  // featuresJson: "[]") — sem isso, um boot novo (ou logo após configurar
+  // SAAS_CORE_URL pela primeira vez) bloqueava todo recurso pago por até
+  // LICENSE_SYNC_INTERVAL_MS, o oposto do fail-open documentado acima.
+  // upsertLicenseCache só grava lastSyncOk:true numa sincronização bem
+  // sucedida e nunca volta pra false depois — então essa checagem não afeta
+  // o caso de uma falha passageira após já ter sincronizado uma vez.
+  if (!row || !row.lastSyncOk) return PERMISSIVE_DEFAULT;
   return {
     planKey: row.planKey,
     planName: row.planName,

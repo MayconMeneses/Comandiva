@@ -45,8 +45,10 @@ export async function addRoundToTable(params: {
     ? await saveCustomerProfile({ phone: params.customer.phone, name: params.customer.name })
     : await getOrCreateWalkInCustomer();
   if (!customer) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o cliente." });
-  const { orderId, code } = await insertPricedOrder({
-    db,
+  // orders + orderItems + orderItemAddons + orderStatusHistory numa
+  // transação só — mesmo raciocínio de order.create em ./order.ts.
+  const { orderId, code } = await db.transaction(tx => insertPricedOrder({
+    db: tx,
     priced,
     fulfillmentType: "DINE_IN",
     origin: params.origin,
@@ -58,7 +60,7 @@ export async function addRoundToTable(params: {
     tableSessionId: session.id,
     historyNote: params.historyNote,
     now: Date.now(),
-  });
+  }));
   return { orderId, code, sessionId: session.id, totalCents: priced.totalCents };
 }
 
@@ -102,7 +104,11 @@ export const tableRouter = router({
     const detail = await getSessionWithOrders(session.id);
     return {
       table: { id: table.id, label: table.label, sector: table.sector },
-      session: detail!.session,
+      // Whitelist de campos, igual `orders`/`table` logo abaixo/acima — a
+      // linha raw vinda do banco também carrega customerId, notes internas
+      // e o id interno da própria comanda, sem necessidade pra essa tela
+      // pública (client/src/pages/TableSession.tsx só lê session.status).
+      session: { status: detail!.session.status, partySize: detail!.session.partySize, openedAt: detail!.session.openedAt },
       orders: detail!.orders.map(order => ({
         id: order.id,
         status: order.status,

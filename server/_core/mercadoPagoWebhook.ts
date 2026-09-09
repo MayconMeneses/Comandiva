@@ -12,7 +12,11 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
   // Responder rápido é parte do contrato do Mercado Pago (eles reenviam se
   // demorar ou se a resposta não for 2xx) — nosso processamento aqui é só
   // uma consulta HTTP + updates simples, cabe folgado dentro do timeout deles.
-  const limit = checkRateLimit(`mp-webhook:${req.ip}`);
+  // Limite bem mais alto que o padrão (pensado pra força bruta de login):
+  // isso é tráfego servidor-a-servidor do próprio Mercado Pago, cobrindo
+  // TODAS as notificações de TODOS os pagamentos — um limite apertado aqui
+  // faz o handler devolver 200 sem checar nada, e o MP nunca reenvia um 2xx.
+  const limit = checkRateLimit(`mp-webhook:${req.ip}`, { maxAttempts: 60 });
   if (!limit.allowed) {
     res.status(200).json({ received: true });
     return;

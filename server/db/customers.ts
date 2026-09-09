@@ -16,27 +16,33 @@ export async function anonymizeCustomer(customerId: number) {
   if (!db) throw new Error("Banco de dados indisponível");
   const anonPhone = `anon-${customerId}`;
   const now = Date.now();
-  await db.update(customers).set({ name: "Cliente removido", phone: anonPhone, phoneVerifiedAt: null, updatedAt: now }).where(eq(customers.id, customerId));
-  await db.delete(customerAddresses).where(eq(customerAddresses.customerId, customerId));
-  await db.delete(customerChangeLogs).where(eq(customerChangeLogs.customerId, customerId));
-  await db
-    .update(orders)
-    .set({
-      customerName: "Cliente removido",
-      customerPhone: anonPhone,
-      customerNote: null,
-      internalNote: null,
-      deliveryPostalCode: null,
-      deliveryStreet: null,
-      deliveryNumber: null,
-      deliveryComplement: null,
-      deliveryNeighborhood: null,
-      deliveryCity: null,
-      deliveryState: null,
-      deliveryReference: null,
-      updatedAt: now,
-    })
-    .where(eq(orders.customerId, customerId));
+  // As 4 escritas numa transação só — uma falha no meio deixando só o
+  // `customers` anonimizado, mas os `orders` antigos ainda com nome/telefone/
+  // endereço reais, seria justamente o cenário que essa função existe pra
+  // evitar (exclusão LGPD "completa" que na prática ficou pela metade).
+  await db.transaction(async tx => {
+    await tx.update(customers).set({ name: "Cliente removido", phone: anonPhone, phoneVerifiedAt: null, updatedAt: now }).where(eq(customers.id, customerId));
+    await tx.delete(customerAddresses).where(eq(customerAddresses.customerId, customerId));
+    await tx.delete(customerChangeLogs).where(eq(customerChangeLogs.customerId, customerId));
+    await tx
+      .update(orders)
+      .set({
+        customerName: "Cliente removido",
+        customerPhone: anonPhone,
+        customerNote: null,
+        internalNote: null,
+        deliveryPostalCode: null,
+        deliveryStreet: null,
+        deliveryNumber: null,
+        deliveryComplement: null,
+        deliveryNeighborhood: null,
+        deliveryCity: null,
+        deliveryState: null,
+        deliveryReference: null,
+        updatedAt: now,
+      })
+      .where(eq(orders.customerId, customerId));
+  });
 }
 
 export async function getCustomerByPhone(phone: string) {

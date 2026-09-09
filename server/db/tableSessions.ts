@@ -126,10 +126,16 @@ export async function closeTableSession(sessionId: number, closedByUserId: numbe
   if (!detail) throw new Error("Comanda não encontrada.");
   if (detail.balanceDueCents > 0) throw new Error("A conta ainda não foi totalmente paga.");
   const now = Date.now();
-  await db.update(tableSessions).set({ status: "CLOSED", closedAt: now, closedByUserId, updatedAt: now }).where(eq(tableSessions.id, sessionId));
   const orderIds = detail.orders.filter(order => order.status !== "CANCELLED").map(order => order.id);
-  if (orderIds.length) await db.update(orders).set({ paymentStatus: "PAID", updatedAt: now }).where(inArray(orders.id, orderIds));
-  await db.update(restaurantTables).set({ status: "FREE", updatedAt: now }).where(eq(restaurantTables.id, detail.table!.id));
+  // As 3 escritas numa transação só — sem isso, um travamento no meio podia
+  // fechar a comanda mas deixar os pedidos dela como "não pago" pro
+  // relatório financeiro (ou liberar/travar a mesa incoerente com o status
+  // real da comanda).
+  await db.transaction(async tx => {
+    await tx.update(tableSessions).set({ status: "CLOSED", closedAt: now, closedByUserId, updatedAt: now }).where(eq(tableSessions.id, sessionId));
+    if (orderIds.length) await tx.update(orders).set({ paymentStatus: "PAID", updatedAt: now }).where(inArray(orders.id, orderIds));
+    await tx.update(restaurantTables).set({ status: "FREE", updatedAt: now }).where(eq(restaurantTables.id, detail.table!.id));
+  });
   return detail;
 }
 

@@ -16,18 +16,27 @@ setInterval(() => {
  * força bruta em login. Não substitui um WAF/serviço dedicado, mas é uma
  * proteção básica sem precisar de infraestrutura extra (Redis etc.) para um
  * sistema de porte pequeno/médio como este.
+ *
+ * `options` sobrescreve o limite/janela padrão (pensados pra força bruta de
+ * login) — usado pelo webhook do Mercado Pago, que é tráfego legítimo
+ * servidor-a-servidor (não tentativa de invasão) e pode facilmente passar de
+ * 8 notificações em 10min numa correria de pedidos com cartão; nesse caso,
+ * silenciar como se fosse abuso significa perder a confirmação real do
+ * pagamento (o MP trata qualquer 2xx como "entregue" e não reenvia).
  */
-export function checkRateLimit(key: string): { allowed: boolean; retryAfterSeconds?: number } {
+export function checkRateLimit(key: string, options?: { maxAttempts?: number; windowMs?: number }): { allowed: boolean; retryAfterSeconds?: number } {
+  const maxAttempts = options?.maxAttempts ?? MAX_ATTEMPTS;
+  const windowMs = options?.windowMs ?? WINDOW_MS;
   const now = Date.now();
   const entry = attempts.get(key);
 
-  if (!entry || now - entry.firstAttemptAt > WINDOW_MS) {
+  if (!entry || now - entry.firstAttemptAt > windowMs) {
     attempts.set(key, { count: 1, firstAttemptAt: now });
     return { allowed: true };
   }
 
-  if (entry.count >= MAX_ATTEMPTS) {
-    const retryAfterSeconds = Math.ceil((entry.firstAttemptAt + WINDOW_MS - now) / 1000);
+  if (entry.count >= maxAttempts) {
+    const retryAfterSeconds = Math.ceil((entry.firstAttemptAt + windowMs - now) / 1000);
     return { allowed: false, retryAfterSeconds: Math.max(retryAfterSeconds, 1) };
   }
 

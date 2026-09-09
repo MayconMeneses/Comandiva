@@ -5,6 +5,7 @@ import type { TrpcContext } from "../_core/context";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { createSupportSessionToken } from "../_core/supportSession";
 import { ENV } from "../_core/env";
+import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
 
 type RedeemResponse = {
@@ -31,6 +32,12 @@ export async function endSupportSession(ctx: Pick<TrpcContext, "req" | "res" | "
 export const supportRouter = router({
   /** Troca o token de handoff emitido pelo Painel Master por uma sessão local de suporte (cookie próprio). */
   enter: publicProcedure.input(z.object({ token: z.string().min(20) })).mutation(async ({ input, ctx }) => {
+    // Defesa própria além do que o saas-core fizer do lado dele — troca um
+    // token por sessão com acesso de leitura+escrita quase total ao
+    // restaurante (ver adminProcedure/restaurantProcedure), não pode ficar
+    // sem limite algum neste lado.
+    const limit = checkRateLimit(`support-enter:${ctx.req.ip}`);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas tentativas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     if (!ENV.supportSessionSecret || !ENV.saasCoreUrl || !ENV.saasCoreApiKey) {
       throw new TRPCError({ code: "NOT_IMPLEMENTED", message: "Modo Suporte não está habilitado neste deployment." });
     }

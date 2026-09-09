@@ -7,7 +7,7 @@ import { assertWithinPlanLimit } from "../_core/planLimits";
 import { GRANTABLE_STAFF_AREAS } from "../_core/permissions";
 import { checkRateLimit, clearRateLimit } from "../_core/rateLimit";
 import { sdk } from "../_core/sdk";
-import { adminOnlyProcedure, adminProcedure, publicProcedure, router } from "../_core/trpc";
+import { adminOnlyProcedure, publicProcedure, router } from "../_core/trpc";
 
 const usernameSchema = z.string().trim().toLowerCase().min(3, "Use ao menos 3 caracteres.").max(64).regex(/^[a-z0-9._-]+$/, "Use apenas letras, números, ponto, hífen ou sublinhado.");
 const passwordSchema = z.string().min(8, "A senha deve ter pelo menos 8 caracteres.").max(128);
@@ -27,11 +27,15 @@ export const teamRouter = router({
     ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
     return { name: account.user.name, role: account.user.role };
   }),
-  list: adminProcedure.query(() => listRestaurantAccessAccounts()),
+  // list também fica de fora do Modo Suporte (adminOnlyProcedure, não
+  // adminProcedure) — a lista já devolve usuário, papel, permissões e último
+  // login de cada conta admin/staff do restaurante, o mesmo tipo de dado
+  // sensível que create/update/setActive/delete abaixo protegem.
   // create/update/setActive/delete ficam de fora do Modo Suporte mesmo com
   // escrita liberada no resto — gerenciar credenciais de outras contas
   // admin/staff é justamente o tipo de coisa que o usuário pediu pra manter
   // bloqueada (ver [[project_saas_whitelabel_transformation]]).
+  list: adminOnlyProcedure.query(() => listRestaurantAccessAccounts()),
   create: adminOnlyProcedure.input(z.object({ name: z.string().trim().min(2).max(120), username: usernameSchema, password: passwordSchema, role: z.enum(["staff", "admin"]).default("staff"), permissions: permissionsSchema })).mutation(async ({ input }) => {
     await assertWithinPlanLimit("users");
     return createRestaurantAccessAccount(input);

@@ -18,9 +18,17 @@ const t = initTRPC.context<TrpcContext>().create({
     // em cada issue — sem isso, shape.message vira o JSON bruto de issues[],
     // que os formulários mostram direto pro usuário final (ex: campo "usuário").
     const zodMessage = error.cause instanceof ZodError ? error.cause.issues[0]?.message : undefined;
+    // Uma exceção não tratada (erro do driver do banco, de uma API externa
+    // etc.) chega aqui auto-empacotada pelo próprio tRPC como TRPCError com
+    // `cause` = o erro original — nesse caso error.message é a mensagem CRUA
+    // do erro interno. Um TRPCError lançado por nós de propósito (ex.:
+    // "Banco de dados indisponível") nunca define `cause`, então não cai
+    // aqui e mantém a mensagem curada normalmente.
+    const isUnintentionalInternalError = error.code === "INTERNAL_SERVER_ERROR" && error.cause instanceof Error && !(error.cause instanceof ZodError);
+    if (isUnintentionalInternalError) console.error("[trpc] Erro interno não tratado:", error.cause);
     return {
       ...shape,
-      message: zodMessage ?? shape.message,
+      message: zodMessage ?? (isUnintentionalInternalError ? "Erro interno. Tente novamente." : shape.message),
       data: cause?.featureLocked ? { ...shape.data, featureLocked: cause.featureLocked } : shape.data,
     };
   },

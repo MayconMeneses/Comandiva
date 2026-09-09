@@ -46,13 +46,20 @@ export const dataRightsRouter = router({
     return { token: await createDataRightsToken(input.phone) };
   }),
 
-  myData: publicProcedure.input(z.object({ phone: phoneSchema, token: z.string().min(10) })).query(async ({ input }) => {
+  // token válido só prova posse momentânea do celular (SMS) — sem rate
+  // limit aqui, um token reutilizado dentro da janela de 15min (ex.: link
+  // compartilhado, histórico do navegador) podia ser martelado sem limite.
+  myData: publicProcedure.input(z.object({ phone: phoneSchema, token: z.string().min(10) })).query(async ({ input, ctx }) => {
+    const limit = checkRateLimit(`data-rights-mydata:${ctx.req.ip}:${input.phone}`);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas tentativas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     if (!(await verifyDataRightsToken(input.token, input.phone))) throw new TRPCError({ code: "FORBIDDEN", message: "Sessão de verificação expirada. Peça um novo código." });
     const [customer, orders] = await Promise.all([getCustomerByPhone(input.phone), getOrdersSummaryByPhone(input.phone)]);
     return { customer: customer ?? null, orders };
   }),
 
-  deleteMyData: publicProcedure.input(z.object({ phone: phoneSchema, token: z.string().min(10) })).mutation(async ({ input }) => {
+  deleteMyData: publicProcedure.input(z.object({ phone: phoneSchema, token: z.string().min(10) })).mutation(async ({ input, ctx }) => {
+    const limit = checkRateLimit(`data-rights-delete:${ctx.req.ip}:${input.phone}`);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas tentativas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     if (!(await verifyDataRightsToken(input.token, input.phone))) throw new TRPCError({ code: "FORBIDDEN", message: "Sessão de verificação expirada. Peça um novo código." });
     const customer = await getCustomerByPhone(input.phone);
     if (customer) await anonymizeCustomer(customer.id);

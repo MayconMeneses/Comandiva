@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, notInArray, sql } from "drizzle-orm";
 import { orderChangeLogs, orderItemAddons, orderItems, orders, orderStatusHistory, payments, restaurantTables, tableSessions } from "../../drizzle/schema";
 import { getDb } from "./client";
 
@@ -157,7 +157,12 @@ export async function markOrderPaymentPaidByPublicCode(publicCode: string, provi
   const [order] = await db.select().from(orders).where(eq(orders.publicCode, publicCode)).limit(1);
   if (!order) return { found: false as const };
   const now = Date.now();
-  await db.update(payments).set({ status: "PAID", providerReference, paidAt: now, updatedAt: now }).where(eq(payments.orderId, order.id));
+  // Nunca resgata um pagamento já estornado/cancelado de volta pra PAID — o
+  // Mercado Pago pode reentregar uma notificação antiga (reenvio manual pelo
+  // painel dele, ou o at-least-once normal de webhook) bem depois de um
+  // estorno já ter sido registrado por fora; sem esse filtro, isso desfazia
+  // silenciosamente o estorno e deixava refundedAt/refundReason inconsistentes.
+  await db.update(payments).set({ status: "PAID", providerReference, paidAt: now, updatedAt: now }).where(and(eq(payments.orderId, order.id), notInArray(payments.status, ["REFUNDED", "CANCELLED"])));
   if (order.paymentStatus !== "PAID") {
     await db.update(orders).set({ paymentStatus: "PAID", updatedAt: now }).where(eq(orders.id, order.id));
   }

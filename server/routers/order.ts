@@ -178,8 +178,15 @@ type PricedOrder = Awaited<ReturnType<typeof priceOrder>>;
  * rodada de mesa é *quem* dispara a criação e se existe endereço/comprovante
  * de pagamento próprio, não como o pedido em si é gravado.
  */
+type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+// Aceita tanto a conexão normal quanto o `tx` passado dentro de
+// db.transaction(async tx => ...) — os dois implementam os mesmos métodos de
+// query builder usados aqui (.insert()), só o `tx` não tem `$client` (a pool
+// inteira, que não faz sentido expor de dentro de uma transação).
+type DbOrTx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
+
 export async function insertPricedOrder(params: {
-  db: NonNullable<Awaited<ReturnType<typeof getDb>>>;
+  db: DbOrTx;
   priced: PricedOrder;
   fulfillmentType: FulfillmentType;
   origin: "SITE" | "BALCAO" | "GARCOM" | "QR_CODE";
@@ -283,28 +290,36 @@ export const orderRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
     const now = Date.now();
-    const { orderId, code } = await insertPricedOrder({
-      db,
-      priced,
-      fulfillmentType: input.fulfillmentType,
-      origin,
-      paymentMethod: input.paymentMethod,
-      customerId: customer.id,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      changeForCents: input.changeForCents,
-      customerNote: input.customerNote,
-      address: input.address,
-      now,
-    });
-    await db.insert(payments).values({
-      orderId,
-      method: input.paymentMethod,
-      status: "PENDING",
-      amountCents: priced.totalCents,
-      metadata: JSON.stringify({ changeForCents: input.changeForCents ?? null }),
-      createdAt: now,
-      updatedAt: now,
+    // orders + orderItems + orderItemAddons + orderStatusHistory + payments
+    // numa transação só — sem isso, um travamento no meio (conexão caindo,
+    // processo reiniciando em deploy) podia deixar um pedido cobrado sem
+    // nenhuma linha em `payments`, e o webhook do Mercado Pago confirmando o
+    // pagamento depois não encontra o que atualizar (UPDATE sem WHERE match).
+    const { orderId, code } = await db.transaction(async tx => {
+      const insertedOrder = await insertPricedOrder({
+        db: tx,
+        priced,
+        fulfillmentType: input.fulfillmentType,
+        origin,
+        paymentMethod: input.paymentMethod,
+        customerId: customer.id,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        changeForCents: input.changeForCents,
+        customerNote: input.customerNote,
+        address: input.address,
+        now,
+      });
+      await tx.insert(payments).values({
+        orderId: insertedOrder.orderId,
+        method: input.paymentMethod,
+        status: "PENDING",
+        amountCents: priced.totalCents,
+        metadata: JSON.stringify({ changeForCents: input.changeForCents ?? null }),
+        createdAt: now,
+        updatedAt: now,
+      });
+      return insertedOrder;
     });
     return { publicCode: code, orderId, estimatedDeliveryMin: priced.estimatedDeliveryMin, estimatedDeliveryMax: priced.estimatedDeliveryMax };
   }),
@@ -357,6 +372,13 @@ export const orderRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
     const order = await getOrderByTrackingCode(input.publicCode, input.customerPhone);
     if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+    // Sem isso, chamar esse endpoint duas vezes pro mesmo pedido (ex.: usuário
+    // volta pra página de acompanhamento e aciona de novo) gera uma segunda
+    // preferência de cobrança inteira pro mesmo pedido já pago — como
+    // payments tem índice único por orderId, o segundo webhook aprovado
+    // sobrescreveria o providerReference do primeiro sem deixar rastro de
+    // que duas cobranças reais aconteceram.
+    if (order.payment?.status === "PAID") throw new TRPCError({ code: "BAD_REQUEST", message: "Este pedido já está pago." });
     const [gateway] = await db.select().from(paymentGateways).where(eq(paymentGateways.active, true)).limit(1);
     if (!gateway || !gateway.apiKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Pagamento online não está configurado no momento. Escolha outra forma de pagamento." });
     if (gateway.provider !== "MERCADO_PAGO") throw new TRPCError({ code: "BAD_REQUEST", message: `A cobrança automática para ${gateway.label} ainda não foi conectada. Escolha outra forma de pagamento ou fale com o restaurante.` });
@@ -364,12 +386,19 @@ export const orderRouter = router({
       const redirectUrl = await createMercadoPagoCheckout({
         accessToken: gateway.apiKey,
         orderPublicCode: order.publicCode,
-        items: order.items.map(item => ({ title: item.productName, quantity: item.quantity, unit_price: item.lineTotalCents / item.quantity / 100 })),
+        // Item único com o total JÁ com frete somado e desconto de combo
+        // aplicado — nunca reconstruir a partir de order.items[].lineTotalCents,
+        // que é sempre o preço CHEIO por item, calculado antes do desconto de
+        // combo existir e sem o frete (ver server/db/orders.ts). Cobrar a
+        // soma dos itens direto sub-cobrava o frete em toda entrega e
+        // sobre-cobrava o cliente em todo pedido com promoção ativa.
+        items: [{ title: `Pedido ${order.publicCode}`, quantity: 1, unit_price: order.totalCents / 100 }],
         backUrl: `${ENV.frontendUrl}/acompanhar?pedido=${order.publicCode}`,
       });
       return { redirectUrl };
     } catch (error) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error instanceof Error ? error.message : "Falha ao iniciar o pagamento online." });
+      console.error(`[createCardPayment] Falha ao criar pagamento para o pedido ${order.publicCode}:`, error);
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível iniciar o pagamento online. Tente novamente ou escolha outra forma de pagamento." });
     }
   }),
 });
