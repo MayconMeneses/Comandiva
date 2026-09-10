@@ -1,0 +1,98 @@
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { trpc } from "@/lib/trpc";
+import { FormEvent, useState } from "react";
+import { Link, useLocation, useParams } from "wouter";
+
+const PLAN_LABELS: Record<string, string> = { essencial: "Essencial", profissional: "Profissional", premium: "Premium" };
+
+export default function Cadastro() {
+  const { planKey } = useParams<{ planKey: string }>();
+  const [, setLocation] = useLocation();
+  const [name, setName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+
+  const signup = trpc.public.signup.useMutation({
+    onSuccess: () => setLocation("/comercial/cadastro/sucesso"),
+  });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    signup.mutate({ name, planKey: planKey as "essencial" | "profissional" | "premium", contactName, contactEmail, contactPhone });
+  };
+
+  const planLabel = PLAN_LABELS[planKey ?? ""] ?? planKey;
+
+  return (
+    <div className="min-h-screen bg-paper px-6 py-12 text-ink">
+      <div className="mx-auto max-w-md">
+        <Link href="/comercial/planos" className="text-sm text-ink-soft hover:text-ink">
+          ← Voltar para os planos
+        </Link>
+
+        <form onSubmit={submit} className="mt-6 rounded-2xl border border-border bg-paper-raised p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-accent">Assinar {planLabel}</p>
+          <h1 className="mt-2 text-2xl font-bold text-ink">Cadastre seu restaurante</h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            Sua assinatura já começa com 14 dias de teste grátis. Depois disso, nossa equipe entra em
+            contato pra configurar o sistema do jeito da sua casa.
+          </p>
+
+          <div className="mt-5 space-y-3">
+            <div>
+              <label htmlFor="name" className="text-sm font-medium text-ink">
+                Nome do restaurante
+              </label>
+              <Input id="name" required value={name} onChange={event => setName(event.target.value)} className="mt-1.5" />
+            </div>
+            <div>
+              <label htmlFor="contactName" className="text-sm font-medium text-ink">
+                Seu nome
+              </label>
+              <Input
+                id="contactName"
+                required
+                value={contactName}
+                onChange={event => setContactName(event.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <label htmlFor="contactEmail" className="text-sm font-medium text-ink">
+                E-mail
+              </label>
+              <Input
+                id="contactEmail"
+                type="email"
+                required
+                value={contactEmail}
+                onChange={event => setContactEmail(event.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <label htmlFor="contactPhone" className="text-sm font-medium text-ink">
+                WhatsApp
+              </label>
+              <Input
+                id="contactPhone"
+                required
+                value={contactPhone}
+                onChange={event => setContactPhone(event.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+
+          {signup.error ? <p className="mt-3 rounded-lg bg-red-50 p-2.5 text-sm text-red-700">{signup.error.message}</p> : null}
+
+          <Button type="submit" disabled={signup.isPending} className="mt-5 w-full">
+            {signup.isPending ? "Enviando..." : "Confirmar cadastro"}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}

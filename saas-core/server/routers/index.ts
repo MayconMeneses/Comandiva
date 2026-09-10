@@ -6,6 +6,7 @@ import { subscriptionsRouter } from "./subscriptions";
 import { syncRouter } from "./sync";
 import { masterPanelRouter } from "./masterPanel";
 import { supportRouter } from "./support";
+import { publicRouter } from "./public";
 
 // Aninhado (não mergeRouters) porque cada arquivo é um namespace distinto
 // por natureza (sync.mySnapshot vs restaurants.create) — igual ao
@@ -22,6 +23,9 @@ export const appRouter = router({
   billing: billingRouter,
   masterPanel: masterPanelRouter,
   support: supportRouter,
+  // Único namespace sem gate (token de operador / API key / sessão de admin) —
+  // ver server/routers/public.ts para o porquê de ficar isolado dos demais.
+  public: publicRouter,
 });
 
 export type AppRouter = typeof appRouter;
