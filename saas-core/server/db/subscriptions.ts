@@ -1,12 +1,26 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "./client";
-import { billingPayments, features, planFeatures, planLimits, plans, subscriptionEvents, subscriptions, type SubscriptionStatus } from "../../drizzle/schema";
+import { billingPayments, features, planFeatures, planLimits, plans, restaurants, subscriptionEvents, subscriptions, type SubscriptionStatus } from "../../drizzle/schema";
 import { createSubscriptionPreapproval, updateSubscriptionPreapproval } from "../_core/mercadoPagoBilling";
 import { ENV } from "../_core/env";
 import { getPlanByKey } from "./plans";
 import { PLATFORM_NAME } from "../../shared/branding";
 
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Promoção de lançamento: 20% de desconto na mensalidade nos 2 primeiros
+// ciclos de cobrança, pra restaurantes que nasceram com
+// restaurants.promoEligible (ver server/db/restaurants.ts::LAUNCH_PROMO_ACTIVE).
+const LAUNCH_PROMO_DISCOUNT_RATE = 0.2;
+const LAUNCH_PROMO_CYCLES = 2;
+
+/** Ausência de linha (ex.: harness de teste sem stub de `restaurants`) conta como não-elegível — preço cheio. */
+async function isRestaurantPromoEligible(restaurantId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const [row] = await db.select().from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
+  return row?.promoEligible ?? false;
+}
 
 export async function getSubscriptionForRestaurant(restaurantId: number) {
   const db = await getDb();
@@ -175,7 +189,30 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
   // pra saber quando reavaliar de novo, nunca usada pra cobrar ninguém.
   if (subscription.status === "active") {
     const newPeriodStart = subscription.currentPeriodEnd;
-    await db.update(subscriptions).set({ currentPeriodStart: newPeriodStart, currentPeriodEnd: newPeriodStart + ONE_MONTH_MS, updatedAt: now }).where(eq(subscriptions.id, subscription.id));
+    const updates: Partial<typeof subscriptions.$inferInsert> = { currentPeriodStart: newPeriodStart, currentPeriodEnd: newPeriodStart + ONE_MONTH_MS, updatedAt: now };
+
+    // Cada ciclo que rola é uma renovação cobrada — decrementa a promoção de
+    // lançamento e, ao esgotar, volta o valor da preapproval pro preço cheio
+    // do plano atual (nunca inventamos cobrança proporcional aqui, só
+    // atualizamos o valor da PRÓXIMA cobrança, mesmo raciocínio de upgrade).
+    if (subscription.promoDiscountCyclesRemaining != null) {
+      const remaining = subscription.promoDiscountCyclesRemaining - 1;
+      if (remaining <= 0) {
+        updates.promoDiscountCyclesRemaining = null;
+        if (subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
+          const [currentPlan] = await db.select().from(plans).where(eq(plans.id, subscription.planId)).limit(1);
+          if (currentPlan) {
+            await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, amountCents: currentPlan.priceCents }).catch(error =>
+              console.warn("[billing] Falha ao restaurar preço cheio após promoção de lançamento:", error),
+            );
+          }
+        }
+      } else {
+        updates.promoDiscountCyclesRemaining = remaining;
+      }
+    }
+
+    await db.update(subscriptions).set(updates).where(eq(subscriptions.id, subscription.id));
   }
 }
 
@@ -210,16 +247,33 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
     // Primeira assinatura de verdade (ou recuperando de um estado ruim) — cria
     // a preapproval; o plano só muda quando o Mercado Pago confirmar via
     // webhook (applyPreapprovalStatus acima), nunca antes.
+    const promoEligible = await isRestaurantPromoEligible(input.restaurantId);
+    const amountCents = promoEligible ? Math.round(targetPlan.priceCents * (1 - LAUNCH_PROMO_DISCOUNT_RATE)) : targetPlan.priceCents;
     const preapproval = await createSubscriptionPreapproval({
       accessToken: ENV.mercadoPagoAccessToken,
       reason: `Assinatura ${PLATFORM_NAME} — plano ${targetPlan.name}`,
       externalReference: `restaurant:${input.restaurantId}`,
       payerEmail: input.payerEmail,
       backUrl: input.backUrl,
-      amountCents: targetPlan.priceCents,
+      amountCents,
     });
-    await db.update(subscriptions).set({ gateway: "MERCADO_PAGO", gatewaySubscriptionId: preapproval.id, scheduledPlanId: targetPlan.id, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
-    await recordEvent(current.subscription.id, "checkout_started", { planKey: current.plan.key }, { scheduledPlanKey: targetPlan.key, preapprovalId: preapproval.id }, input.actor);
+    await db
+      .update(subscriptions)
+      .set({
+        gateway: "MERCADO_PAGO",
+        gatewaySubscriptionId: preapproval.id,
+        scheduledPlanId: targetPlan.id,
+        promoDiscountCyclesRemaining: promoEligible ? LAUNCH_PROMO_CYCLES : null,
+        updatedAt: Date.now(),
+      })
+      .where(eq(subscriptions.id, current.subscription.id));
+    await recordEvent(
+      current.subscription.id,
+      "checkout_started",
+      { planKey: current.plan.key },
+      { scheduledPlanKey: targetPlan.key, preapprovalId: preapproval.id, amountCents, promoApplied: promoEligible },
+      input.actor,
+    );
     return { checkoutUrl: preapproval.initPoint };
   }
 

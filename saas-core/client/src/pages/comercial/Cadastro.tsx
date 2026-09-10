@@ -2,32 +2,48 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { trpc } from "@/lib/trpc";
 import { FormEvent, useState } from "react";
-import { Link, useLocation, useParams } from "wouter";
+import { Link, useParams } from "wouter";
+import { ComercialHeader } from "./ComercialHeader";
 
 const PLAN_LABELS: Record<string, string> = { essencial: "Essencial", profissional: "Profissional", premium: "Premium" };
+const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+const IMPLEMENTATION_FEE_CENTS = 75000;
 
 export default function Cadastro() {
   const { planKey } = useParams<{ planKey: string }>();
-  const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
 
   const signup = trpc.public.signup.useMutation({
-    onSuccess: () => setLocation("/comercial/cadastro/sucesso"),
+    onSuccess: data => {
+      // Nunca navega pro "sucesso" direto — o cadastro só vira restaurante de
+      // verdade depois que o webhook confirmar o pagamento (nunca só pelo
+      // retorno da URL). O Mercado Pago é quem manda de volta pra
+      // /comercial/cadastro/confirmando quando o cliente terminar por lá.
+      window.location.href = data.checkoutUrl;
+    },
   });
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    signup.mutate({ name, planKey: planKey as "essencial" | "profissional" | "premium", contactName, contactEmail, contactPhone });
+    signup.mutate({
+      name,
+      planKey: planKey as "essencial" | "profissional" | "premium",
+      contactName,
+      contactEmail,
+      contactPhone,
+      returnOrigin: window.location.origin,
+    });
   };
 
   const planLabel = PLAN_LABELS[planKey ?? ""] ?? planKey;
 
   return (
-    <div className="min-h-screen bg-paper px-6 py-12 text-ink">
-      <div className="mx-auto max-w-md">
+    <div className="min-h-screen bg-paper text-ink">
+      <ComercialHeader showNav={false} />
+      <div className="mx-auto max-w-md px-6 py-12">
         <Link href="/comercial/planos" className="text-sm text-ink-soft hover:text-ink">
           ← Voltar para os planos
         </Link>
@@ -36,9 +52,18 @@ export default function Cadastro() {
           <p className="text-xs font-bold uppercase tracking-wider text-accent">Assinar {planLabel}</p>
           <h1 className="mt-2 text-2xl font-bold text-ink">Cadastre seu restaurante</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Sua assinatura já começa com 14 dias de teste grátis. Depois disso, nossa equipe entra em
-            contato pra configurar o sistema do jeito da sua casa.
+            Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis — podendo ser
+            antes. Só depois de tudo pronto é que seu teste grátis de 30 dias começa a valer.
           </p>
+
+          <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3 text-sm">
+            <p className="font-semibold text-ink">Taxa de implementação: {money(IMPLEMENTATION_FEE_CENTS)}</p>
+            <p className="mt-1 text-ink-soft">
+              De <span className="line-through">R$ 1.200,00</span> por {money(IMPLEMENTATION_FEE_CENTS)} — tempo
+              limitado. Cobre a configuração completa do seu sistema. Cobrada agora, ao confirmar o cadastro,
+              via Mercado Pago.
+            </p>
+          </div>
 
           <div className="mt-5 space-y-3">
             <div>
@@ -89,7 +114,7 @@ export default function Cadastro() {
           {signup.error ? <p className="mt-3 rounded-lg bg-red-50 p-2.5 text-sm text-red-700">{signup.error.message}</p> : null}
 
           <Button type="submit" disabled={signup.isPending} className="mt-5 w-full">
-            {signup.isPending ? "Enviando..." : "Confirmar cadastro"}
+            {signup.isPending ? "Enviando..." : `Pagar ${money(IMPLEMENTATION_FEE_CENTS)} e continuar`}
           </Button>
         </form>
       </div>

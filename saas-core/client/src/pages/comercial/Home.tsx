@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import type { ReactNode, SVGProps } from "react";
+import { ComercialHeader } from "./ComercialHeader";
 
 const PRIMARY_LINK_CLASSES =
   "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-accent px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover";
@@ -97,8 +98,8 @@ const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title
   },
   {
     icon: IconGift,
-    title: "14 dias grátis, sem cartão",
-    description: "Testa o sistema inteiro antes de decidir. Só pedimos os dados de pagamento se você seguir depois do teste.",
+    title: "30 dias grátis, sem cartão",
+    description: "Organizamos seu cardápio e sua configuração em até 10 dias úteis — só depois disso, com tudo pronto, o teste grátis de 30 dias começa a contar.",
   },
 ];
 
@@ -112,25 +113,17 @@ const COMPARISON = [
 const STEPS = [
   { number: "1", title: "Escolha o plano", description: "Compare os recursos e escolha o que faz sentido pro tamanho do seu restaurante." },
   { number: "2", title: "Cadastre seu restaurante", description: "Leva menos de 2 minutos — sem cartão de crédito, sem burocracia." },
-  { number: "3", title: "Comece a vender", description: "Nossa equipe configura o sistema com seu cardápio e sua operação, e você já sai vendendo." },
+  {
+    number: "3",
+    title: "Comece a vender",
+    description: "Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis. Pronto, seu teste grátis de 30 dias começa a valer.",
+  },
 ];
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-bold text-ink">MM System Creator</span>
-          <nav className="flex items-center gap-4 text-sm">
-            <Link href="/comercial/planos" className="hidden text-ink-soft hover:text-ink sm:inline">
-              Planos
-            </Link>
-            <Link href="/comercial/planos" className={`${PRIMARY_LINK_CLASSES} h-9 px-4`}>
-              Começar agora
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <ComercialHeader />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -160,7 +153,7 @@ export default function Home() {
           </div>
           <p className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-ink-soft">
             <span className="inline-flex items-center gap-1.5">
-              <IconCheck className="h-4 w-4 text-emerald-600" /> 14 dias grátis
+              <IconCheck className="h-4 w-4 text-emerald-600" /> 30 dias grátis
             </span>
             <span className="inline-flex items-center gap-1.5">
               <IconCheck className="h-4 w-4 text-emerald-600" /> Sem cartão de crédito
@@ -241,7 +234,7 @@ export default function Home() {
       <section className="mx-auto max-w-5xl px-6 pb-24">
         <div className="rounded-2xl bg-accent px-8 py-14 text-center text-white">
           <h2 className="text-2xl font-bold sm:text-3xl">Pronto pra vender sem depender de aplicativo de terceiro?</h2>
-          <p className="mx-auto mt-3 max-w-xl text-white/85">14 dias grátis, sem cartão de crédito. Cancele quando quiser.</p>
+          <p className="mx-auto mt-3 max-w-xl text-white/85">30 dias grátis assim que seu sistema estiver pronto — sem cartão de crédito. Cancele quando quiser.</p>
           <div className="mt-8">
             <Link
               href="/comercial/planos"
@@ -253,8 +246,11 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-sm text-ink-soft">
-        © {new Date().getFullYear()} MM System Creator.
+      <footer className="border-t border-border py-8">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 text-center text-sm text-ink-soft">
+          <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-8 w-8 rounded-md" />
+          © {new Date().getFullYear()} MM System Creator.
+        </div>
       </footer>
     </div>
   );

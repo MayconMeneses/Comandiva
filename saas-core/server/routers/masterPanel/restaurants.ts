@@ -6,6 +6,7 @@ import {
   getRestaurantById,
   getRestaurantDetailForPanel,
   listRestaurantsForPanel,
+  markRestaurantDelivered,
   rotateApiKey as rotateApiKeyDb,
   setRestaurantDeploymentUrl,
   setRestaurantStatus,
@@ -158,6 +159,24 @@ export const masterPanelRestaurantsRouter = router({
         entityId: input.restaurantId,
         before: { status: before?.status },
         after: { status: input.status },
+        ip: ctx.req.ip,
+      });
+      return result;
+    }),
+
+  markDelivered: restaurantsProcedure
+    .input(z.object({ restaurantId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!(await getRestaurantById(input.restaurantId))) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
+      const actor = `platform_admin:${ctx.platformAdmin.email}`;
+      const result = await markRestaurantDelivered(input.restaurantId, actor);
+      await recordPlatformAuditLog({
+        actorAdminId: ctx.platformAdmin.id,
+        actorLabel: ctx.platformAdmin.email,
+        action: "restaurant.marked_delivered",
+        entityType: "restaurant",
+        entityId: input.restaurantId,
+        after: { trialEndsAt: result.trialEndsAt },
         ip: ctx.req.ip,
       });
       return result;

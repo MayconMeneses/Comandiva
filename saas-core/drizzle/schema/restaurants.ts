@@ -1,4 +1,4 @@
-import { bigint, index, int, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, int, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const restaurantStatusValues = ["active", "suspended", "cancelled"] as const;
 export type RestaurantStatus = (typeof restaurantStatusValues)[number];
@@ -25,6 +25,17 @@ export const restaurants = mysqlTable(
     // usada só pelo Modo Suporte pra montar o link de handoff. Nula até ser
     // configurada (restaurante recém-criado pode não ter URL de produção ainda).
     deploymentUrl: varchar("deploymentUrl", { length: 500 }),
+    // Prazo combinado com o cliente pra terminar a configuração (organizar
+    // cardápio etc.) — calculado em dias úteis a partir do cadastro, só pra
+    // exibição/cobrança de prazo no Painel Master. `deliveredAt` nulo = ainda
+    // não entregue; o teste grátis só começa a contar quando isso é marcado
+    // (ver server/db/restaurants.ts::markRestaurantDelivered).
+    deliveryDueAt: bigint("deliveryDueAt", { mode: "number", unsigned: true }),
+    deliveredAt: bigint("deliveredAt", { mode: "number", unsigned: true }),
+    // Nasceu durante a janela da promoção de lançamento (20% de desconto nos
+    // 2 primeiros meses de mensalidade) — ver server/db/restaurants.ts::LAUNCH_PROMO_ACTIVE
+    // e server/db/subscriptions.ts::startOrChangePlan.
+    promoEligible: boolean("promoEligible").notNull().default(false),
     notes: text("notes"),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),

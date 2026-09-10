@@ -44,6 +44,12 @@ export const subscriptions = mysqlTable(
     // agendado. Cancelamento agendado usa só `status = cancel_at_period_end`
     // (não precisa de coluna própria — currentPeriodEnd já é a data efetiva).
     scheduledPlanId: int("scheduledPlanId"),
+    // Promoção de lançamento (20% de desconto nos 2 primeiros meses da
+    // mensalidade) — quantos ciclos de cobrança ainda faltam com desconto.
+    // Null = sem promoção ativa nesta assinatura. Decrementado em
+    // applyDueScheduledChanges a cada rolagem de período; ao chegar a 0, o
+    // valor da preapproval volta pro preço cheio do plano.
+    promoDiscountCyclesRemaining: int("promoDiscountCyclesRemaining"),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
   },

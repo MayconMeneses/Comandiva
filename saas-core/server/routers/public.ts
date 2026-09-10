@@ -1,18 +1,26 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { planKeyValues } from "../../drizzle/schema";
-import { createRestaurantWithSubscription } from "../db/restaurants";
 import { listPlansWithFeaturesAndLimits, listAllFeatures } from "../db/plans";
-import { recordPlatformAuditLog } from "../db/auditLog";
+import { attachMpPreference, createSignupPayment, getSignupPaymentById } from "../db/signupPayments";
+import { createImplementationFeePreference } from "../_core/mercadoPagoCheckout";
+import { ENV } from "../_core/env";
 import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
 
+// Taxa de implementação — R$1.200 de tabela, R$750 por tempo limitado (ver
+// client/src/pages/comercial/Planos.tsx pro mesmo valor exibido).
+const IMPLEMENTATION_FEE_CENTS = 75000;
+
 /**
  * Único namespace acessível sem token de operador, API key de restaurante ou
- * sessão de admin — a porta de entrada do site comercial público. Nada aqui
- * lê/escreve fora de `restaurants`/`subscriptions` (via as mesmas funções
- * que `restaurants.create` já usa), então o Painel Master e a licença dos
- * restaurantes existentes não são afetados.
+ * sessão de admin — a porta de entrada do site comercial público.
+ *
+ * `signup` NÃO cria o restaurante direto — grava a intenção de cadastro
+ * (`signup_payments`, status "pending") e devolve um checkout do Mercado
+ * Pago pra taxa de implementação. O restaurante só nasce de verdade quando
+ * o webhook (server/_core/mercadoPagoSignupWebhook.ts) confirma o
+ * pagamento aprovado — nunca antes, nunca só pelo retorno da URL.
  */
 export const publicRouter = router({
   plans: publicProcedure.query(async () => {
@@ -31,6 +39,11 @@ export const publicRouter = router({
         contactName: z.string().trim().max(160).optional(),
         contactEmail: z.string().trim().email(),
         contactPhone: z.string().trim().max(24).optional(),
+        // Origem do site (ex.: "https://mmsystemcreator.com") — usada só pra
+        // montar as URLs de volta do checkout. Nunca a URL inteira (evita
+        // open redirect: sempre concatenamos caminhos fixos aqui, nunca
+        // aceitamos um path vindo do cliente).
+        returnOrigin: z.string().url(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -54,21 +67,40 @@ export const publicRouter = router({
       if (!plan) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Plano indisponível no momento." });
       }
+      if (!ENV.mercadoPagoAccessToken) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Cobrança automática não está configurada no momento. Tente novamente mais tarde." });
+      }
 
-      const result = await createRestaurantWithSubscription({ ...input, actor: "public:signup" });
-
-      // Nunca devolve a API key em texto puro pra um visitante não
-      // autenticado — ela só é necessária depois, quando a equipe provisiona
-      // de fato o deployment isolado desse cliente (etapa manual, fora daqui).
-      await recordPlatformAuditLog({
-        actorLabel: input.contactEmail,
-        action: "restaurant.public_signup",
-        entityType: "restaurant",
-        entityId: result.restaurantId,
-        after: { planKey: result.planKey, status: result.status },
-        ip: ctx.req.ip,
+      const { id: signupPaymentId } = await createSignupPayment({
+        payload: {
+          name: input.name,
+          planKey: input.planKey,
+          contactName: input.contactName,
+          contactEmail: input.contactEmail,
+          contactPhone: input.contactPhone,
+        },
+        amountCents: IMPLEMENTATION_FEE_CENTS,
       });
 
-      return { restaurantId: result.restaurantId, planKey: result.planKey };
+      const origin = input.returnOrigin.replace(/\/$/, "");
+      const preference = await createImplementationFeePreference({
+        accessToken: ENV.mercadoPagoAccessToken,
+        title: "Taxa de implementação — MM System Creator",
+        externalReference: String(signupPaymentId),
+        amountCents: IMPLEMENTATION_FEE_CENTS,
+        payerEmail: input.contactEmail,
+        successUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
+        pendingUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
+        failureUrl: `${origin}/comercial/cadastro/${input.planKey}?pagamento=falhou`,
+      });
+      await attachMpPreference(signupPaymentId, preference.id);
+
+      return { checkoutUrl: preference.initPoint, signupPaymentId };
     }),
+
+  signupStatus: publicProcedure.input(z.object({ signupPaymentId: z.number().int().positive() })).query(async ({ input }) => {
+    const row = await getSignupPaymentById(input.signupPaymentId);
+    if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+    return { status: row.status };
+  }),
 });

@@ -4,3 +4,4 @@ export * from "./subscriptions";
 export * from "./audit";
 export * from "./platformAdmins";
 export * from "./supportSessions";
+export * from "./signupPayments";

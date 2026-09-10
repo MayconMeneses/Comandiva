@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerMercadoPagoBillingWebhook } from "./mercadoPagoWebhook";
+import { registerMercadoPagoSignupWebhook } from "./mercadoPagoSignupWebhook";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
@@ -92,6 +93,7 @@ async function startServer() {
   // plataforma) — rota HTTP simples, fora do tRPC, porque quem chama é o
   // Mercado Pago.
   registerMercadoPagoBillingWebhook(app);
+  registerMercadoPagoSignupWebhook(app);
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
 
   if (process.env.NODE_ENV === "development") {

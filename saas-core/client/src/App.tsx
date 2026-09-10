@@ -12,6 +12,7 @@ import ComercialHome from "./pages/comercial/Home";
 import ComercialPlanos from "./pages/comercial/Planos";
 import ComercialCadastro from "./pages/comercial/Cadastro";
 import ComercialSucesso from "./pages/comercial/Sucesso";
+import ComercialConfirmando from "./pages/comercial/Confirmando";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/comercial" component={ComercialHome} />
       <Route path="/comercial/planos" component={ComercialPlanos} />
       <Route path="/comercial/cadastro/sucesso" component={ComercialSucesso} />
+      <Route path="/comercial/cadastro/confirmando" component={ComercialConfirmando} />
       <Route path="/comercial/cadastro/:planKey" component={ComercialCadastro} />
 
       <Route path="/login" component={Login} />

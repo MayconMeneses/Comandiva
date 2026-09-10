@@ -49,6 +49,7 @@ export default function RestaurantDetail() {
   const [contactPhoneInput, setContactPhoneInput] = useState("");
   const [pendingRestaurantStatus, setPendingRestaurantStatus] = useState<(typeof RESTAURANT_STATUSES)[number] | null>(null);
   const [pendingRotateKey, setPendingRotateKey] = useState(false);
+  const [pendingMarkDelivered, setPendingMarkDelivered] = useState(false);
   const [rotatedApiKey, setRotatedApiKey] = useState<string | null>(null);
   const [copiedRotatedKey, setCopiedRotatedKey] = useState(false);
 
@@ -61,6 +62,7 @@ export default function RestaurantDetail() {
   const rotateApiKey = trpc.masterPanel.restaurants.rotateApiKey.useMutation({
     onSuccess: data => { setRotatedApiKey(data.apiKey); setCopiedRotatedKey(false); setPendingRotateKey(false); },
   });
+  const markDelivered = trpc.masterPanel.restaurants.markDelivered.useMutation({ onSuccess: () => { invalidate(); setPendingMarkDelivered(false); } });
   const startSupport = trpc.masterPanel.support.start.useMutation({
     onSuccess: data => { window.open(data.entryUrl, "_blank", "noopener,noreferrer"); setPendingSupportEntry(false); },
   });
@@ -176,6 +178,25 @@ export default function RestaurantDetail() {
               </div>
             </div>
             {setRestaurantStatus.error ? <p className="mt-2 text-xs text-red-700">{setRestaurantStatus.error.message}</p> : null}
+          </div>
+
+          <div className="mt-3 rounded-lg border border-border bg-paper p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Entrega / teste grátis</p>
+            <p className="mt-1 text-xs text-ink-soft">
+              O teste grátis de 30 dias só começa a contar quando o restaurante é marcado como entregue aqui — nunca
+              no cadastro. Prazo combinado: até {restaurant.deliveryDueAt ? new Date(restaurant.deliveryDueAt).toLocaleDateString("pt-BR") : "—"}
+              {" "}(10 dias úteis do cadastro, podendo ser antes).
+            </p>
+            {restaurant.deliveredAt ? (
+              <p className="mt-2 text-xs font-medium text-emerald-700">
+                Entregue em {new Date(restaurant.deliveredAt).toLocaleString("pt-BR")} — teste grátis em andamento.
+              </p>
+            ) : (
+              <>
+                <Button className="mt-2" onClick={() => setPendingMarkDelivered(true)}>Marcar como entregue</Button>
+                {markDelivered.error ? <p className="mt-2 text-xs text-red-700">{markDelivered.error.message}</p> : null}
+              </>
+            )}
           </div>
 
           <div className="mt-3 rounded-lg border border-border bg-paper p-3">
@@ -369,6 +390,15 @@ export default function RestaurantDetail() {
         pending={rotateApiKey.isPending}
         onCancel={() => setPendingRotateKey(false)}
         onConfirm={() => rotateApiKey.mutate({ restaurantId })}
+      />
+      <ConfirmDialog
+        open={pendingMarkDelivered}
+        title="Marcar como entregue"
+        description="Confirma que a configuração deste restaurante (cardápio, config geral) está pronta? A partir de agora, o teste grátis de 30 dias passa a contar — essa ação não pode ser desfeita."
+        confirmLabel="Marcar como entregue"
+        pending={markDelivered.isPending}
+        onCancel={() => setPendingMarkDelivered(false)}
+        onConfirm={() => markDelivered.mutate({ restaurantId })}
       />
       <ConfirmDialog
         open={pendingSupportEntry}

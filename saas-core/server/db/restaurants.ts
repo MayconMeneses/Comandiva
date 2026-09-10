@@ -6,7 +6,29 @@ import { getPlanByKey } from "./plans";
 import { getSubscriptionForRestaurant, listBillingPaymentsForSubscription } from "./subscriptions";
 import { listPlatformAuditLog } from "./auditLog";
 
-const TRIAL_DAYS = 14;
+// O teste grátis só começa a contar quando a equipe marca o restaurante como
+// entregue (menu/config organizados) — nunca no momento do cadastro. Ver
+// markRestaurantDelivered abaixo.
+const TRIAL_DAYS = 30;
+const DELIVERY_SLA_BUSINESS_DAYS = 10;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Promoção de lançamento: 20% de desconto na mensalidade nos 2 primeiros
+// ciclos (ver server/db/subscriptions.ts::startOrChangePlan/applyDueScheduledChanges).
+// Desligar aqui (false) quando a promoção acabar — sem UI própria pra isso ainda.
+export const LAUNCH_PROMO_ACTIVE = true;
+
+/** Soma N dias úteis (pula sábado/domingo) a partir de um timestamp. Exportada só pra teste. */
+export function addBusinessDays(fromMs: number, days: number): number {
+  const date = new Date(fromMs);
+  let added = 0;
+  while (added < days) {
+    date.setDate(date.getDate() + 1);
+    const weekday = date.getDay(); // 0 = domingo, 6 = sábado
+    if (weekday !== 0 && weekday !== 6) added += 1;
+  }
+  return date.getTime();
+}
 
 export type CreateRestaurantInput = {
   name: string;
@@ -33,6 +55,8 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
   const { apiKey, apiKeyHash, apiKeyPrefix } = generateApiKey();
   const now = Date.now();
 
+  const deliveryDueAt = addBusinessDays(now, DELIVERY_SLA_BUSINESS_DAYS);
+
   const restaurantResult = await db.insert(restaurants).values({
     name: input.name,
     contactName: input.contactName,
@@ -41,19 +65,24 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
     apiKeyHash,
     apiKeyPrefix,
     status: "active",
+    deliveryDueAt,
+    deliveredAt: null,
+    promoEligible: LAUNCH_PROMO_ACTIVE,
     createdAt: now,
     updatedAt: now,
   });
   const restaurantId = Number(restaurantResult[0].insertId);
 
-  const currentPeriodEnd = now + TRIAL_DAYS * 24 * 60 * 60 * 1000;
+  // Período "zerado" de propósito (start = end = agora): o teste grátis de
+  // verdade só passa a contar em markRestaurantDelivered, quando a
+  // configuração estiver pronta — nunca no cadastro em si.
   const subscriptionResult = await db.insert(subscriptions).values({
     restaurantId,
     planId: plan.id,
     status: "trial",
     startedAt: now,
     currentPeriodStart: now,
-    currentPeriodEnd,
+    currentPeriodEnd: now,
     gateway: "MANUAL",
     createdAt: now,
     updatedAt: now,
@@ -63,12 +92,59 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
   await db.insert(subscriptionEvents).values({
     subscriptionId,
     eventType: "created",
-    afterJson: JSON.stringify({ planKey: plan.key, status: "trial" }),
+    afterJson: JSON.stringify({ planKey: plan.key, status: "trial", deliveryDueAt }),
     actor: input.actor ?? "operator:cli",
     createdAt: now,
   });
 
-  return { restaurantId, apiKey, planKey: plan.key, status: "trial" as const };
+  return { restaurantId, apiKey, planKey: plan.key, status: "trial" as const, deliveryDueAt };
+}
+
+/**
+ * Marca a configuração do restaurante como concluída e é só NESSE momento
+ * que o teste grátis de 30 dias passa a contar de verdade — regra de
+ * negócio central: o cliente não pode ter o tempo de trial consumido
+ * enquanto a equipe ainda está organizando cardápio/config dele.
+ */
+export async function markRestaurantDelivered(restaurantId: number, actor: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
+  if (!restaurant) throw new Error("Restaurante não encontrado.");
+  if (restaurant.deliveredAt) throw new Error("Este restaurante já foi marcado como entregue.");
+
+  const current = await getSubscriptionForRestaurant(restaurantId);
+  if (!current) throw new Error("Restaurante sem assinatura cadastrada.");
+
+  const now = Date.now();
+  const currentPeriodEnd = now + TRIAL_DAYS * DAY_MS;
+
+  await db.update(restaurants).set({ deliveredAt: now, updatedAt: now }).where(eq(restaurants.id, restaurantId));
+
+  // Só reinicia o período se ainda estiver em trial — se por algum motivo já
+  // foi pra um plano pago antes da entrega (não deveria acontecer no fluxo
+  // normal), o ciclo de cobrança real do Mercado Pago não é mexido aqui.
+  if (current.subscription.status === "trial") {
+    await db
+      .update(subscriptions)
+      .set({ currentPeriodStart: now, currentPeriodEnd, updatedAt: now })
+      .where(eq(subscriptions.id, current.subscription.id));
+  }
+
+  await recordSubscriptionDeliveredEvent(current.subscription.id, currentPeriodEnd, actor);
+  return { success: true as const, trialEndsAt: currentPeriodEnd };
+}
+
+async function recordSubscriptionDeliveredEvent(subscriptionId: number, trialEndsAt: number, actor: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(subscriptionEvents).values({
+    subscriptionId,
+    eventType: "delivered_trial_started",
+    afterJson: JSON.stringify({ trialEndsAt }),
+    actor,
+    createdAt: Date.now(),
+  });
 }
 
 export async function getRestaurantByApiKeyHash(hash: string) {

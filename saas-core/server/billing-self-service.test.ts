@@ -28,15 +28,22 @@ vi.mock("./_core/mercadoPagoBilling", async importOriginal => {
 });
 vi.mock("./_core/env", () => ({ ENV: { get mercadoPagoAccessToken() { return mocks.mercadoPagoAccessToken; } } }));
 
-import { plans, subscriptions } from "../drizzle/schema";
+import { plans, restaurants, subscriptions } from "../drizzle/schema";
 import { applyDueScheduledChanges, reactivateScheduledCancellation, scheduleCancellation, startOrChangePlan } from "./db/subscriptions";
 
 const PLAN_BASICO = { id: 1, key: "essencial", name: "Essencial", priceCents: 14990, position: 1 };
 const PLAN_PRO = { id: 2, key: "profissional", name: "Profissional", priceCents: 24990, position: 2 };
 const ALL_PLANS = [PLAN_BASICO, PLAN_PRO];
 
-/** Mock de banco: distingue subscriptions×plans pelo join (getSubscriptionForRestaurant sempre pede {subscription, plan}) vs select simples (usado só por applyDueScheduledChanges pra buscar o plano AGENDADO por id). */
-function buildDbStub(subscriptionRow: Record<string, unknown> | undefined) {
+/**
+ * Mock de banco: distingue subscriptions×plans pelo join (getSubscriptionForRestaurant
+ * sempre pede {subscription, plan}) vs select simples (usado por applyDueScheduledChanges
+ * pra buscar o plano AGENDADO por id, e por isRestaurantPromoEligible pra buscar o
+ * restaurante). Sem `restaurantRow` (a maioria dos testes existentes), a busca por
+ * `restaurants` devolve vazio — mesmo comportamento de "não elegível pra promoção"
+ * de antes desta função existir, não muda nenhuma asserção já existente.
+ */
+function buildDbStub(subscriptionRow: Record<string, unknown> | undefined, restaurantRow?: Record<string, unknown>) {
   let currentSubscription = subscriptionRow ? { ...subscriptionRow } : undefined;
   // Capturado ANTES de qualquer mutação — a busca por "qual plano tem este id"
   // (usada só pra reconsultar o preço na hora de atualizar a preapproval) se
@@ -64,8 +71,17 @@ function buildDbStub(subscriptionRow: Record<string, unknown> | undefined) {
               if (table === subscriptions) {
                 return currentSubscription ? [currentSubscription] : [];
               }
-              if (table === plans && originalScheduledPlanId) {
-                return ALL_PLANS.filter(plan => plan.id === originalScheduledPlanId);
+              if (table === plans) {
+                // Downgrade agendado busca o plano AGENDADO original; a
+                // restauração de preço da promoção de lançamento (sem nada
+                // agendado) busca o plano ATUAL da assinatura — únicos dois
+                // lookups por id de `plans` que este módulo faz.
+                if (originalScheduledPlanId) return ALL_PLANS.filter(plan => plan.id === originalScheduledPlanId);
+                if (currentSubscription?.planId) return ALL_PLANS.filter(plan => plan.id === currentSubscription!.planId);
+                return [];
+              }
+              if (table === restaurants) {
+                return restaurantRow ? [restaurantRow] : [];
               }
               return [];
             },
@@ -115,6 +131,37 @@ describe("startOrChangePlan", () => {
     const finalState = stub.getCurrent();
     expect(finalState?.planId).toBe(PLAN_BASICO.id); // plano só muda quando o webhook confirmar, nunca aqui
     expect(finalState?.scheduledPlanId).toBe(PLAN_PRO.id);
+  });
+
+  it("primeira assinatura com promoção de lançamento ativa: aplica 20% de desconto e agenda 2 ciclos", async () => {
+    const stub = buildDbStub(
+      { id: 10, restaurantId: 7, planId: PLAN_BASICO.id, status: "trial", currentPeriodEnd: Date.now() + 1000, gatewaySubscriptionId: null, scheduledPlanId: null },
+      { id: 7, promoEligible: true },
+    );
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getPlanByKey.mockResolvedValue(PLAN_PRO);
+    mocks.createSubscriptionPreapproval.mockResolvedValue({ id: "preapproval-123", initPoint: "https://mp.example/checkout/123", status: "pending" });
+
+    await startOrChangePlan({ restaurantId: 7, planKey: "profissional", payerEmail: "dono@teste.com", backUrl: "https://x/admin/plano", actor: "restaurant:7" });
+
+    const expectedDiscountedCents = Math.round(PLAN_PRO.priceCents * 0.8);
+    expect(mocks.createSubscriptionPreapproval).toHaveBeenCalledWith(expect.objectContaining({ amountCents: expectedDiscountedCents }));
+    expect(stub.getCurrent()?.promoDiscountCyclesRemaining).toBe(2);
+  });
+
+  it("primeira assinatura SEM promoção (restaurante existe mas promoEligible=false): preço cheio, sem ciclos de desconto", async () => {
+    const stub = buildDbStub(
+      { id: 10, restaurantId: 7, planId: PLAN_BASICO.id, status: "trial", currentPeriodEnd: Date.now() + 1000, gatewaySubscriptionId: null, scheduledPlanId: null },
+      { id: 7, promoEligible: false },
+    );
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getPlanByKey.mockResolvedValue(PLAN_PRO);
+    mocks.createSubscriptionPreapproval.mockResolvedValue({ id: "preapproval-123", initPoint: "https://mp.example/checkout/123", status: "pending" });
+
+    await startOrChangePlan({ restaurantId: 7, planKey: "profissional", payerEmail: "dono@teste.com", backUrl: "https://x/admin/plano", actor: "restaurant:7" });
+
+    expect(mocks.createSubscriptionPreapproval).toHaveBeenCalledWith(expect.objectContaining({ amountCents: PLAN_PRO.priceCents }));
+    expect(stub.getCurrent()?.promoDiscountCyclesRemaining).toBe(null);
   });
 
   it("assinatura ativa + upgrade: libera o plano NA HORA e atualiza o valor da preapproval existente", async () => {
@@ -195,6 +242,41 @@ describe("applyDueScheduledChanges", () => {
     await applyDueScheduledChanges(10);
     expect(stub.updateCalls.length).toBe(0);
     expect(mocks.updateSubscriptionPreapproval).not.toHaveBeenCalled();
+  });
+
+  it("rola o período com desconto de lançamento ainda em andamento: decrementa o contador, não mexe no valor da preapproval", async () => {
+    const stub = buildDbStub({
+      id: 10,
+      restaurantId: 7,
+      planId: PLAN_PRO.id,
+      status: "active",
+      currentPeriodEnd: Date.now() - 1000,
+      scheduledPlanId: null,
+      gatewaySubscriptionId: "pre-1",
+      promoDiscountCyclesRemaining: 2,
+    });
+    mocks.getDb.mockResolvedValue(stub.db);
+    await applyDueScheduledChanges(10);
+    expect(stub.getCurrent()?.promoDiscountCyclesRemaining).toBe(1);
+    expect(mocks.updateSubscriptionPreapproval).not.toHaveBeenCalled();
+  });
+
+  it("rola o período esgotando o último ciclo de desconto: zera o contador e restaura o preço cheio na preapproval", async () => {
+    const stub = buildDbStub({
+      id: 10,
+      restaurantId: 7,
+      planId: PLAN_PRO.id,
+      status: "active",
+      currentPeriodEnd: Date.now() - 1000,
+      scheduledPlanId: null,
+      gatewaySubscriptionId: "pre-1",
+      promoDiscountCyclesRemaining: 1,
+    });
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.updateSubscriptionPreapproval.mockResolvedValue(undefined);
+    await applyDueScheduledChanges(10);
+    expect(stub.getCurrent()?.promoDiscountCyclesRemaining).toBe(null);
+    expect(mocks.updateSubscriptionPreapproval).toHaveBeenCalledWith(expect.objectContaining({ preapprovalId: "pre-1", amountCents: PLAN_PRO.priceCents }));
   });
 });
 
