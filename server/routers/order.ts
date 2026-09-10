@@ -69,9 +69,12 @@ export type ComboDefinition = { promotionId: number; promoPriceCents: number; pr
  * confia no que o cliente diz que colocou no carrinho "por causa de uma
  * promoção": só olha as quantidades reais e decide sozinho se elas fecham um
  * ou mais combos. Se dois combos disputam o mesmo produto, o de maior
- * desconto é aplicado primeiro (o cliente fica com o melhor negócio possível,
- * nunca o pior). Uma promoção mal cadastrada (preço "promocional" maior que
- * a soma dos produtos) nunca gera desconto negativo.
+ * desconto é aplicado primeiro — guloso, não um solver exato: com 3+ combos
+ * ativos compartilhando produto entre si (fora do catálogo real hoje), o
+ * resultado pode ficar um pouco abaixo do matematicamente ótimo, nunca
+ * abaixo do que o cliente já viu no checkout. Uma promoção mal cadastrada
+ * (preço "promocional" maior que a soma dos produtos) nunca gera desconto
+ * negativo.
  */
 export function computeComboDiscountCents(cartQuantityByProductId: Record<number, number>, combos: ComboDefinition[]): number {
   const remaining = { ...cartQuantityByProductId };

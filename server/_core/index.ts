@@ -12,6 +12,7 @@ import { registerMercadoPagoWebhook } from "./mercadoPagoWebhook";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
 import { ensureStorageReady } from "../storage";
+import { configureTrustProxy } from "./trustProxy";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -75,7 +76,7 @@ async function startServer() {
 
   const app = express();
   const server = createServer(app);
-  if (ENV.trustProxy) app.set("trust proxy", 1);
+  configureTrustProxy(app, ENV.trustProxy);
   app.disable("x-powered-by");
   // Cabeçalhos básicos de segurança (sem depender de pacote externo)
   app.use((req, res, next) => {
