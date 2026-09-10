@@ -67,6 +67,7 @@ export const masterPanelTeamRouter = router({
     .input(z.object({ adminId: z.number().int().positive(), active: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
       if (input.adminId === ctx.platformAdmin.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Você não pode pausar sua própria conta." });
+      if (!(await getPlatformAdminById(input.adminId))) throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada." });
       await setPlatformAdminActive(input.adminId, input.active);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,

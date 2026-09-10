@@ -109,7 +109,12 @@ export const adminCatalogRouter = router({
     const result = await db.insert(addonOptions).values({ groupId: input.groupId, name: input.name, priceCents: input.priceCents, available: input.available, sortOrder: input.sortOrder, createdAt: now, updatedAt: now });
     return { id: Number(result[0].insertId) };
   }),
-  uploadCategoryImage: restaurantProcedureFor("catalog").input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
+  // Sem "image/svg+xml" de propósito: SVG é servido pelo bucket público sem
+  // Content-Disposition, então abrir a URL direto (aba nova, link
+  // compartilhado) executa qualquer <script>/onload embutido como documento
+  // — o navegador só desativa isso quando o SVG é carregado via <img>, não
+  // quando é acessado como URL própria. Ver auditoria de segurança.
+  uploadCategoryImage: restaurantProcedureFor("catalog").input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 45_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 45 MB." });
     const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);

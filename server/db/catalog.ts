@@ -94,7 +94,14 @@ async function fetchActivePromotions() {
   // via priceLabel/imageUrl manuais) não têm produto associado e não devem
   // aparecer pro cliente — ficariam com preço R$ 0,00 e um botão que não faz
   // nada. Continuam visíveis no admin pra quem quiser corrigi-las.
-  return withProducts.filter(promotion => promotion.products.length > 0);
+  return withProducts
+    .filter(promotion => promotion.products.length > 0)
+    // attachPromotionProducts devolve a linha crua (reaproveitada pelo admin,
+    // que precisa de tudo) — a consulta pública nunca deve vazar `objective`
+    // (estratégia de marketing interna, ex.: REDUCE_STOCK revela estoque
+    // parado pro concorrente) nem os campos legados badge/priceLabel/
+    // linkedProductId.
+    .map(({ id, title, description, promoPriceCents, validDays, sortOrder, products }) => ({ id, title, description, promoPriceCents, validDays, sortOrder, products }));
 }
 export const getActivePromotions = cached(CATALOG_CACHE_TTL_MS, fetchActivePromotions);
 

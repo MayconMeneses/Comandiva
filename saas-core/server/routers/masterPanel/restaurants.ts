@@ -60,6 +60,7 @@ export const masterPanelRestaurantsRouter = router({
   assignPlan: restaurantsProcedure
     .input(z.object({ restaurantId: z.number().int().positive(), planKey: z.enum(planKeyValues) }))
     .mutation(async ({ input, ctx }) => {
+      if (!(await getRestaurantById(input.restaurantId))) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
       const before = await getSubscriptionForRestaurant(input.restaurantId);
       const actor = `platform_admin:${ctx.platformAdmin.email}`;
       const result = await assignPlan({ restaurantId: input.restaurantId, planKey: input.planKey, actor });
@@ -79,6 +80,7 @@ export const masterPanelRestaurantsRouter = router({
   updateSubscriptionStatus: restaurantsProcedure
     .input(z.object({ restaurantId: z.number().int().positive(), status: z.enum(subscriptionStatusValues) }))
     .mutation(async ({ input, ctx }) => {
+      if (!(await getRestaurantById(input.restaurantId))) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
       const before = await getSubscriptionForRestaurant(input.restaurantId);
       const actor = `platform_admin:${ctx.platformAdmin.email}`;
       const result = await updateSubscriptionStatus({ restaurantId: input.restaurantId, status: input.status, actor });
@@ -99,6 +101,7 @@ export const masterPanelRestaurantsRouter = router({
     .input(z.object({ restaurantId: z.number().int().positive(), deploymentUrl: z.string().trim().url().max(500).nullable() }))
     .mutation(async ({ input, ctx }) => {
       const before = await getRestaurantById(input.restaurantId);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
       await setRestaurantDeploymentUrl(input.restaurantId, input.deploymentUrl);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,
@@ -126,6 +129,7 @@ export const masterPanelRestaurantsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { restaurantId, ...contactInput } = input;
       const before = await getRestaurantById(restaurantId);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
       await updateRestaurantContact(restaurantId, contactInput);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,
@@ -144,6 +148,7 @@ export const masterPanelRestaurantsRouter = router({
     .input(z.object({ restaurantId: z.number().int().positive(), status: z.enum(restaurantStatusValues) }))
     .mutation(async ({ input, ctx }) => {
       const before = await getRestaurantById(input.restaurantId);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
       const result = await setRestaurantStatus(input.restaurantId, input.status);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,
@@ -161,6 +166,7 @@ export const masterPanelRestaurantsRouter = router({
   rotateApiKey: restaurantsProcedure
     .input(z.object({ restaurantId: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
+      if (!(await getRestaurantById(input.restaurantId))) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
       const result = await rotateApiKeyDb(input.restaurantId);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,

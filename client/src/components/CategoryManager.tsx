@@ -92,7 +92,7 @@ export default function CategoryManager() {
       return;
     }
     void compressImageFile(file).then(({ base64, contentType }) => {
-      uploadImage.mutate({ filename: file.name, contentType: contentType as "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml", dataBase64: base64 });
+      uploadImage.mutate({ filename: file.name, contentType: contentType as "image/jpeg" | "image/png" | "image/webp", dataBase64: base64 });
     });
   };
 
@@ -154,7 +154,7 @@ export default function CategoryManager() {
                 <div className="mt-1.5 flex items-center gap-3">
                   <img src={form.imageUrl || defaultCategoryIcon(form.name || "categoria")} alt="" className="h-14 w-14 shrink-0 rounded-full border border-[#e4d8c8] bg-white object-cover" />
                   <div className="flex-1">
-                    <Input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={event => handleImageFile(event.target.files?.[0])} className="h-10 rounded-xl bg-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" />
+                    <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handleImageFile(event.target.files?.[0])} className="h-10 rounded-xl bg-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" />
                     {uploadImage.isPending && <p className="mt-1 text-xs text-muted-foreground">Enviando imagem…</p>}
                     {uploadImage.error && <p className="mt-1 text-xs text-red-700">{uploadImage.error.message}</p>}
                     {form.imageUrl && <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="mt-1 text-xs font-semibold text-[#b4472d] hover:underline">Remover e usar ícone padrão</button>}

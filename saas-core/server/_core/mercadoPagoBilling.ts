@@ -35,7 +35,12 @@ export async function createSubscriptionPreapproval(params: {
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(`Mercado Pago recusou a criação da assinatura (status ${response.status}): ${detail.slice(0, 300)}`);
+    // O corpo da resposta é da conta do Mercado Pago da PLATAFORMA, não do
+    // restaurante que chamou billing.changePlan — nunca repassar pro
+    // tenant (billing.ts encaminha error.message direto pro cliente). Loga
+    // completo só no servidor.
+    console.error(`[mercadoPagoBilling] Recusou a criação da assinatura (status ${response.status}):`, detail.slice(0, 300));
+    throw new Error("Mercado Pago recusou a criação da assinatura. Tente novamente ou contate o suporte.");
   }
   const data = (await response.json()) as { id: string; init_point?: string; sandbox_init_point?: string; status: string };
   const initPoint = data.init_point ?? data.sandbox_init_point;
@@ -62,7 +67,10 @@ export async function updateSubscriptionPreapproval(params: { accessToken: strin
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(`Mercado Pago recusou a atualização da assinatura (status ${response.status}): ${detail.slice(0, 300)}`);
+    // Mesmo raciocínio de createSubscriptionPreapproval acima — nunca
+    // repassar o corpo cru da resposta (conta da plataforma) pro tenant.
+    console.error(`[mercadoPagoBilling] Recusou a atualização da assinatura (status ${response.status}):`, detail.slice(0, 300));
+    throw new Error("Mercado Pago recusou a atualização da assinatura. Tente novamente ou contate o suporte.");
   }
 }
 

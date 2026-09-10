@@ -48,7 +48,11 @@ export const adminSettingsRouter = router({
     await db.update(restaurantSettings).set({ ...rest, logoUrl: logoUrl ? logoUrl : null, ...pixUpdates, updatedAt: Date.now() }).where(eq(restaurantSettings.id, settings.id));
     return { success: true };
   }),
-  uploadLogo: adminProcedure.input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
+  // Sem "image/svg+xml" — mesmo raciocínio de uploadCategoryImage
+  // (server/routers/admin/catalog.ts): SVG servido pelo bucket público sem
+  // Content-Disposition executa <script>/onload embutido se a URL for
+  // aberta direto. Ver auditoria de segurança.
+  uploadLogo: adminProcedure.input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 45_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 45 MB." });
     const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
