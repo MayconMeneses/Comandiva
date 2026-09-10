@@ -5,6 +5,15 @@ import { createSubscriptionPreapproval, updateSubscriptionPreapproval } from "..
 import { ENV } from "../_core/env";
 import { getPlanByKey } from "./plans";
 import { PLATFORM_NAME } from "../../shared/branding";
+import { sendEmailAsync } from "../_core/emailService";
+
+/** Só o necessário pra endereçar um e-mail — sem contactEmail, sem envio (nada quebra, só não manda). */
+async function getRestaurantContact(restaurantId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [row] = await db.select({ name: restaurants.name, contactName: restaurants.contactName, contactEmail: restaurants.contactEmail }).from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
+  return row;
+}
 
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -166,6 +175,14 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
     if (subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
       await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, status: "cancelled" }).catch(error => console.warn("[billing] Falha ao cancelar preapproval no Mercado Pago:", error));
     }
+    const contact = await getRestaurantContact(subscription.restaurantId);
+    if (contact?.contactEmail) {
+      sendEmailAsync(contact.contactEmail, "subscriptionCancelEffective", {
+        customerName: contact.contactName || contact.name,
+        restaurantName: contact.name,
+        actionUrl: ENV.commercialSiteUrl,
+      });
+    }
     return;
   }
 
@@ -281,11 +298,32 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
     await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: current.subscription.gatewaySubscriptionId!, amountCents: targetPlan.priceCents });
     await db.update(subscriptions).set({ planId: targetPlan.id, scheduledPlanId: null, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
     await recordEvent(current.subscription.id, "plan_upgraded", { planKey: current.plan.key }, { planKey: targetPlan.key }, input.actor);
+    const contact = await getRestaurantContact(input.restaurantId);
+    if (contact?.contactEmail) {
+      sendEmailAsync(contact.contactEmail, "subscriptionUpgraded", {
+        customerName: contact.contactName || contact.name,
+        restaurantName: contact.name,
+        previousPlanName: current.plan.name,
+        newPlanName: targetPlan.name,
+        actionUrl: ENV.commercialSiteUrl,
+      });
+    }
     return { applied: true };
   }
 
   await db.update(subscriptions).set({ scheduledPlanId: targetPlan.id, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
   await recordEvent(current.subscription.id, "downgrade_scheduled", { planKey: current.plan.key }, { scheduledPlanKey: targetPlan.key, effectiveAt: current.subscription.currentPeriodEnd }, input.actor);
+  const downgradeContact = await getRestaurantContact(input.restaurantId);
+  if (downgradeContact?.contactEmail) {
+    sendEmailAsync(downgradeContact.contactEmail, "subscriptionDowngraded", {
+      customerName: downgradeContact.contactName || downgradeContact.name,
+      restaurantName: downgradeContact.name,
+      previousPlanName: current.plan.name,
+      newPlanName: targetPlan.name,
+      effectiveDate: current.subscription.currentPeriodEnd,
+      actionUrl: ENV.commercialSiteUrl,
+    });
+  }
   return { scheduled: true, effectiveAt: current.subscription.currentPeriodEnd, planKey: targetPlan.key };
 }
 
@@ -298,6 +336,15 @@ export async function scheduleCancellation(input: { restaurantId: number; reason
   if (current.subscription.status === "canceled" || current.subscription.status === "cancel_at_period_end") return { effectiveAt: current.subscription.currentPeriodEnd };
   await db.update(subscriptions).set({ status: "cancel_at_period_end", cancelReason: input.reason ?? null, scheduledPlanId: null, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
   await recordEvent(current.subscription.id, "cancellation_scheduled", { status: current.subscription.status }, { status: "cancel_at_period_end", effectiveAt: current.subscription.currentPeriodEnd }, input.actor);
+  const contact = await getRestaurantContact(input.restaurantId);
+  if (contact?.contactEmail) {
+    sendEmailAsync(contact.contactEmail, "subscriptionCancelRequested", {
+      customerName: contact.contactName || contact.name,
+      restaurantName: contact.name,
+      accessUntil: current.subscription.currentPeriodEnd,
+      actionUrl: ENV.commercialSiteUrl,
+    });
+  }
   return { effectiveAt: current.subscription.currentPeriodEnd };
 }
 

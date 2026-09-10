@@ -3,7 +3,10 @@ import { getDb } from "./client";
 import { signupPayments, subscriptionEvents, type SignupPayload } from "../../drizzle/schema";
 import { createRestaurantWithSubscription } from "./restaurants";
 import { getSubscriptionForRestaurant } from "./subscriptions";
+import { getPlanByKey } from "./plans";
 import { recordPlatformAuditLog } from "./auditLog";
+import { sendEmailAsync } from "../_core/emailService";
+import { ENV } from "../_core/env";
 
 /** Cria a linha ANTES de existir preferência no Mercado Pago — o id gerado aqui vira o external_reference da preferência. */
 export async function createSignupPayment(input: { payload: SignupPayload; amountCents: number }) {
@@ -88,6 +91,25 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
     entityType: "restaurant",
     entityId: result.restaurantId,
     after: { planKey: result.planKey, status: result.status, implementationFeeCents: row.amountCents },
+  });
+
+  // Fogo-e-esquece de propósito — uma falha de e-mail aqui nunca pode
+  // desfazer a criação do restaurante nem o pagamento já confirmado (ver
+  // prompt do dono, regra #30). O contato ainda não tem login em lugar
+  // nenhum neste momento (o deployment do restaurante é provisionado à
+  // parte, depois — ver markRestaurantDelivered), por isso o link aponta
+  // pro site comercial, não pro painel do restaurante em si. Sem
+  // COMMERCIAL_SITE_URL configurada, o link fica relativo (o e-mail ainda
+  // sai, só sem link clicável de verdade) — mesmo raciocínio de "nunca
+  // travar por falta de config opcional" do resto do serviço.
+  const plan = await getPlanByKey(payload.planKey);
+  sendEmailAsync(payload.contactEmail, "paymentApproved", {
+    customerName: payload.contactName || payload.name,
+    restaurantName: payload.name,
+    planName: plan?.name ?? payload.planKey,
+    amountCents: row.amountCents,
+    paymentDate: now,
+    actionUrl: `${ENV.commercialSiteUrl}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
   });
 
   return { found: true as const, alreadyProcessed: false as const, restaurantId: result.restaurantId };

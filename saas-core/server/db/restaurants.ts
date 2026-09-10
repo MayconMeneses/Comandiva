@@ -5,6 +5,8 @@ import { plans, restaurants, subscriptionEvents, subscriptions, type PlanKey, ty
 import { getPlanByKey } from "./plans";
 import { getSubscriptionForRestaurant, listBillingPaymentsForSubscription } from "./subscriptions";
 import { listPlatformAuditLog } from "./auditLog";
+import { sendEmailAsync } from "../_core/emailService";
+import { ENV } from "../_core/env";
 
 // O teste grátis só começa a contar quando a equipe marca o restaurante como
 // entregue (menu/config organizados) — nunca no momento do cadastro. Ver
@@ -132,6 +134,15 @@ export async function markRestaurantDelivered(restaurantId: number, actor: strin
   }
 
   await recordSubscriptionDeliveredEvent(current.subscription.id, currentPeriodEnd, actor);
+
+  if (restaurant.contactEmail) {
+    sendEmailAsync(restaurant.contactEmail, "restaurantReady", {
+      customerName: restaurant.contactName || restaurant.name,
+      restaurantName: restaurant.name,
+      actionUrl: restaurant.deploymentUrl || ENV.commercialSiteUrl,
+    });
+  }
+
   return { success: true as const, trialEndsAt: currentPeriodEnd };
 }
 

@@ -33,4 +33,9 @@ export const ENV = {
   // se preenchido, redireciona todo envio pra cá (pra poder ver o resultado
   // de verdade sem arriscar mandar pra um cliente real); se vazio, só loga.
   emailDevRecipient: process.env.EMAIL_DEV_RECIPIENT ?? "",
+  // Origem do site comercial/Painel Master — usada só pra montar o link de
+  // ação (`actionUrl`) dos e-mails disparados fora do contexto de uma
+  // requisição (ex.: webhook, sem `returnOrigin` do cliente pra reaproveitar
+  // como em server/routers/public.ts::signup).
+  commercialSiteUrl: (process.env.COMMERCIAL_SITE_URL ?? "").replace(/\/+$/, ""),
 };
