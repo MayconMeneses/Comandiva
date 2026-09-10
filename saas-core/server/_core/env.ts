@@ -24,4 +24,13 @@ export const ENV = {
   // deployment). Em branco = cobrança automática desligada, sem afetar nada.
   mercadoPagoAccessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "",
   mercadoPagoWebhookSecret: process.env.MERCADO_PAGO_WEBHOOK_SECRET ?? "",
+  // E-mails transacionais (server/_core/emailService.ts) — em branco = envio
+  // desligado (loga e segue, nunca derruba o fluxo que disparou o e-mail).
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  emailFrom: process.env.EMAIL_FROM ?? "",
+  emailFromName: process.env.EMAIL_FROM_NAME || "MM System Creator",
+  // Fora de produção, nunca manda e-mail de verdade pro destinatário real —
+  // se preenchido, redireciona todo envio pra cá (pra poder ver o resultado
+  // de verdade sem arriscar mandar pra um cliente real); se vazio, só loga.
+  emailDevRecipient: process.env.EMAIL_DEV_RECIPIENT ?? "",
 };
