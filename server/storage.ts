@@ -91,6 +91,21 @@ function publicS3Url(key: string): string {
   return `${ENV.s3PublicBaseUrl.replace(/\/+$/, "")}/${key}`;
 }
 
+/**
+ * Garante bucket criado + política pública aplicada já na inicialização do
+ * servidor — antes disso, isso só rodava no primeiro storagePut() depois de
+ * cada boot, o que na prática significa "só quando alguém faz upload".
+ * Um restart sem nenhum upload no meio tempo deixava a política antiga
+ * (mais permissiva, de antes de um fix) valendo indefinidamente, mesmo com
+ * o código já corrigido — exatamente o que aconteceu na auditoria de hoje.
+ * Silenciosa se S3 não estiver configurado (ambiente sem storage).
+ */
+export async function ensureStorageReady(): Promise<void> {
+  if (!ENV.s3Bucket || !ENV.s3AccessKeyId || !ENV.s3SecretAccessKey) return;
+  const { bucket, client } = getS3Config();
+  await ensureBucketExists(bucket, client);
+}
+
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,

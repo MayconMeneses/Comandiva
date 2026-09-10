@@ -11,6 +11,7 @@ import { sendOwnerAlert } from "./alerts";
 import { registerMercadoPagoWebhook } from "./mercadoPagoWebhook";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
+import { ensureStorageReady } from "../storage";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -64,6 +65,13 @@ async function startServer() {
     );
     process.exit(1);
   }
+
+  // Garante bucket+política de acesso público já no boot — antes só rodava
+  // no primeiro upload, então um restart sem nenhum upload no meio tempo
+  // deixava a política antiga valendo indefinidamente mesmo com o código já
+  // corrigido. Não bloqueia o boot (storage não é obrigatório pra tudo
+  // funcionar); erro fica só registrado, mesma proteção que já existia.
+  void ensureStorageReady().catch(error => console.warn("[storage] Falha ao preparar o bucket no boot:", error));
 
   const app = express();
   const server = createServer(app);
