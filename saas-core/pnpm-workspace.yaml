@@ -3,3 +3,12 @@ packages:
 
 allowBuilds:
   esbuild: true
+
+overrides:
+  # CVE moderado (GHSA, "qs array-limit bypass via bracket-key comma
+  # parsing"), qs>=6.14.2 <=6.15.3 vulnerável, precisa de >=6.16.0 — a
+  # única dependência da família qs/body-parser/path-to-regexp que
+  # continuava exposta em runtime real aqui (path-to-regexp e body-parser
+  # já vinham patcheados por causa do express@4.22.2, mais novo que o do
+  # app principal; ver auditoria V-36).
+  qs: "6.16.0"
