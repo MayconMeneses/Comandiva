@@ -6,6 +6,14 @@ import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
 
 const phoneSchema = z.string().min(10).max(24).transform(normalizePhone).refine(value => value.length === 10 || value.length === 11, "Informe um telefone válido.");
+// Defesa em profundidade contra XSS armazenado (auditoria V-39): nome e
+// observação de cliente/pedido/mesa nunca deveriam aceitar "<"/">" — hoje
+// nenhum sink de HTML cru existe no código (SPA React escapa tudo), mas
+// essa barreira não pode depender só disso continuar verdade pra sempre.
+const noHtmlChars = /^[^<>]*$/;
+function safeText<T extends z.ZodString>(schema: T) {
+  return schema.regex(noHtmlChars, "Não use os caracteres < ou >.");
+}
 const addressSchema = z.object({
   postalCode: z.string().max(12).optional(),
   street: z.string().min(2).max(180),
@@ -33,7 +41,7 @@ export const customerRouter = router({
   // acima: sem isso, dava pra martelar esse endpoint sem limite.
   saveProfile: publicProcedure.input(z.object({
     phone: phoneSchema,
-    name: z.string().min(2).max(160),
+    name: safeText(z.string().min(2).max(160)),
     address: addressSchema.optional(),
   })).mutation(async ({ input, ctx }) => {
     const limit = checkRateLimit(`customer-save-profile:${ctx.req.ip}`);
@@ -42,4 +50,4 @@ export const customerRouter = router({
   }),
 });
 
-export { addressSchema, phoneSchema };
+export { addressSchema, phoneSchema, safeText };

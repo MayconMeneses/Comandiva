@@ -2,7 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { restaurantTables } from "../../drizzle/schema";
 import { getCustomerByPhone, saveCustomerProfile } from "./customers";
-import { getDb } from "./client";
+import { getDb, type DbOrTx } from "./client";
 
 const generateQrToken = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789", 14);
 
@@ -40,8 +40,8 @@ export async function findTableByToken(token: string) {
   return table;
 }
 
-export async function createTable(input: { label: string; sector: string; capacity: number; sortOrder?: number }) {
-  const db = await getDb();
+export async function createTable(input: { label: string; sector: string; capacity: number; sortOrder?: number }, conn?: DbOrTx) {
+  const db = conn ?? await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const now = Date.now();
   const result = await db.insert(restaurantTables).values({

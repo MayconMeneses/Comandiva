@@ -30,7 +30,10 @@ describe("administradores adicionais", () => {
   it("cria uma conta com acesso administrativo completo", async () => {
     const result = await appRouter.createCaller(adminContext).team.create({ name: "Novo Admin", username: "novo.admin", password: "senha-segura", role: "admin" });
     expect(result.role).toBe("admin");
-    expect(mocks.create).toHaveBeenCalledWith({ name: "Novo Admin", username: "novo.admin", password: "senha-segura", role: "admin" });
+    // Segundo argumento (tx) vem da transação de assertWithinPlanLimitAndInsert
+    // (ver auditoria V-24) — undefined aqui porque o restaurante de teste não
+    // tem limite de plano configurado (caminho sem transação nenhuma).
+    expect(mocks.create).toHaveBeenCalledWith({ name: "Novo Admin", username: "novo.admin", password: "senha-segura", role: "admin" }, undefined);
   });
 
   it("autentica o administrador local e cria uma sessão válida", async () => {

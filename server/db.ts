@@ -2,6 +2,7 @@
 // resto do servidor, enquanto a implementação real fica dividida por domínio
 // em `server/db/*.ts` (evita um único arquivo "god file" com tudo junto).
 export { getDb, cached, CATALOG_CACHE_TTL_MS } from "./db/client";
+export type { Db, DbOrTx } from "./db/client";
 export * from "./db/audit";
 export * from "./db/dataRights";
 export * from "./db/fiscal";

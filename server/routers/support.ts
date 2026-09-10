@@ -8,9 +8,21 @@ import { ENV } from "../_core/env";
 import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
 
-type RedeemResponse = {
-  result: { data: { supportSessionId: number; restaurantName: string; platformAdminEmail: string; expiresAt: number } };
-};
+// Valida a resposta do saas-core em runtime, mesmo raciocínio do V-12
+// (server/_core/license.ts) — esse endpoint troca um token por uma sessão
+// com acesso quase total ao restaurante, então uma resposta malformada
+// precisa REJEITAR a entrada em Modo Suporte (falha fechada), nunca seguir
+// em frente com dado incompleto/errado só porque o `as` cru deixaria passar.
+const redeemResponseSchema = z.object({
+  result: z.object({
+    data: z.object({
+      supportSessionId: z.number(),
+      restaurantName: z.string(),
+      platformAdminEmail: z.string(),
+      expiresAt: z.number(),
+    }),
+  }),
+});
 
 /**
  * Avisa o saas-core (best-effort) que a sessão terminou e limpa o cookie
@@ -49,8 +61,9 @@ export const supportRouter = router({
       body: JSON.stringify({ token: input.token }),
     });
     if (!response.ok) throw new TRPCError({ code: "FORBIDDEN", message: "Link de suporte inválido, expirado ou já utilizado." });
-    const body = (await response.json()) as RedeemResponse;
-    const data = body.result.data;
+    const parsed = redeemResponseSchema.safeParse(await response.json());
+    if (!parsed.success) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Resposta inesperada do Painel Master ao validar o link de suporte." });
+    const data = parsed.data.result.data;
 
     const token = await createSupportSessionToken(data);
     ctx.res.cookie(SUPPORT_COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: data.expiresAt - Date.now() });

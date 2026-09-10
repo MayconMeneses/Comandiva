@@ -5,21 +5,21 @@ import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
 import { getLicenseSnapshot } from "../_core/license";
 import { featureProcedure, publicProcedure, router } from "../_core/trpc";
 import { insertPricedOrder, priceOrder } from "./order";
-import { phoneSchema } from "./customer";
+import { phoneSchema, safeText } from "./customer";
 import { saveCustomerProfile } from "../db/customers";
 
 export const roundItemSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().min(1).max(20),
   addonOptionIds: z.array(z.number().int().positive()).default([]),
-  note: z.string().max(500).optional(),
+  note: safeText(z.string().max(500)).optional(),
 });
 
 const addRoundSchema = z.object({
   token: z.string().min(6).max(24),
   items: z.array(roundItemSchema).min(1, "Adicione pelo menos um item ao pedido."),
-  customerNote: z.string().max(500).optional(),
-  customer: z.object({ name: z.string().min(2).max(160), phone: phoneSchema }).optional(),
+  customerNote: safeText(z.string().max(500)).optional(),
+  customer: z.object({ name: safeText(z.string().min(2).max(160)), phone: phoneSchema }).optional(),
 });
 
 /**

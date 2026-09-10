@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { InsertUser, restaurantStaffCredentials, users } from "../../drizzle/schema";
 import { ENV } from "../_core/env";
 import { parseStaffPermissions, serializeStaffPermissions, type StaffPermissionArea } from "../_core/permissions";
-import { getDb } from "./client";
+import { getDb, type DbOrTx } from "./client";
 
 const scrypt = promisify(scryptCallback);
 
@@ -54,8 +54,8 @@ async function verifyStaffPassword(password: string, storedHash: string) {
 
 type RestaurantAccessRole = "staff" | "admin";
 
-export async function createRestaurantAccessAccount(input: { name: string; username: string; password: string; role: RestaurantAccessRole; permissions?: StaffPermissionArea[] | null }) {
-  const db = await getDb();
+export async function createRestaurantAccessAccount(input: { name: string; username: string; password: string; role: RestaurantAccessRole; permissions?: StaffPermissionArea[] | null }, conn?: DbOrTx) {
+  const db = conn ?? await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const username = input.username.trim().toLowerCase();
   const [existing] = await db.select().from(restaurantStaffCredentials).where(eq(restaurantStaffCredentials.username, username)).limit(1);

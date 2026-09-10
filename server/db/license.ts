@@ -1,10 +1,15 @@
 import { eq } from "drizzle-orm";
-import { getDb } from "./client";
+import { getDb, type DbOrTx } from "./client";
 import { restaurantStaffCredentials, restaurantTables, subscriptionCache } from "../../drizzle/schema";
 
-/** Sempre existe exatamente 1 linha (singleton), igual restaurantSettings — criada na primeira leitura se ainda não houver nenhuma. */
-export async function getOrCreateLicenseCache() {
-  const db = await getDb();
+/**
+ * Sempre existe exatamente 1 linha (singleton), igual restaurantSettings —
+ * criada na primeira leitura se ainda não houver nenhuma. Aceita um `tx`
+ * opcional pra poder rodar dentro de uma transação já aberta pelo chamador
+ * (ver `lockLicenseSingletonRow`, usada por `assertWithinPlanLimitAndInsert`).
+ */
+export async function getOrCreateLicenseCache(conn?: DbOrTx) {
+  const db = conn ?? await getDb();
   if (!db) return undefined;
   const [existing] = await db.select().from(subscriptionCache).limit(1);
   if (existing) return existing;
@@ -22,6 +27,21 @@ export async function getOrCreateLicenseCache() {
   });
   const [created] = await db.select().from(subscriptionCache).limit(1);
   return created;
+}
+
+/**
+ * Trava a única linha de `subscriptionCache` (SELECT ... FOR UPDATE) — usada
+ * como mutex pra serializar checagem+escrita de limite de plano concorrente
+ * (ver auditoria V-24: duas requisições simultâneas de criar conta/mesa,
+ * ambas com o uso já no limite-1, passavam na checagem e ambas inseriam).
+ * Sempre existe exatamente 1 linha singleton, então travar essa linha não
+ * tem o problema de "phantom row" que travar as linhas contadas teria — só
+ * funciona de dentro de `db.transaction()`, já que FOR UPDATE fora de uma
+ * transação não retém o lock depois do SELECT.
+ */
+export async function lockLicenseSingletonRow(tx: DbOrTx) {
+  await getOrCreateLicenseCache(tx);
+  await tx.select({ id: subscriptionCache.id }).from(subscriptionCache).limit(1).for("update");
 }
 
 export async function upsertLicenseCache(data: {
@@ -46,9 +66,9 @@ export async function upsertLicenseCache(data: {
     .where(eq(subscriptionCache.id, existing.id));
 }
 
-/** Uso atual do deployment nos recursos com limite por plano (staff/mesas ativos). */
-export async function getLocalUsageCounts() {
-  const db = await getDb();
+/** Uso atual do deployment nos recursos com limite por plano (staff/mesas ativos). Aceita `tx` opcional pra contar dentro da mesma transação que travou `lockLicenseSingletonRow`. */
+export async function getLocalUsageCounts(conn?: DbOrTx) {
+  const db = conn ?? await getDb();
   if (!db) return { users: 0, tables: 0 };
   const [activeStaff, activeTables] = await Promise.all([
     db.select().from(restaurantStaffCredentials).where(eq(restaurantStaffCredentials.active, true)),

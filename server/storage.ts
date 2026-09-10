@@ -1,7 +1,41 @@
 import { CreateBucketCommand, GetObjectCommand, HeadBucketCommand, PutBucketPolicyCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { ENV } from "./_core/env";
+
+// Mapa "tipo declarado no upload" → formato real que o sharp precisa
+// detectar nos bytes pra bater. Cobre os tipos aceitos pelos 6 endpoints de
+// upload de imagem do projeto (ver assertRealImageMatchesDeclaredType).
+const MIME_TO_SHARP_FORMAT: Record<string, string> = {
+  "image/jpeg": "jpeg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/avif": "heif", // sharp reporta AVIF como "heif" (mesmo container ISOBMFF)
+};
+
+/**
+ * Confere que os BYTES reais do arquivo batem com o Content-Type que o
+ * cliente declarou — até aqui, todo endpoint de upload só validava um enum
+ * Zod (o que o cliente *diz* que está enviando), nunca o conteúdo em si (ver
+ * auditoria V-35). Sozinho isso não é um vetor de XSS direto (o navegador
+ * não executa um Content-Type declarado como imagem), mas fecha o bucket
+ * como hospedagem de arquivo arbitrário disfarçado de imagem.
+ */
+export async function assertRealImageMatchesDeclaredType(bytes: Buffer, declaredContentType: string): Promise<void> {
+  const expectedFormat = MIME_TO_SHARP_FORMAT[declaredContentType];
+  if (!expectedFormat) throw new TRPCError({ code: "BAD_REQUEST", message: `Tipo de imagem não suportado: ${declaredContentType}.` });
+  let detectedFormat: string | undefined;
+  try {
+    detectedFormat = (await sharp(bytes).metadata()).format;
+  } catch {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "O arquivo enviado não é uma imagem válida." });
+  }
+  if (detectedFormat !== expectedFormat) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: `O arquivo enviado não é realmente do tipo ${declaredContentType} (detectado: ${detectedFormat ?? "desconhecido"}).` });
+  }
+}
 
 function getS3Config() {
   if (!ENV.s3Bucket || !ENV.s3AccessKeyId || !ENV.s3SecretAccessKey) {

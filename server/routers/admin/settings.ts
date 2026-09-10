@@ -5,7 +5,7 @@ import { restaurantSettings } from "../../../drizzle/schema";
 import { sendOwnerAlert } from "../../_core/alerts";
 import { getDb, getStoreSettings } from "../../db";
 import { adminOnlyProcedure, adminProcedure, router } from "../../_core/trpc";
-import { storagePut } from "../../storage";
+import { assertRealImageMatchesDeclaredType, storagePut } from "../../storage";
 
 export const adminSettingsRouter = router({
   // Só o essencial pra tela de Conta (Pix) — admin.dashboard (reports, e
@@ -55,6 +55,7 @@ export const adminSettingsRouter = router({
   uploadLogo: adminProcedure.input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 45_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 45 MB." });
+    await assertRealImageMatchesDeclaredType(bytes, input.contentType);
     const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
     const stored = await storagePut(`branding/logo/${Date.now()}-${safeFilename}`, bytes, input.contentType);
     return { url: stored.url };
@@ -62,6 +63,7 @@ export const adminSettingsRouter = router({
   uploadPixQr: adminOnlyProcedure.input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 45_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 45 MB." });
+    await assertRealImageMatchesDeclaredType(bytes, input.contentType);
     const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
     const stored = await storagePut(`branding/pix/${Date.now()}-${safeFilename}`, bytes, input.contentType);
     return { url: stored.url };

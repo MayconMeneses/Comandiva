@@ -18,9 +18,9 @@ import {
   updateReservation,
   updateTable,
 } from "../../db";
-import { assertWithinPlanLimit } from "../../_core/planLimits";
+import { assertWithinPlanLimit, assertWithinPlanLimitAndInsert } from "../../_core/planLimits";
 import { adminProcedure, requireFeature, restaurantProcedure, router } from "../../_core/trpc";
-import { phoneSchema } from "../customer";
+import { phoneSchema, safeText } from "../customer";
 import { addRoundToTable, roundItemSchema } from "../table";
 import { sortOrder } from "./shared";
 
@@ -51,8 +51,7 @@ export const adminTablesRouter = router({
   createTable: tablesAdminProcedure
     .input(z.object({ label: z.string().trim().min(1).max(60), sector: z.string().trim().max(60).default(""), capacity: z.number().int().min(1).max(50).default(4), sortOrder }))
     .mutation(async ({ input }) => {
-      await assertWithinPlanLimit("tables");
-      return { id: await createTable(input) };
+      return { id: await assertWithinPlanLimitAndInsert("tables", tx => createTable(input, tx)) };
     }),
   updateTable: tablesAdminProcedure
     .input(z.object({ id: z.number().int().positive(), label: z.string().trim().min(1).max(60).optional(), sector: z.string().trim().max(60).optional(), capacity: z.number().int().min(1).max(50).optional(), sortOrder: sortOrder.optional(), active: z.boolean().optional() }))
@@ -64,7 +63,7 @@ export const adminTablesRouter = router({
   regenerateQr: tablesAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => ({ qrToken: await regenerateTableQrToken(input.id) })),
   addManualRound: tablesRestaurantProcedure
     .use(requireFeature("extra_rounds"))
-    .input(z.object({ tableId: z.number().int().positive(), items: z.array(roundItemSchema).min(1), customerNote: z.string().max(500).optional(), customer: z.object({ name: z.string().min(2).max(160), phone: phoneSchema }).optional() }))
+    .input(z.object({ tableId: z.number().int().positive(), items: z.array(roundItemSchema).min(1), customerNote: safeText(z.string().max(500)).optional(), customer: z.object({ name: safeText(z.string().min(2).max(160)), phone: phoneSchema }).optional() }))
     .mutation(({ input }) => addRoundToTable({ tableId: input.tableId, items: input.items, customerNote: input.customerNote, customer: input.customer, historyNote: "Rodada lançada pela equipe", origin: "GARCOM" })),
   pendingServiceRequests: tablesRestaurantProcedure.query(() => listPendingServiceRequests()),
   resolveServiceRequest: tablesRestaurantProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["ACKNOWLEDGED", "DONE", "CANCELLED"]) })).mutation(async ({ input, ctx }) => {
@@ -99,7 +98,7 @@ export const adminTablesRouter = router({
   }),
   reservations: tablesRestaurantProcedure.input(z.object({ fromAt: z.number().optional(), toAt: z.number().optional() }).optional()).query(({ input }) => listReservations(input ?? {})),
   createReservation: tablesRestaurantProcedure
-    .input(z.object({ customerName: z.string().trim().min(2).max(160), customerPhone: phoneSchema, partySize: z.number().int().min(1).max(50), reservedFor: z.number().int().positive(), tableId: z.number().int().positive().optional(), notes: z.string().max(500).optional() }))
+    .input(z.object({ customerName: safeText(z.string().trim().min(2).max(160)), customerPhone: phoneSchema, partySize: z.number().int().min(1).max(50), reservedFor: z.number().int().positive(), tableId: z.number().int().positive().optional(), notes: safeText(z.string().max(500)).optional() }))
     .mutation(async ({ input }) => {
       try {
         return { id: await createReservation(input) };

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { getLocalUsageCounts, getOrCreateLicenseCache, upsertLicenseCache } from "../db";
 import { cached } from "../db/client";
 import { ENV } from "./env";
@@ -90,6 +91,29 @@ export async function getLicenseUsage() {
   return getLocalUsageCounts();
 }
 
+// Valida a resposta do saas-core em runtime (auditoria V-12) — os dois
+// serviços são independentes, com CI isolado e nenhum contrato de tipo
+// compartilhado, então um `as {...}` cru aceitava qualquer formato sem
+// erro imediato, só quebrando depois num request completamente diferente
+// (ex.: `snapshot.features.includes()` sobre algo que não é array). Um
+// formato inesperado agora cai no mesmo catch abaixo — fail-open pro
+// último cache bom conhecido, igual qualquer outra falha de sincronização.
+const syncSnapshotResponseSchema = z.object({
+  result: z.object({
+    data: z.object({
+      planKey: z.string(),
+      planName: z.string(),
+      status: z.string(),
+      features: z.array(z.string()),
+      limits: z.record(z.string(), z.number().nullable()),
+      lockedFeatures: z.record(z.string(), z.object({ requiredPlanKey: z.string(), requiredPlanName: z.string() })),
+      currentPeriodEnd: z.number(),
+      scheduledPlanKey: z.string().nullable(),
+      scheduledPlanName: z.string().nullable(),
+    }),
+  }),
+});
+
 async function syncLicenseOnce(): Promise<void> {
   if (!ENV.saasCoreUrl || !ENV.saasCoreApiKey) return; // camada desligada de propósito
   try {
@@ -97,10 +121,7 @@ async function syncLicenseOnce(): Promise<void> {
       headers: { Authorization: `Bearer ${ENV.saasCoreApiKey}` },
     });
     if (!response.ok) throw new Error(`saas-core respondeu ${response.status}`);
-    const body = (await response.json()) as {
-      result: { data: { planKey: string; planName: string; status: string; features: string[]; limits: Record<string, number | null>; lockedFeatures: LicenseSnapshot["lockedFeatures"]; currentPeriodEnd: number; scheduledPlanKey: string | null; scheduledPlanName: string | null } };
-    };
-    const snapshot = body.result.data;
+    const snapshot = syncSnapshotResponseSchema.parse(await response.json()).result.data;
     await upsertLicenseCache({
       planKey: snapshot.planKey,
       planName: snapshot.planName,

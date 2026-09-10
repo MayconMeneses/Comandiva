@@ -2,6 +2,13 @@ import { drizzle } from "drizzle-orm/mysql2";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+export type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+// Aceita tanto a conexão normal quanto o `tx` passado dentro de
+// db.transaction(async tx => ...) — os dois implementam os mesmos métodos de
+// query builder (.select()/.insert()/...), só o `tx` não tem `$client` (a
+// pool inteira, que não faz sentido expor de dentro de uma transação).
+export type DbOrTx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {

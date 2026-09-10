@@ -2,16 +2,25 @@ import { TRPCError } from "@trpc/server";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from "../../../drizzle/schema";
-import { ALLOWED_STATUS_TRANSITIONS, STATUS_LABELS } from "../../../shared/orderDomain";
+import { ALLOWED_STATUS_TRANSITIONS, STATUS_LABELS, endOfDayInRestaurantTimezone, startOfDayInRestaurantTimezone } from "../../../shared/orderDomain";
 import { getAdminOrders, getDashboardMetrics, getDb, getOrderWithDetails, getStoreSettings } from "../../db";
 import { adminProcedure, restaurantProcedure, restaurantProcedureFor, router } from "../../_core/trpc";
-import { keyFromPublicUrl, storageGetSignedUrl, storagePut } from "../../storage";
-import { orderInfoSchema, startOfDay, statusSchema } from "./shared";
+import { assertRealImageMatchesDeclaredType, keyFromPublicUrl, storageGetSignedUrl, storagePut } from "../../storage";
+import { orderInfoSchema, statusSchema } from "./shared";
 
 export const adminOrdersRouter = router({
-  dashboard: restaurantProcedureFor("reports").input(z.object({ startAt: z.number().optional(), endAt: z.number().optional() }).optional()).query(async ({ input }) => {
-    const endAt = input?.endAt ?? Date.now();
-    const startAt = input?.startAt ?? startOfDay();
+  // Recebe só a INTENÇÃO do período ("hoje"/"7 dias"/"30 dias"/uma data
+  // específica) e calcula startAt/endAt aqui, sempre no fuso do restaurante
+  // (America/Fortaleza) — nunca aceita startAt/endAt prontos do cliente, que
+  // dependia do fuso de quem estivesse com o navegador aberto (ver auditoria
+  // V-25: um admin em Modo Suporte ou o dono viajando em outro fuso via um
+  // "hoje" errado).
+  dashboard: restaurantProcedureFor("reports").input(z.object({ range: z.enum(["today", "7days", "30days", "custom"]).default("today"), customDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).optional()).query(async ({ input }) => {
+    const range = input?.range ?? "today";
+    const now = Date.now();
+    const { startAt, endAt } = range === "custom" && input?.customDate
+      ? { startAt: startOfDayInRestaurantTimezone(0, new Date(`${input.customDate}T12:00:00Z`)), endAt: endOfDayInRestaurantTimezone(input.customDate) }
+      : { startAt: startOfDayInRestaurantTimezone(range === "today" ? 0 : range === "7days" ? 7 : 30), endAt: now };
     const [metrics, recentOrders, rawSettings] = await Promise.all([
       getDashboardMetrics(startAt, endAt),
       getAdminOrders({ limit: 10 }),
@@ -79,6 +88,7 @@ export const adminOrdersRouter = router({
     if (!current || current.archivedAt) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 2_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 2 MB." });
+    await assertRealImageMatchesDeclaredType(bytes, input.contentType);
     const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
     const stored = await storagePut(`orders/${input.orderId}/${Date.now()}-${safeFilename}`, bytes, input.contentType);
     const now = Date.now();

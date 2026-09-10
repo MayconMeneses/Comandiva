@@ -68,6 +68,43 @@ export function currentTimeInRestaurantTimezone(now: Date = new Date()): string 
   }).format(now);
 }
 
+/** Deslocamento UTC (minutos, positivo = à frente de UTC) do fuso do restaurante perto de um instante — calculado via Intl em vez de fixo, pra continuar certo mesmo se a regra de fuso mudar no futuro. */
+function restaurantUtcOffsetMinutes(atUtcMs: number): number {
+  const offsetPart = new Intl.DateTimeFormat("en-US", { timeZone: RESTAURANT_TIMEZONE, timeZoneName: "longOffset" })
+    .formatToParts(new Date(atUtcMs))
+    .find(part => part.type === "timeZoneName")?.value ?? "GMT+00:00"; // ex.: "GMT-03:00"
+  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(offsetPart);
+  if (!match) return 0;
+  const sign = match[1] === "-" ? -1 : 1;
+  return sign * (Number(match[2]) * 60 + Number(match[3]));
+}
+
+/**
+ * Início do dia (00:00:00.000) no fuso do restaurante, N dias atrás — usado
+ * pelo dashboard/relatórios do admin (server/routers/admin/orders.ts) pra
+ * calcular o período sempre no fuso de Croatá/CE, nunca no fuso de quem está
+ * com o navegador aberto (ver auditoria V-25: um admin de Modo Suporte ou o
+ * dono viajando em outro fuso via até então via um "hoje" errado).
+ */
+export function startOfDayInRestaurantTimezone(daysAgo = 0, now: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: RESTAURANT_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const year = Number(parts.find(part => part.type === "year")!.value);
+  const month = Number(parts.find(part => part.type === "month")!.value);
+  const day = Number(parts.find(part => part.type === "day")!.value);
+  // Y-M-D "hoje" no fuso do restaurante, com N dias subtraídos em aritmética
+  // de calendário (o Date.UTC aqui é só um jeito de subtrair dias direito,
+  // não representa um instante real ainda).
+  const targetDayAsUtc = Date.UTC(year, month - 1, day - daysAgo, 0, 0, 0);
+  return targetDayAsUtc - restaurantUtcOffsetMinutes(targetDayAsUtc) * 60_000;
+}
+
+/** Fim do dia (23:59:59.999) no fuso do restaurante pra uma data YYYY-MM-DD específica — usado pelo filtro "dia específico" dos relatórios. */
+export function endOfDayInRestaurantTimezone(isoDate: string): number {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const start = startOfDayInRestaurantTimezone(0, new Date(Date.UTC(year, month - 1, day, 12))); // meio-dia UTC evita cair no dia errado por causa do fuso
+  return start + 24 * 60 * 60 * 1000 - 1;
+}
+
 function timeToMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { events } from "../../../drizzle/schema";
 import { getDb } from "../../db";
 import { restaurantProcedureFor, router } from "../../_core/trpc";
-import { storagePut } from "../../storage";
+import { assertRealImageMatchesDeclaredType, storagePut } from "../../storage";
 import { optionalId, sortOrder } from "./shared";
 
 export const adminEventsRouter = router({
@@ -34,6 +34,7 @@ export const adminEventsRouter = router({
   uploadEventImage: restaurantProcedureFor("events").input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(140_000_000) })).mutation(async ({ input }) => {
     const bytes = Buffer.from(input.dataBase64, "base64");
     if (!bytes.length || bytes.length > 100_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 100 MB." });
+    await assertRealImageMatchesDeclaredType(bytes, input.contentType);
     const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
     const stored = await storagePut(`branding/events/${Date.now()}-${safeFilename}`, bytes, input.contentType);
     return { url: stored.url };

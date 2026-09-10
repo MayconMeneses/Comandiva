@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("./db", () => ({
   ...mocks,
+  // admin.tables agora exige requireFeature("tables_qr"), que consulta a
+  // licença — sem linha nenhuma, buildSnapshot() cai no PERMISSIVE_DEFAULT
+  // (mesmo comportamento de fail-open já coberto em license.test.ts).
+  getOrCreateLicenseCache: vi.fn().mockResolvedValue(null),
   getAdminOrders: vi.fn(),
   getDashboardMetrics: vi.fn(),
   getOrderWithDetails: vi.fn(),

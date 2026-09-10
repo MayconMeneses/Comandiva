@@ -19,18 +19,18 @@ import {
 } from "../../drizzle/schema";
 import { addressMatchesRoute, calculateCartTotal, formatCurrency, normalizePhone } from "../../shared/orderDomain";
 import { CURRENT_TERMS_VERSION } from "../../shared/legal";
-import { getActiveOrdersByPhone, getDb, getOrderByTrackingCode, getStoreSettings, saveCustomerProfile } from "../db";
+import { getActiveOrdersByPhone, getDb, getOrderByTrackingCode, getStoreSettings, saveCustomerProfile, type DbOrTx } from "../db";
 import { createMercadoPagoCheckout } from "../_core/mercadoPago";
 import { ENV } from "../_core/env";
 import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
-import { addressSchema, phoneSchema } from "./customer";
+import { addressSchema, phoneSchema, safeText } from "./customer";
 
 const itemSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().min(1).max(20),
   addonOptionIds: z.array(z.number().int().positive()).default([]),
-  note: z.string().max(500).optional(),
+  note: safeText(z.string().max(500)).optional(),
 });
 
 const checkoutSchema = z.object({
@@ -38,12 +38,12 @@ const checkoutSchema = z.object({
   fulfillmentType: z.enum(["DELIVERY", "PICKUP"]),
   paymentMethod: z.enum(["PIX", "CASH", "CARD_ON_DELIVERY", "CARD_ONLINE"]),
   customer: z.object({
-    name: z.string().min(2).max(160),
+    name: safeText(z.string().min(2).max(160)),
     phone: phoneSchema,
   }),
   address: addressSchema.optional(),
   deliveryRouteId: z.number().int().positive().optional(),
-  customerNote: z.string().max(500).optional(),
+  customerNote: safeText(z.string().max(500)).optional(),
   changeForCents: z.number().int().positive().optional(),
   // Só tem efeito quando quem chama está autenticado como equipe (ver
   // handler abaixo) — um cliente anônimo não consegue se marcar como
@@ -178,13 +178,6 @@ type PricedOrder = Awaited<ReturnType<typeof priceOrder>>;
  * rodada de mesa é *quem* dispara a criação e se existe endereço/comprovante
  * de pagamento próprio, não como o pedido em si é gravado.
  */
-type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
-// Aceita tanto a conexão normal quanto o `tx` passado dentro de
-// db.transaction(async tx => ...) — os dois implementam os mesmos métodos de
-// query builder usados aqui (.insert()), só o `tx` não tem `$client` (a pool
-// inteira, que não faz sentido expor de dentro de uma transação).
-type DbOrTx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
-
 export async function insertPricedOrder(params: {
   db: DbOrTx;
   priced: PricedOrder;

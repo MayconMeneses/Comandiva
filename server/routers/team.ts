@@ -3,7 +3,7 @@ import { z } from "zod";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const";
 import { authenticateRestaurantAccount, createRestaurantAccessAccount, deleteRestaurantAccessAccount, listRestaurantAccessAccounts, setRestaurantAccessAccountActive, updateRestaurantAccessAccount } from "../db";
 import { getSessionCookieOptions } from "../_core/cookies";
-import { assertWithinPlanLimit } from "../_core/planLimits";
+import { assertWithinPlanLimit, assertWithinPlanLimitAndInsert } from "../_core/planLimits";
 import { GRANTABLE_STAFF_AREAS } from "../_core/permissions";
 import { checkRateLimit, clearRateLimit } from "../_core/rateLimit";
 import { sdk } from "../_core/sdk";
@@ -37,8 +37,7 @@ export const teamRouter = router({
   // bloqueada (ver [[project_saas_whitelabel_transformation]]).
   list: adminOnlyProcedure.query(() => listRestaurantAccessAccounts()),
   create: adminOnlyProcedure.input(z.object({ name: z.string().trim().min(2).max(120), username: usernameSchema, password: passwordSchema, role: z.enum(["staff", "admin"]).default("staff"), permissions: permissionsSchema })).mutation(async ({ input }) => {
-    await assertWithinPlanLimit("users");
-    return createRestaurantAccessAccount(input);
+    return assertWithinPlanLimitAndInsert("users", tx => createRestaurantAccessAccount(input, tx));
   }),
   update: adminOnlyProcedure.input(z.object({ accountId: z.number().int().positive(), name: z.string().trim().min(2).max(120), password: passwordSchema.optional(), permissions: permissionsSchema })).mutation(({ input }) => updateRestaurantAccessAccount(input)),
   setActive: adminOnlyProcedure.input(z.object({ accountId: z.number().int().positive(), active: z.boolean() })).mutation(async ({ input, ctx }) => {
