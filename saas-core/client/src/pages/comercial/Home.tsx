@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import type { ReactNode, SVGProps } from "react";
 import { ComercialHeader } from "./ComercialHeader";
+import { ComercialFooter } from "./ComercialFooter";
 
 const PRIMARY_LINK_CLASSES =
   "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-accent px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover";
@@ -230,6 +231,24 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Sobre o criador */}
+      <section className="border-y border-border bg-paper-raised/60">
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <span className="text-xs font-semibold uppercase tracking-wider text-accent">Quem criou</span>
+          <div className="mt-4 flex items-center justify-center">
+            <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-16 w-16 rounded-2xl shadow-sm" />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-ink sm:text-3xl">Maycon Meneses</h2>
+          <p className="mt-4 text-ink-soft">
+            O MM System Creator é um projeto <strong className="text-ink">100% autoral</strong> — idealizado,
+            projetado e construído do zero por Maycon Meneses, sem plataforma no-code por trás e sem
+            terceirização. Da ideia ao código, cada parte do sistema foi pensada pra resolver o problema de
+            verdade de quem administra um restaurante.
+          </p>
+          <p className="mt-4 text-sm font-semibold tracking-wide text-accent">Ideias · Sistemas · Soluções</p>
+        </div>
+      </section>
+
       {/* CTA final */}
       <section className="mx-auto max-w-5xl px-6 pb-24">
         <div className="rounded-2xl bg-accent px-8 py-14 text-center text-white">
@@ -246,12 +265,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 text-center text-sm text-ink-soft">
-          <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-8 w-8 rounded-md" />
-          © {new Date().getFullYear()} MM System Creator.
-        </div>
-      </footer>
+      <ComercialFooter />
     </div>
   );
 }

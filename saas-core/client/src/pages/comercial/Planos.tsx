@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
+import { ComercialFooter } from "./ComercialFooter";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
@@ -109,6 +110,8 @@ export default function Planos() {
 
         <p className="mt-6 text-sm text-ink-soft">Pode trocar de plano quando quiser, direto no seu painel — sem multa.</p>
       </section>
+
+      <ComercialFooter />
     </div>
   );
 }
