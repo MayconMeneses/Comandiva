@@ -24,36 +24,45 @@ function getS3Config() {
 // Evita checar/criar o bucket a cada upload — só na primeira vez do processo.
 let bucketReadyPromise: Promise<void> | null = null;
 
+// Só esses dois prefixos são de fato pra qualquer visitante ver (cardápio,
+// categorias, eventos, logo, QR Pix) — nunca o bucket inteiro. Em especial,
+// orders/* (comprovante/anexo de pedido, mostrado só dentro do admin
+// autenticado) fica de fora de propósito e é servido por URL assinada
+// (storageGetSignedUrl) via admin.getAttachmentSignedUrl, nunca por link
+// permanente. Reaplicada em todo boot (não só na criação) pra uma mudança
+// de política chegar em produção só com o próximo deploy, sem precisar de
+// um passo manual separado.
+const PUBLIC_READ_PREFIXES = ["catalog/*", "branding/*"];
+
 async function ensureBucketExists(bucket: string, client: S3Client) {
   if (!bucketReadyPromise) {
     bucketReadyPromise = (async () => {
-      let justCreated = false;
       try {
         await client.send(new HeadBucketCommand({ Bucket: bucket }));
       } catch {
         try {
           await client.send(new CreateBucketCommand({ Bucket: bucket }));
-          justCreated = true;
         } catch (error) {
           const code = (error as { name?: string; Code?: string })?.name ?? (error as { Code?: string })?.Code;
           // Se outro processo já criou o bucket ao mesmo tempo, não é erro.
           if (code !== "BucketAlreadyOwnedByYou" && code !== "BucketAlreadyExists") throw error;
         }
       }
-      if (justCreated) {
-        // As imagens (produtos, logo, QR Pix) são servidas por URL pública direta,
-        // então o bucket precisa permitir leitura anônima dos objetos.
-        try {
-          await client.send(new PutBucketPolicyCommand({
-            Bucket: bucket,
-            Policy: JSON.stringify({
-              Version: "2012-10-17",
-              Statement: [{ Effect: "Allow", Principal: "*", Action: ["s3:GetObject"], Resource: [`arn:aws:s3:::${bucket}/*`] }],
-            }),
-          }));
-        } catch (error) {
-          console.warn("[storage] Não foi possível definir a política pública do bucket automaticamente:", error);
-        }
+      try {
+        await client.send(new PutBucketPolicyCommand({
+          Bucket: bucket,
+          Policy: JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [{
+              Effect: "Allow",
+              Principal: "*",
+              Action: ["s3:GetObject"],
+              Resource: PUBLIC_READ_PREFIXES.map(prefix => `arn:aws:s3:::${bucket}/${prefix}`),
+            }],
+          }),
+        }));
+      } catch (error) {
+        console.warn("[storage] Não foi possível definir a política pública do bucket automaticamente:", error);
       }
     })().catch(error => {
       bucketReadyPromise = null; // permite tentar de novo na próxima chamada
@@ -104,6 +113,13 @@ export async function storagePut(
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
   return { key, url: publicS3Url(key) };
+}
+
+/** Inverte publicS3Url — usado só pra recuperar a key de uma orders.adminAttachmentUrl já salva (única coluna que guarda a URL completa em vez da key) e gerar uma URL assinada nova a cada consulta. */
+export function keyFromPublicUrl(url: string): string {
+  const base = ENV.s3PublicBaseUrl.replace(/\/+$/, "");
+  if (!url.startsWith(`${base}/`)) throw new Error("URL não pertence a este bucket de armazenamento.");
+  return url.slice(base.length + 1);
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {

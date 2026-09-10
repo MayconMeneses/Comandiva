@@ -5,7 +5,7 @@ import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from
 import { ALLOWED_STATUS_TRANSITIONS, STATUS_LABELS } from "../../../shared/orderDomain";
 import { getAdminOrders, getDashboardMetrics, getDb, getOrderWithDetails, getStoreSettings } from "../../db";
 import { adminProcedure, restaurantProcedure, restaurantProcedureFor, router } from "../../_core/trpc";
-import { storagePut } from "../../storage";
+import { keyFromPublicUrl, storageGetSignedUrl, storagePut } from "../../storage";
 import { orderInfoSchema, startOfDay, statusSchema } from "./shared";
 
 export const adminOrdersRouter = router({
@@ -59,6 +59,18 @@ export const adminOrdersRouter = router({
     }).where(eq(orders.id, input.orderId));
     await db.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "ORDER_INFO_UPDATED", details: JSON.stringify({ fields: ["cliente", "telefone", "observações", "endereço", "rota"] }), createdAt: now });
     return getOrderWithDetails(input.orderId);
+  }),
+  // Anexo de pedido (ex.: comprovante de pagamento) fica num prefixo do
+  // bucket que NÃO é público (ver server/storage.ts) — a URL salva em
+  // orders.adminAttachmentUrl não é mais acessível direto, só via link
+  // assinado de curta duração, gerado sob demanda pra quem já está
+  // autenticado como admin.
+  getAttachmentSignedUrl: adminProcedure.input(z.object({ orderId: z.number().int().positive() })).query(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+    const [current] = await db.select().from(orders).where(eq(orders.id, input.orderId)).limit(1);
+    if (!current?.adminAttachmentUrl) return null;
+    return { url: await storageGetSignedUrl(keyFromPublicUrl(current.adminAttachmentUrl)) };
   }),
   uploadOrderAttachment: adminProcedure.input(z.object({ orderId: z.number().int().positive(), filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(3_000_000) })).mutation(async ({ input, ctx }) => {
     const db = await getDb();
