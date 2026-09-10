@@ -48,6 +48,29 @@ export function LockedFeatureFullPage({ requiredPlanName }: { requiredPlanName?:
   );
 }
 
+/** Versão compacta de LockedFeatureFullPage — pra quando o recurso bloqueado é só uma SEÇÃO de uma página maior (ex.: Promoções dentro de Cardápio), não a tela inteira. */
+export function LockedFeatureCard({ title, requiredPlanName }: { title: string; requiredPlanName?: string | null }) {
+  const [, setLocation] = useLocation();
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-8 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3e2d8] text-[#b4472d]">
+          <Lock className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="font-display text-lg font-bold">{title}</h3>
+          <p className="text-sm text-muted-foreground">
+            {requiredPlanName ? <>Disponível a partir do plano <strong>{requiredPlanName}</strong>.</> : "Não disponível no seu plano atual."}
+          </p>
+        </div>
+      </div>
+      <Button onClick={() => setLocation("/admin/plano")} className="shrink-0 rounded-xl bg-[#b4472d] hover:bg-[#943722]">
+        <Sparkles className="mr-1.5 h-4 w-4" />Fazer upgrade
+      </Button>
+    </div>
+  );
+}
+
 /** Modal explicando o bloqueio, aberto quando uma ação concreta esbarra num FEATURE_LOCKED. */
 export function UpgradeNudgeModal({ open, onOpenChange, info }: { open: boolean; onOpenChange: (open: boolean) => void; info: FeatureLockedInfo | null }) {
   const [, setLocation] = useLocation();

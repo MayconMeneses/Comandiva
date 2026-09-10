@@ -3,8 +3,15 @@ import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { addonGroups, addonOptions, products, promotionAddonDefaults, promotionProducts, promotions } from "../../../drizzle/schema";
 import { attachPromotionProducts, getDb } from "../../db";
-import { restaurantProcedureFor, router } from "../../_core/trpc";
+import { requireFeature, restaurantProcedureFor, router } from "../../_core/trpc";
 import { optionalId, sortOrder } from "./shared";
+
+// Gerenciar promoções agora é um recurso de plano (ver auditoria/pedido do
+// dono, 2026-09-10) — mesmo padrão de server/routers/admin/tables.ts: o
+// gate de plano some por cima do de permissão de staff, os dois precisam
+// passar. O que os CLIENTES veem publicamente (catalog.promotions) não é
+// afetado por este gate — só a capacidade do admin de criar/editar.
+const promotionsProcedure = restaurantProcedureFor("promotions").use(requireFeature("promotions"));
 
 const promotionObjectiveSchema = z.enum([
   "INCREASE_SALES",
@@ -19,13 +26,13 @@ const promotionObjectiveSchema = z.enum([
 ]);
 
 export const adminPromotionsRouter = router({
-  promotions: restaurantProcedureFor("promotions").query(async () => {
+  promotions: promotionsProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
     const rows = await db.select().from(promotions).orderBy(promotions.sortOrder);
     return attachPromotionProducts(rows);
   }),
-  savePromotion: restaurantProcedureFor("promotions").input(z.object({
+  savePromotion: promotionsProcedure.input(z.object({
     id: optionalId,
     title: z.string().min(2).max(140),
     description: z.string().max(500).optional(),
@@ -95,7 +102,7 @@ export const adminPromotionsRouter = router({
     }
     return { id: promotionId };
   }),
-  deletePromotion: restaurantProcedureFor("promotions").input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+  deletePromotion: promotionsProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
     await db.delete(promotionProducts).where(eq(promotionProducts.promotionId, input.id));

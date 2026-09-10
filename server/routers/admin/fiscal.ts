@@ -13,7 +13,7 @@ import {
   saveFiscalCscToken,
   saveFiscalTaxCategory,
 } from "../../db";
-import { adminOnlyProcedure, router } from "../../_core/trpc";
+import { adminOnlyProcedure, requireFeature, router } from "../../_core/trpc";
 import { optionalId } from "./shared";
 
 const cnpjSchema = z.string().transform(value => value.replace(/\D/g, "")).refine(isValidCnpjChecksum, "CNPJ inválido — confira os números digitados.");
@@ -22,11 +22,14 @@ const cnpjSchema = z.string().transform(value => value.replace(/\D/g, "")).refin
 // — CNPJ, regime tributário e o certificado digital ficam fora do Modo
 // Suporte e de qualquer permissão de staff, mesmo raciocínio de
 // paymentGateways.ts: assumir a identidade fiscal do restaurante é tão
-// sensível quanto assumir o Pix dele.
-export const adminFiscalRouter = router({
-  fiscalSettings: adminOnlyProcedure.query(() => getFiscalSettings()),
+// sensível quanto assumir o Pix dele. Também agora um recurso de plano (ver
+// pedido do dono, 2026-09-10) — mesmo padrão de admin/promotions.ts.
+const fiscalProcedure = adminOnlyProcedure.use(requireFeature("fiscal"));
 
-  saveFiscalCadastral: adminOnlyProcedure
+export const adminFiscalRouter = router({
+  fiscalSettings: fiscalProcedure.query(() => getFiscalSettings()),
+
+  saveFiscalCadastral: fiscalProcedure
     .input(
       z.object({
         cnpj: cnpjSchema,
@@ -42,7 +45,7 @@ export const adminFiscalRouter = router({
       return { success: true };
     }),
 
-  uploadFiscalCertificate: adminOnlyProcedure
+  uploadFiscalCertificate: fiscalProcedure
     .input(z.object({ filename: z.string().min(1).max(255), dataBase64: z.string().min(8), password: z.string().min(1).max(255) }))
     .mutation(async ({ input }) => {
       const bytes = Buffer.from(input.dataBase64, "base64");
@@ -55,7 +58,7 @@ export const adminFiscalRouter = router({
       return { success: true };
     }),
 
-  saveFiscalCscToken: adminOnlyProcedure.input(z.object({ cscId: z.string().trim().min(1).max(40), token: z.string().trim().min(1).max(255) })).mutation(async ({ input }) => {
+  saveFiscalCscToken: fiscalProcedure.input(z.object({ cscId: z.string().trim().min(1).max(40), token: z.string().trim().min(1).max(255) })).mutation(async ({ input }) => {
     try {
       await saveFiscalCscToken(input);
     } catch (error) {
@@ -67,12 +70,12 @@ export const adminFiscalRouter = router({
   // Categorias fiscais (CST/CSOSN/alíquota por grupo de produtos) — estrutura
   // pronta pra receber os números reais do contador, sem calcular/inventar
   // nada aqui. Ver drizzle/schema.ts::fiscalTaxCategories.
-  fiscalTaxCategories: adminOnlyProcedure.query(async () => ({
+  fiscalTaxCategories: fiscalProcedure.query(async () => ({
     categories: await listFiscalTaxCategories(),
     productsWithoutCategory: await countProductsWithoutFiscalCategory(),
   })),
 
-  saveFiscalTaxCategory: adminOnlyProcedure
+  saveFiscalTaxCategory: fiscalProcedure
     .input(
       z.object({
         id: optionalId,
@@ -90,7 +93,7 @@ export const adminFiscalRouter = router({
     )
     .mutation(({ input }) => saveFiscalTaxCategory(input)),
 
-  deactivateFiscalTaxCategory: adminOnlyProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => deactivateFiscalTaxCategory(input.id)),
+  deactivateFiscalTaxCategory: fiscalProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => deactivateFiscalTaxCategory(input.id)),
 
-  assignProductFiscalCategory: adminOnlyProcedure.input(z.object({ productId: z.number().int().positive(), fiscalCategoryId: z.number().int().positive().nullable() })).mutation(({ input }) => assignProductFiscalCategory(input.productId, input.fiscalCategoryId)),
+  assignProductFiscalCategory: fiscalProcedure.input(z.object({ productId: z.number().int().positive(), fiscalCategoryId: z.number().int().positive().nullable() })).mutation(({ input }) => assignProductFiscalCategory(input.productId, input.fiscalCategoryId)),
 });

@@ -50,8 +50,8 @@ const menuItems: { icon: typeof LayoutDashboard; label: string; path: string; fe
   // Pix/gateways de pagamento ficam de fora do Modo Suporte mesmo com
   // escrita liberada no resto — ver server/_core/trpc.ts::adminOnlyProcedure.
   { icon: Wallet, label: "Conta", path: "/admin/conta", hiddenInSupportMode: true, adminOnly: true },
-  { icon: FileText, label: "Fiscal", path: "/admin/fiscal", hiddenInSupportMode: true, adminOnly: true },
-  { icon: CalendarDays, label: "Eventos", path: "/admin/eventos", areas: ["events"] },
+  { icon: FileText, label: "Fiscal", path: "/admin/fiscal", featureId: "fiscal", hiddenInSupportMode: true, adminOnly: true },
+  { icon: CalendarDays, label: "Eventos", path: "/admin/eventos", featureId: "events", areas: ["events"] },
   { icon: Settings2, label: "Configuração", path: "/admin/configuracao", adminOnly: true },
   { icon: CreditCard, label: "Meu plano", path: "/admin/plano", adminOnly: true },
 ];

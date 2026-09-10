@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const mocks = vi.hoisted(() => ({ getDb: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getDb: vi.fn(), getOrCreateLicenseCache: vi.fn().mockResolvedValue(null) }));
 
 vi.mock("./db", () => mocks);
 

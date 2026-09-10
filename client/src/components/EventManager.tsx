@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { compressImageFile } from "@/lib/imageCompression";
 import { trpc } from "@/lib/trpc";
+import { Loading } from "@/components/admin/shared";
+import { LockedFeatureFullPage } from "@/components/admin/LockedFeature";
 import { CalendarDays, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -15,7 +17,9 @@ const blank: Form = { title: "", description: "", imageUrl: "", eventDate: "", a
 
 export default function EventManager() {
   const utils = trpc.useUtils();
-  const query = trpc.admin.events.useQuery();
+  const snapshot = trpc.admin.mySnapshot.useQuery();
+  const locked = snapshot.data?.lockedFeatures.events;
+  const query = trpc.admin.events.useQuery(undefined, { enabled: !snapshot.isLoading && !locked });
   const [editing, setEditing] = useState<Event | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<Form>(blank);
@@ -46,6 +50,9 @@ export default function EventManager() {
     event.preventDefault();
     save.mutate({ id: editing?.id, title: form.title, description: form.description || undefined, imageUrl: form.imageUrl || undefined, eventDate: form.eventDate || undefined, active: form.active, sortOrder: editing?.sortOrder ?? events.length + 1 });
   };
+
+  if (snapshot.isLoading) return <Loading />;
+  if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} />;
 
   return (
     <>

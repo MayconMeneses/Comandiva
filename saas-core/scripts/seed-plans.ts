@@ -21,11 +21,21 @@ const FEATURES: { featureId: string; name: string; category: string; minPlan: Pl
   { featureId: "call_waiter", name: "Chamar garçom", category: "mesas", minPlan: "profissional" },
   { featureId: "request_bill", name: "Solicitar conta", category: "mesas", minPlan: "profissional" },
   { featureId: "extra_rounds", name: "Rodadas extras", category: "mesas", minPlan: "profissional" },
+  // Promoções: ferramenta de crescimento/marketing — natural do plano em
+  // que o dono já está pensando em mesas/salão, junto com o resto do
+  // cluster "operação mais madura" (ver pedido do dono, 2026-09-10).
+  { featureId: "promotions", name: "Promoções e combos", category: "marketing", minPlan: "profissional" },
+  // Eventos e Fiscal ficam reservados pro topo: eventos é uma ferramenta de
+  // marketing mais avançada (divulgação), fiscal é conformidade tributária
+  // de verdade (CNPJ, certificado digital, NFC-e) — ambos fazem sentido
+  // como diferenciais do plano mais completo, não como parte do básico.
+  { featureId: "events", name: "Eventos", category: "marketing", minPlan: "premium" },
+  { featureId: "fiscal", name: "Nota fiscal (NFC-e)", category: "fiscal", minPlan: "premium" },
 ];
 
 const LIMITS: Record<PlanKey, Record<"users" | "tables", number | null>> = {
   essencial: { users: 3, tables: 0 },
-  profissional: { users: 10, tables: 30 },
+  profissional: { users: 8, tables: 12 },
   premium: { users: null, tables: null },
 };
 
