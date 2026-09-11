@@ -14,12 +14,14 @@ export async function createMercadoPagoCheckout(params: {
   orderPublicCode: string;
   items: PreferenceItem[];
   backUrl: string;
+  idempotencyKey: string;
 }) {
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${params.accessToken}`,
+      "X-Idempotency-Key": params.idempotencyKey,
     },
     body: JSON.stringify({
       items: params.items.map(item => ({
@@ -54,6 +56,66 @@ export async function createMercadoPagoCheckout(params: {
 }
 
 /**
+ * Cria uma cobrança Pix de verdade via Payments API (`POST /v1/payments` com
+ * `payment_method_id: "pix"`) — documentação oficial:
+ * https://www.mercadopago.com.br/developers/en/docs/checkout-api-payments/integration-configuration/integrate-pix
+ * Diferente do Checkout Pro (preferências), aqui o Mercado Pago exige CPF do
+ * pagador (`payer.identification`) mesmo pra Pix. `X-Idempotency-Key` evita
+ * que um retry de rede (nosso ou do cliente HTTP) gere uma segunda cobrança
+ * pro mesmo pedido — vem pronta de quem chama (params.idempotencyKey), não é
+ * construída aqui: precisa variar por TENTATIVA de cobrança, não só por
+ * pedido, senão regenerar um Pix depois que o anterior venceu devolve a
+ * cobrança antiga (já vencida de verdade) em vez de criar uma nova.
+ */
+export async function createMercadoPagoPixPayment(params: {
+  accessToken: string;
+  orderPublicCode: string;
+  amountCents: number;
+  description: string;
+  payerEmail: string;
+  payerCpf: string;
+  notificationUrl: string;
+  expiresInMinutes: number;
+  idempotencyKey: string;
+}) {
+  const expiresAt = Date.now() + params.expiresInMinutes * 60_000;
+  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.accessToken}`,
+      "X-Idempotency-Key": params.idempotencyKey,
+    },
+    body: JSON.stringify({
+      transaction_amount: Math.round(params.amountCents) / 100,
+      payment_method_id: "pix",
+      description: params.description,
+      external_reference: params.orderPublicCode,
+      notification_url: params.notificationUrl,
+      date_of_expiration: new Date(expiresAt).toISOString(),
+      payer: {
+        email: params.payerEmail,
+        identification: { type: "CPF", number: params.payerCpf.replace(/\D/g, "") },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Mercado Pago recusou a criação do Pix (status ${response.status}): ${detail.slice(0, 300)}`);
+  }
+
+  const data = (await response.json()) as {
+    id: number;
+    status: string;
+    point_of_interaction?: { transaction_data?: { qr_code?: string } };
+  };
+  const pixCopyPaste = data.point_of_interaction?.transaction_data?.qr_code;
+  if (!pixCopyPaste) throw new Error("Mercado Pago não retornou o código Pix.");
+  return { providerPaymentId: String(data.id), status: data.status, pixCopyPaste, expiresAt };
+}
+
+/**
  * Consulta o status real de um pagamento direto na API do Mercado Pago.
  * Nunca confiamos no corpo do webhook (qualquer um pode fazer POST nele) —
  * usamos só o ID que ele avisa e buscamos a verdade na própria API, com
@@ -67,8 +129,8 @@ export async function getMercadoPagoPayment(accessToken: string, paymentId: stri
   if (!response.ok) {
     throw new Error(`Mercado Pago recusou a consulta do pagamento (status ${response.status}).`);
   }
-  const data = (await response.json()) as { id: number; status: string; external_reference?: string | null };
-  return { id: data.id, status: data.status, externalReference: data.external_reference ?? null };
+  const data = (await response.json()) as { id: number; status: string; status_detail?: string | null; external_reference?: string | null };
+  return { id: data.id, status: data.status, statusDetail: data.status_detail ?? null, externalReference: data.external_reference ?? null };
 }
 
 /**

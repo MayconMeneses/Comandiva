@@ -1,13 +1,16 @@
 import type { Express, Request, Response } from "express";
-import { eq } from "drizzle-orm";
-import { paymentGateways } from "../../drizzle/schema";
-import { markOrderPaymentFailedByPublicCode, markOrderPaymentPaidByPublicCode } from "../db";
-import { getMercadoPagoPayment, verifyMercadoPagoWebhookSignature } from "./mercadoPago";
-import { getDb } from "../db";
-import { checkRateLimit } from "./rateLimit";
+import { checkRateLimit } from "../../_core/rateLimit";
+import { getActiveGatewayAndProvider } from "../paymentService";
+import { applyPaymentStatusNotification } from "../paymentService";
 
 let warnedMissingSecretOnce = false;
 
+/**
+ * Cobre tanto cartão (Checkout Pro) quanto Pix (Payments API) — os dois são
+ * notificações `type: "payment"` do Mercado Pago, então é o mesmo endpoint;
+ * o que muda é só o `payment_method_id` dentro do pagamento consultado, que
+ * não precisamos nem olhar aqui (o mapeamento de status é o mesmo pros dois).
+ */
 export async function handleMercadoPagoWebhook(req: Request, res: Response) {
   // Responder rápido é parte do contrato do Mercado Pago (eles reenviam se
   // demorar ou se a resposta não for 2xx) — nosso processamento aqui é só
@@ -32,14 +35,8 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
       return;
     }
 
-    const db = await getDb();
-    if (!db) {
-      res.status(200).json({ received: true });
-      return;
-    }
-
-    const [gateway] = await db.select().from(paymentGateways).where(eq(paymentGateways.provider, "MERCADO_PAGO")).limit(1);
-    if (!gateway?.active || !gateway.apiKey) {
+    const { gateway, provider } = await getActiveGatewayAndProvider().catch(() => ({ gateway: null, provider: null }));
+    if (!gateway || !provider) {
       res.status(200).json({ received: true });
       return;
     }
@@ -52,7 +49,7 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
     // ignora sem chamar a API, mas ainda responde 200 (contrato do MP).
     if (gateway.secretKey) {
       const dataIdForSignature = (req.query["data.id"] as string | undefined) ?? paymentId;
-      const validSignature = verifyMercadoPagoWebhookSignature({
+      const validSignature = provider.verifyWebhookSignature({
         xSignature: req.header("x-signature"),
         xRequestId: req.header("x-request-id"),
         dataId: dataIdForSignature ? String(dataIdForSignature) : undefined,
@@ -75,25 +72,26 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
 
     // Nunca confiamos no corpo do webhook em si — qualquer um pode fazer POST
     // aqui. A verdade vem da própria API do Mercado Pago, consultada com
-    // nosso access token. Se o ID não existir ou não bater com um pedido
-    // nosso (external_reference), simplesmente não acontece nada.
-    const payment = await getMercadoPagoPayment(gateway.apiKey, String(paymentId));
-    if (payment.externalReference) {
-      if (payment.status === "approved") {
-        await markOrderPaymentPaidByPublicCode(payment.externalReference, String(payment.id));
-      } else if (payment.status === "rejected" || payment.status === "cancelled") {
-        await markOrderPaymentFailedByPublicCode(payment.externalReference, String(payment.id), "CANCELLED");
-      } else if (payment.status === "refunded" || payment.status === "charged_back") {
-        await markOrderPaymentFailedByPublicCode(payment.externalReference, String(payment.id), "REFUNDED");
-      }
-      // "pending"/"in_process" não exigem ação — o pagamento já nasce
-      // PENDING (default do schema) e continua assim até o MP notificar de novo.
-    }
+    // nosso access token.
+    const payment = await provider.getPaymentStatus(gateway.apiKey, String(paymentId));
+    await applyPaymentStatusNotification({
+      gatewayName: gateway.provider,
+      providerPaymentId: payment.providerPaymentId,
+      status: payment.status,
+      externalReference: payment.externalReference,
+    });
+    res.status(200).json({ received: true });
   } catch (error) {
+    // Diferente dos retornos 200 acima (casos esperados: tipo desconhecido,
+    // sem gateway ativo, assinatura inválida), chegar aqui é uma falha real
+    // (erro transitório de banco, API do Mercado Pago fora do ar etc.) — e
+    // responder 200 mesmo assim faria o Mercado Pago achar que processou
+    // com sucesso e nunca mais reenviar essa notificação, perdendo a
+    // confirmação de pagamento pra sempre. Responder erro aciona o reenvio
+    // automático deles (contrato documentado do Mercado Pago para webhooks).
     console.error("[webhook] Falha ao processar notificação do Mercado Pago:", error);
+    res.status(500).json({ received: false });
   }
-
-  res.status(200).json({ received: true });
 }
 
 export function registerMercadoPagoWebhook(app: Express) {

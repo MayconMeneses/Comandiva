@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { sendOwnerAlert } from "./alerts";
-import { registerMercadoPagoWebhook } from "./mercadoPagoWebhook";
+import { registerMercadoPagoWebhook } from "../payments/webhooks/mercadopago";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
 import { ensureStorageReady } from "../storage";

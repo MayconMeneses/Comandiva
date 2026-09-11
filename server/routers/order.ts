@@ -11,7 +11,6 @@ import {
   orders,
   orderStatusHistory,
   payments,
-  paymentGateways,
   printJobs,
   products,
   promotionProducts,
@@ -19,8 +18,8 @@ import {
 } from "../../drizzle/schema";
 import { addressMatchesRoute, calculateCartTotal, formatCurrency, normalizePhone } from "../../shared/orderDomain";
 import { CURRENT_TERMS_VERSION } from "../../shared/legal";
-import { getActiveOrdersByPhone, getDb, getOrderByTrackingCode, getStoreSettings, saveCustomerProfile, type DbOrTx } from "../db";
-import { createMercadoPagoCheckout } from "../_core/mercadoPago";
+import { getActiveOrdersByPhone, getDb, getOrderByTrackingCode, getStoreSettings, saveCustomerProfile, savePixChargeForOrder, type DbOrTx } from "../db";
+import { getActiveGatewayAndProvider, PaymentConfigError } from "../payments/paymentService";
 import { ENV } from "../_core/env";
 import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
@@ -330,11 +329,24 @@ export const orderRouter = router({
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas consultas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     const orders = await getActiveOrdersByPhone(input.phone);
     if (!orders.length) throw new TRPCError({ code: "NOT_FOUND", message: "Não encontramos pedido em andamento para este telefone." });
-    return orders.map(order => ({
+    return orders.map(order => {
+      // Só entrega o Pix pra tela enquanto ele ainda faz sentido pro cliente
+      // pagar — pagamento já resolvido (de um jeito ou de outro) ou cobrança
+      // vencida não deve mais mostrar um QR/copia-e-cola morto.
+      let pixCharge: { pixCopyPaste: string; expiresAt: number } | null = null;
+      if (order.paymentMethod === "PIX" && order.payment?.status === "PENDING" && order.payment.metadata) {
+        try {
+          const saved = JSON.parse(order.payment.metadata) as { pixCopyPaste?: string; pixExpiresAt?: number };
+          if (saved.pixCopyPaste && saved.pixExpiresAt && saved.pixExpiresAt > Date.now()) pixCharge = { pixCopyPaste: saved.pixCopyPaste, expiresAt: saved.pixExpiresAt };
+        } catch { /* metadata sem Pix (ex.: {changeForCents} de outro método) — sem problema, só não mostra */ }
+      }
+      return {
       id: order.id,
       status: order.status,
       fulfillmentType: order.fulfillmentType,
       paymentMethod: order.paymentMethod,
+      paymentStatus: order.payment?.status ?? null,
+      pixCharge,
       totalCents: order.totalCents,
       createdAt: order.createdAt,
       items: order.items.map(item => ({
@@ -348,13 +360,28 @@ export const orderRouter = router({
         status: entry.status,
         createdAt: entry.createdAt,
       })),
-    }));
+      };
+    });
+  }),
+  // Checkout dinâmico (ver PaymentProvider.getCapabilities): nunca mostrar ao
+  // cliente uma forma de pagamento que o gateway configurado não sabe
+  // processar. `onlineCardAvailable` continua existindo só pra não quebrar
+  // nenhum outro lugar que ainda leia especificamente essa query (FAQ.tsx).
+  paymentCapabilities: publicProcedure.query(async () => {
+    try {
+      const { provider } = await getActiveGatewayAndProvider();
+      return provider.getCapabilities();
+    } catch {
+      return { pix: false, card: false, installments: false };
+    }
   }),
   onlineCardAvailable: publicProcedure.query(async () => {
-    const db = await getDb();
-    if (!db) return { available: false };
-    const [gateway] = await db.select({ provider: paymentGateways.provider }).from(paymentGateways).where(eq(paymentGateways.active, true)).limit(1);
-    return { available: Boolean(gateway) && gateway.provider === "MERCADO_PAGO" };
+    try {
+      const { provider } = await getActiveGatewayAndProvider();
+      return { available: provider.getCapabilities().card };
+    } catch {
+      return { available: false };
+    }
   }),
   // Exige publicCode + customerPhone (mesmo padrão de getOrderByTrackingCode,
   // usado em order.track) — nunca aceitar um orderId numérico cru vindo do
@@ -364,10 +391,15 @@ export const orderRouter = router({
   createCardPayment: publicProcedure.input(z.object({ publicCode: z.string().min(4).max(16), customerPhone: phoneSchema })).mutation(async ({ input, ctx }) => {
     const limit = checkRateLimit(`order-card-payment:${ctx.req.ip}`);
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas tentativas de pagamento. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
-    const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
     const order = await getOrderByTrackingCode(input.publicCode, input.customerPhone);
     if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+    // Pedido cancelado pela equipe não pode gerar cobrança nova: o guard de
+    // markOrderPaymentPaidByPublicCode (server/db/orders.ts) nunca reverte
+    // payments.status de volta de CANCELLED pra PAID de propósito (proteção
+    // contra reviver um estorno) — então, se deixássemos chegar até aqui e o
+    // cliente pagasse de verdade, o pagamento aconteceria no Mercado Pago mas
+    // o sistema nunca conseguiria refletir isso.
+    if (order.status === "CANCELLED") throw new TRPCError({ code: "BAD_REQUEST", message: "Este pedido foi cancelado e não aceita mais pagamento." });
     // Sem isso, chamar esse endpoint duas vezes pro mesmo pedido (ex.: usuário
     // volta pra página de acompanhamento e aciona de novo) gera uma segunda
     // preferência de cobrança inteira pro mesmo pedido já pago — como
@@ -375,26 +407,95 @@ export const orderRouter = router({
     // sobrescreveria o providerReference do primeiro sem deixar rastro de
     // que duas cobranças reais aconteceram.
     if (order.payment?.status === "PAID") throw new TRPCError({ code: "BAD_REQUEST", message: "Este pedido já está pago." });
-    const [gateway] = await db.select().from(paymentGateways).where(eq(paymentGateways.active, true)).limit(1);
-    if (!gateway || !gateway.apiKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Pagamento online não está configurado no momento. Escolha outra forma de pagamento." });
-    if (gateway.provider !== "MERCADO_PAGO") throw new TRPCError({ code: "BAD_REQUEST", message: `A cobrança automática para ${gateway.label} ainda não foi conectada. Escolha outra forma de pagamento ou fale com o restaurante.` });
     try {
-      const redirectUrl = await createMercadoPagoCheckout({
+      const { gateway, provider } = await getActiveGatewayAndProvider();
+      if (!provider.createCardCheckout) throw new PaymentConfigError(`A cobrança automática para ${gateway.label} ainda não foi conectada. Escolha outra forma de pagamento ou fale com o restaurante.`);
+      const { redirectUrl } = await provider.createCardCheckout({
         accessToken: gateway.apiKey,
         orderPublicCode: order.publicCode,
-        // Item único com o total JÁ com frete somado e desconto de combo
-        // aplicado — nunca reconstruir a partir de order.items[].lineTotalCents,
-        // que é sempre o preço CHEIO por item, calculado antes do desconto de
-        // combo existir e sem o frete (ver server/db/orders.ts). Cobrar a
-        // soma dos itens direto sub-cobrava o frete em toda entrega e
-        // sobre-cobrava o cliente em todo pedido com promoção ativa.
-        items: [{ title: `Pedido ${order.publicCode}`, quantity: 1, unit_price: order.totalCents / 100 }],
+        // Total JÁ com frete somado e desconto de combo aplicado — nunca
+        // reconstruir a partir de order.items[].lineTotalCents, que é sempre
+        // o preço CHEIO por item, calculado antes do desconto de combo
+        // existir e sem o frete (ver server/db/orders.ts). Cobrar a soma dos
+        // itens direto sub-cobrava o frete em toda entrega e sobre-cobrava o
+        // cliente em todo pedido com promoção ativa.
+        amountCents: order.totalCents,
+        description: `Pedido ${order.publicCode}`,
         backUrl: `${ENV.frontendUrl}/acompanhar?pedido=${order.publicCode}`,
+        notificationUrl: `${ENV.backendUrl.replace(/\/+$/, "")}/api/webhooks/mercadopago`,
+        // Muda a cada NOVA tentativa de cobrança pro mesmo pedido (baseada no
+        // providerReference anterior, se houver) — protege contra duplo
+        // clique/retry de rede dentro da MESMA tentativa (mesma chave) sem
+        // travar uma tentativa genuinamente nova mais tarde.
+        idempotencyKey: `card:${order.publicCode}:${order.payment?.providerReference ?? "initial"}`,
       });
       return { redirectUrl };
     } catch (error) {
+      if (error instanceof PaymentConfigError) throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
       console.error(`[createCardPayment] Falha ao criar pagamento para o pedido ${order.publicCode}:`, error);
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível iniciar o pagamento online. Tente novamente ou escolha outra forma de pagamento." });
+    }
+  }),
+  // Pix automático via API do gateway — substitui o antigo Pix por imagem
+  // estática (ver CLAUDE.md/histórico): o cliente nunca digita nada, o QR
+  // Code e o "copia e cola" vêm prontos do gateway, específicos daquela
+  // cobrança (rastreável, com expiração real). CPF é exigido aqui, não no
+  // checkout geral (order.create) — só a criação da cobrança em si precisa
+  // dele, mesmo padrão de createCardPayment (endpoint separado, chamado
+  // depois do pedido já existir).
+  createPixPayment: publicProcedure.input(z.object({
+    publicCode: z.string().min(4).max(16),
+    customerPhone: phoneSchema,
+    payerCpf: z.string().regex(/^\d{11}$/, "Informe um CPF válido (11 dígitos)."),
+  })).mutation(async ({ input, ctx }) => {
+    const limit = checkRateLimit(`order-pix-payment:${ctx.req.ip}`);
+    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas tentativas de pagamento. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
+    const order = await getOrderByTrackingCode(input.publicCode, input.customerPhone);
+    if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+    // Ver o mesmo guard/comentário em createCardPayment logo acima.
+    if (order.status === "CANCELLED") throw new TRPCError({ code: "BAD_REQUEST", message: "Este pedido foi cancelado e não aceita mais pagamento." });
+    if (order.payment?.status === "PAID") throw new TRPCError({ code: "BAD_REQUEST", message: "Este pedido já está pago." });
+    // Já existe uma cobrança Pix em aberto pra este pedido (cliente atualizou
+    // a página, ou clicou de novo) — devolve a mesma em vez de gerar outra:
+    // o índice único em payments.orderId de qualquer forma impede duas
+    // cobranças reais em paralelo, mas reaproveitar evita criar uma segunda
+    // cobrança "órfã" direto no Mercado Pago que nunca seria reconciliada.
+    if (order.payment?.method === "PIX" && order.payment.providerReference && order.payment.metadata) {
+      const saved = JSON.parse(order.payment.metadata) as { pixCopyPaste?: string; pixExpiresAt?: number };
+      if (saved.pixCopyPaste && saved.pixExpiresAt && saved.pixExpiresAt > Date.now()) {
+        return { pixCopyPaste: saved.pixCopyPaste, expiresAt: saved.pixExpiresAt };
+      }
+    }
+    try {
+      const { gateway, provider } = await getActiveGatewayAndProvider();
+      if (!provider.createPixPayment) throw new PaymentConfigError(`Pix automático não está disponível para ${gateway.label} no momento. Escolha outra forma de pagamento.`);
+      const charge = await provider.createPixPayment({
+        accessToken: gateway.apiKey,
+        orderPublicCode: order.publicCode,
+        amountCents: order.totalCents,
+        description: `Pedido ${order.publicCode}`,
+        // Mercado Pago exige e-mail do pagador mesmo pra Pix — o checkout não
+        // coleta e-mail do cliente (fricção desnecessária pra delivery), então
+        // usamos um endereço sintético ligado ao telefone só pra satisfazer o
+        // campo obrigatório da API; nunca é usado pra contato de verdade.
+        payerEmail: `${order.customerPhone}@pix.cliente.mmsystemcreator.com.br`,
+        payerCpf: input.payerCpf,
+        notificationUrl: `${ENV.backendUrl.replace(/\/+$/, "")}/api/webhooks/mercadopago`,
+        expiresInMinutes: 30,
+        // Muda a cada NOVA cobrança Pix pro mesmo pedido (baseada no
+        // providerReference anterior, se houver) — essencial aqui: sem isso,
+        // regenerar um Pix depois que o anterior venceu reenviava a MESMA
+        // chave de idempotência de antes, e o Mercado Pago devolvia de volta
+        // o Pix antigo (já vencido de verdade) só que com um prazo novo
+        // calculado aqui, deixando o cliente com um QR "válido" impagável.
+        idempotencyKey: `pix:${order.publicCode}:${order.payment?.providerReference ?? "initial"}`,
+      });
+      await savePixChargeForOrder(order.id, { providerReference: charge.providerPaymentId, pixCopyPaste: charge.pixCopyPaste, expiresAt: charge.expiresAt });
+      return { pixCopyPaste: charge.pixCopyPaste, expiresAt: charge.expiresAt };
+    } catch (error) {
+      if (error instanceof PaymentConfigError) throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+      console.error(`[createPixPayment] Falha ao criar Pix para o pedido ${order.publicCode}:`, error);
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível gerar o Pix agora. Tente novamente ou escolha outra forma de pagamento." });
     }
   }),
 });

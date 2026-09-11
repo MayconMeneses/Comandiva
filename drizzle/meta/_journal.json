@@ -253,6 +253,13 @@
       "when": 1788806000000,
       "tag": "0035_perf_created_at_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "5",
+      "when": 1789120006592,
+      "tag": "0036_slow_bishop",
+      "breakpoints": true
     }
   ]
 }

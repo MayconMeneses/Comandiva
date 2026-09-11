@@ -580,9 +580,14 @@ export const payments = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     orderId: int("orderId").notNull(),
     method: mysqlEnum("method", ["PIX", "CASH", "CARD_ON_DELIVERY", "CARD_ONLINE"]).notNull(),
-    status: mysqlEnum("status", ["PENDING", "PAID", "CANCELLED", "REFUNDED"]).notNull().default("PENDING"),
+    status: mysqlEnum("status", ["PENDING", "PAID", "CANCELLED", "REFUNDED", "EXPIRED"]).notNull().default("PENDING"),
     amountCents: int("amountCents").notNull(),
     providerReference: varchar("providerReference", { length: 160 }),
+    // JSON — hoje guarda {changeForCents} (troco em dinheiro) e, pra Pix
+    // automático, {pixCopyPaste, pixExpiresAt}. Só o "copia e cola" é
+    // persistido (o QR visual é gerado no cliente a partir dele) — evita
+    // guardar uma imagem base64 grande no banco por uma cobrança que expira
+    // em minutos/horas.
     metadata: text("metadata"),
     paidAt: bigint("paidAt", { mode: "number", unsigned: true }),
     // Registro manual de estorno (ver server/routers/admin/orders.ts::markPaymentRefunded) —
@@ -610,6 +615,27 @@ export const paymentGateways = mysqlTable(
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
   },
+);
+
+/**
+ * Idempotência real de webhook de pagamento — sem tabela dedicada, a mesma
+ * notificação reenviada (comportamento normal do Mercado Pago, at-least-once)
+ * podia ser processada mais de uma vez. `eventKey` inclui o status
+ * (ex.: "payment:123456:approved"), não só o id do evento — o mesmo
+ * providerPaymentId gera notificações diferentes em cada mudança de status
+ * (pending→approved→refunded), e sem o status na chave a segunda notificação
+ * de verdade seria descartada como duplicata da primeira (mesmo padrão já
+ * usado em saas-core/server/db/webhookEvents.ts).
+ */
+export const webhookEvents = mysqlTable(
+  "webhook_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    gateway: varchar("gateway", { length: 40 }).notNull(),
+    eventKey: varchar("eventKey", { length: 200 }).notNull(),
+    createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
+  },
+  table => [uniqueIndex("webhook_events_gateway_key_unique").on(table.gateway, table.eventKey)],
 );
 
 export const events = mysqlTable(

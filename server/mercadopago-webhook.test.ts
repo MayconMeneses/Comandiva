@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getMercadoPagoPayment: vi.fn(),
   markOrderPaymentPaidByPublicCode: vi.fn(),
   markOrderPaymentFailedByPublicCode: vi.fn(),
+  markWebhookEventOnce: vi.fn(),
 }));
 
 vi.mock("./db", () => ({ getDb: mocks.getDb, markOrderPaymentPaidByPublicCode: mocks.markOrderPaymentPaidByPublicCode, markOrderPaymentFailedByPublicCode: mocks.markOrderPaymentFailedByPublicCode }));
@@ -15,8 +16,12 @@ vi.mock("./_core/mercadoPago", async importOriginal => ({
   ...(await importOriginal<typeof import("./_core/mercadoPago")>()),
   getMercadoPagoPayment: mocks.getMercadoPagoPayment,
 }));
+// Idempotência real bate no banco (INSERT) — mockada aqui pra não precisar de
+// um banco de verdade só pra testar o roteamento de status; o comportamento
+// dela em si (unique constraint) é coberto separadamente.
+vi.mock("./payments/repositories/webhookEvents", () => ({ markWebhookEventOnce: mocks.markWebhookEventOnce }));
 
-import { handleMercadoPagoWebhook } from "./_core/mercadoPagoWebhook";
+import { handleMercadoPagoWebhook } from "./payments/webhooks/mercadopago";
 
 function fakeReqRes(body: unknown, options: { ip?: string; query?: Record<string, string>; headers?: Record<string, string> } = {}) {
   let statusCode: number | undefined;
@@ -36,9 +41,22 @@ function fakeReqRes(body: unknown, options: { ip?: string; query?: Record<string
 }
 
 const SECRET = "test-webhook-secret";
+const ACTIVE_MP_GATEWAY = { active: true, provider: "MERCADO_PAGO", label: "Mercado Pago", apiKey: "token", secretKey: null as string | null };
 
 function sign(manifest: string, secret = SECRET) {
   return createHmac("sha256", secret).update(manifest).digest("hex");
+}
+
+// applyPaymentStatusNotification agora roda dentro de db.transaction(...) —
+// como markWebhookEventOnce/markOrderPaymentPaidByPublicCode/
+// markOrderPaymentFailedByPublicCode já são mockados individualmente (não
+// leem o `tx` de verdade), o fake `transaction` só precisa invocar o
+// callback com qualquer objeto.
+function gatewayDb(gateway: typeof ACTIVE_MP_GATEWAY | null) {
+  return {
+    select: () => ({ from: () => ({ where: () => ({ limit: async () => (gateway ? [gateway] : []) }) }) }),
+    transaction: async (fn: (tx: unknown) => Promise<void>) => fn({}),
+  };
 }
 
 describe("verifyMercadoPagoWebhookSignature", () => {
@@ -71,11 +89,14 @@ describe("verifyMercadoPagoWebhookSignature", () => {
 describe("webhook do Mercado Pago", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.markWebhookEventOnce.mockResolvedValue({ alreadyProcessed: false });
+    mocks.markOrderPaymentPaidByPublicCode.mockResolvedValue({ found: true, orderId: 1 });
+    mocks.markOrderPaymentFailedByPublicCode.mockResolvedValue({ found: true, orderId: 1 });
   });
 
   it("com chave secreta configurada: assinatura válida processa o pagamento normalmente", async () => {
-    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: SECRET }] }) }) }) });
-    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", externalReference: "PX-ABC1234" });
+    mocks.getDb.mockResolvedValue(gatewayDb({ ...ACTIVE_MP_GATEWAY, secretKey: SECRET }));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", statusDetail: null, externalReference: "PX-ABC1234" });
     const ts = "1700000000000";
     const v1 = sign(`id:123;request-id:req-1;ts:${ts};`);
     const { req, res, getResult } = fakeReqRes(
@@ -85,11 +106,11 @@ describe("webhook do Mercado Pago", () => {
     await handleMercadoPagoWebhook(req, res);
     expect(getResult().statusCode).toBe(200);
     expect(mocks.getMercadoPagoPayment).toHaveBeenCalledWith("token", "123");
-    expect(mocks.markOrderPaymentPaidByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123");
+    expect(mocks.markOrderPaymentPaidByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", expect.anything());
   });
 
   it("com chave secreta configurada: assinatura inválida ignora sem consultar a API", async () => {
-    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: SECRET }] }) }) }) });
+    mocks.getDb.mockResolvedValue(gatewayDb({ ...ACTIVE_MP_GATEWAY, secretKey: SECRET }));
     const { req, res, getResult } = fakeReqRes(
       { type: "payment", data: { id: "123" } },
       { query: { "data.id": "123" }, headers: { "x-signature": "ts=1700000000000,v1=deadbeef", "x-request-id": "req-1" } },
@@ -100,8 +121,8 @@ describe("webhook do Mercado Pago", () => {
   });
 
   it("sem chave secreta configurada: continua processando como antes (comportamento existente preservado)", async () => {
-    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: null }] }) }) }) });
-    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", externalReference: "PX-ABC1234" });
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", statusDetail: null, externalReference: "PX-ABC1234" });
     const { req, res, getResult } = fakeReqRes({ type: "payment", data: { id: "123" } });
     await handleMercadoPagoWebhook(req, res);
     expect(getResult().statusCode).toBe(200);
@@ -128,28 +149,63 @@ describe("webhook do Mercado Pago", () => {
   });
 
   it("pagamento recusado (rejected) marca o pagamento do pedido como CANCELLED", async () => {
-    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: null }] }) }) }) });
-    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "rejected", externalReference: "PX-ABC1234" });
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "rejected", statusDetail: null, externalReference: "PX-ABC1234" });
     const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
     await handleMercadoPagoWebhook(req, res);
-    expect(mocks.markOrderPaymentFailedByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", "CANCELLED");
+    expect(mocks.markOrderPaymentFailedByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", "CANCELLED", expect.anything());
     expect(mocks.markOrderPaymentPaidByPublicCode).not.toHaveBeenCalled();
   });
 
   it("pagamento estornado (refunded) marca o pagamento do pedido como REFUNDED", async () => {
-    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: null }] }) }) }) });
-    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "refunded", externalReference: "PX-ABC1234" });
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "refunded", statusDetail: null, externalReference: "PX-ABC1234" });
     const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
     await handleMercadoPagoWebhook(req, res);
-    expect(mocks.markOrderPaymentFailedByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", "REFUNDED");
+    expect(mocks.markOrderPaymentFailedByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", "REFUNDED", expect.anything());
+  });
+
+  it("Pix vencido sem pagamento (cancelled + status_detail=expired) marca o pagamento como EXPIRED, não CANCELLED", async () => {
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "cancelled", statusDetail: "expired", externalReference: "PX-ABC1234" });
+    const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await handleMercadoPagoWebhook(req, res);
+    expect(mocks.markOrderPaymentFailedByPublicCode).toHaveBeenCalledWith("PX-ABC1234", "123", "EXPIRED", expect.anything());
   });
 
   it("pagamento pendente/em processo não muda nada (nem paga, nem falha)", async () => {
-    mocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ active: true, apiKey: "token", secretKey: null }] }) }) }) });
-    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "in_process", externalReference: "PX-ABC1234" });
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "in_process", statusDetail: null, externalReference: "PX-ABC1234" });
     const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
     await handleMercadoPagoWebhook(req, res);
     expect(mocks.markOrderPaymentFailedByPublicCode).not.toHaveBeenCalled();
     expect(mocks.markOrderPaymentPaidByPublicCode).not.toHaveBeenCalled();
+  });
+
+  it("idempotência: a mesma notificação (mesmo id + mesmo status) processada de novo não aplica o efeito uma segunda vez", async () => {
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", statusDetail: null, externalReference: "PX-ABC1234" });
+    mocks.markWebhookEventOnce.mockResolvedValue({ alreadyProcessed: true });
+    const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await handleMercadoPagoWebhook(req, res);
+    expect(mocks.markOrderPaymentPaidByPublicCode).not.toHaveBeenCalled();
+  });
+
+  it("falha real ao aplicar o efeito (ex.: erro transitório de banco) responde erro, não 200 — pro Mercado Pago reenviar depois", async () => {
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", statusDetail: null, externalReference: "PX-ABC1234" });
+    mocks.markOrderPaymentPaidByPublicCode.mockRejectedValue(new Error("conexão com o banco perdida"));
+    const { req, res, getResult } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await handleMercadoPagoWebhook(req, res);
+    expect(getResult().statusCode).not.toBe(200);
+  });
+
+  it("notificação referenciando um pedido inexistente não trava nem finge sucesso", async () => {
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", statusDetail: null, externalReference: "PX-NAO-EXISTE" });
+    mocks.markOrderPaymentPaidByPublicCode.mockResolvedValue({ found: false });
+    const { req, res, getResult } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await expect(handleMercadoPagoWebhook(req, res)).resolves.not.toThrow();
+    expect(getResult().statusCode).toBe(200);
   });
 });

@@ -11,8 +11,12 @@ describe("gestão de rotas de entrega", () => {
     expect(routesSource).toContain("Disponível no checkout");
   });
 
-  it("exige a escolha da rota quando houver áreas ativas cadastradas", () => {
-    expect(checkoutSource).toContain("Selecione sua área de entrega");
-    expect(checkoutSource).toContain("Selecione a rota de entrega para continuar.");
+  it("detecta a rota automaticamente pelo bairro digitado, com escolha manual só como reserva", () => {
+    expect(checkoutSource).toContain("findBestRouteMatch");
+    expect(checkoutSource).toContain("Informe um bairro que reconheçamos (ou escolha sua área na lista) para continuar.");
+  });
+
+  it("continua exigindo uma rota resolvida (automática ou manual) antes de finalizar, quando houver áreas ativas", () => {
+    expect(checkoutSource).toContain("routeRequired && !deliveryRouteId");
   });
 });

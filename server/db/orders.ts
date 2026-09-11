@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, inArray, lte, notInArray, sql } from "drizzle-orm";
 import { orderChangeLogs, orderItemAddons, orderItems, orders, orderStatusHistory, payments, restaurantTables, tableSessions } from "../../drizzle/schema";
-import { getDb } from "./client";
+import { endOfMonthInRestaurantTimezone, startOfDayInRestaurantTimezone, startOfMonthInRestaurantTimezone } from "../../shared/orderDomain";
+import { getDb, type DbOrTx } from "./client";
 
 type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 type OrderRow = typeof orders.$inferSelect;
@@ -51,8 +52,13 @@ async function attachOrderDetails(db: Db, orderRows: OrderRow[]) {
       changeLogs: changeLogs.filter(row => row.orderId === order.id),
       // Estado financeiro completo (payments.status inclui CANCELLED/REFUNDED,
       // que orders.paymentStatus — só PENDING/PAID — nunca representou).
+      // method/providerReference/metadata entraram pro fluxo de Pix
+      // automático (createPixPayment reaproveita a cobrança salva em
+      // metadata em vez de gerar outra) — sempre dentro de um pedido já
+      // autorizado por publicCode+telefone (getOrderByTrackingCode) ou pelo
+      // admin, nunca exposto por um endpoint que não confirme o dono antes.
       payment: payment
-        ? { status: payment.status, amountCents: payment.amountCents, paidAt: payment.paidAt, refundedAt: payment.refundedAt, refundReason: payment.refundReason }
+        ? { status: payment.status, method: payment.method, amountCents: payment.amountCents, paidAt: payment.paidAt, refundedAt: payment.refundedAt, refundReason: payment.refundReason, providerReference: payment.providerReference, metadata: payment.metadata }
         : null,
     };
   });
@@ -144,6 +150,59 @@ export async function getDashboardMetrics(startAt: number, endAt: number) {
   return { metrics, byStatus: statusRows };
 }
 
+export type RevenueTrendGranularity = "week" | "month" | "year";
+
+const dayLabel = (ms: number) => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Fortaleza", weekday: "short", day: "2-digit" }).format(ms);
+const monthLabel = (ms: number) => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Fortaleza", month: "short", year: "2-digit" }).format(ms);
+
+/**
+ * Série pro gráfico de movimento em Relatórios: "semana" = 7 barras diárias,
+ * "mês" = 30 barras diárias, "ano" = 12 barras mensais — sempre terminando
+ * agora, sempre no fuso do restaurante (mesmo raciocínio de
+ * getDashboardMetrics/V-25). Junto, compara o total do período atual com o
+ * total do período imediatamente anterior de mesma duração (semana passada,
+ * mês passado, ano passado), pra responder "como foi o movimento comparado".
+ * Só conta pedido COMPLETED — pedido cancelado/pendente não é faturamento.
+ */
+export async function getRevenueTrend(granularity: RevenueTrendGranularity, now: number = Date.now()) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const nowDate = new Date(now);
+
+  const buckets = granularity === "year"
+    ? Array.from({ length: 12 }, (_, i) => {
+        const monthsAgo = 11 - i;
+        const startAt = startOfMonthInRestaurantTimezone(monthsAgo, nowDate);
+        return { label: monthLabel(startAt), startAt, endAt: endOfMonthInRestaurantTimezone(monthsAgo, nowDate) };
+      })
+    : Array.from({ length: granularity === "week" ? 7 : 30 }, (_, i) => {
+        const daysAgo = (granularity === "week" ? 6 : 29) - i;
+        const startAt = startOfDayInRestaurantTimezone(daysAgo, nowDate);
+        return { label: dayLabel(startAt), startAt, endAt: startOfDayInRestaurantTimezone(daysAgo - 1, nowDate) - 1 };
+      });
+
+  const overallStart = buckets[0]!.startAt;
+  const overallEnd = buckets[buckets.length - 1]!.endAt;
+  const previousStart = overallStart - (overallEnd - overallStart + 1);
+  const previousEnd = overallStart - 1;
+
+  const [currentRows, previousRows] = await Promise.all([
+    db.select({ createdAt: orders.createdAt, totalCents: orders.totalCents }).from(orders).where(and(eq(orders.status, "COMPLETED"), gte(orders.createdAt, overallStart), lte(orders.createdAt, overallEnd))),
+    db.select({ totalCents: orders.totalCents }).from(orders).where(and(eq(orders.status, "COMPLETED"), gte(orders.createdAt, previousStart), lte(orders.createdAt, previousEnd))),
+  ]);
+
+  const series = buckets.map(bucket => {
+    const bucketOrders = currentRows.filter(row => row.createdAt >= bucket.startAt && row.createdAt <= bucket.endAt);
+    return { label: bucket.label, revenueCents: bucketOrders.reduce((sum, row) => sum + row.totalCents, 0), orderCount: bucketOrders.length };
+  });
+
+  const currentTotalCents = currentRows.reduce((sum, row) => sum + row.totalCents, 0);
+  const previousTotalCents = previousRows.reduce((sum, row) => sum + row.totalCents, 0);
+  const changePct = previousTotalCents > 0 ? ((currentTotalCents - previousTotalCents) / previousTotalCents) * 100 : null;
+
+  return { granularity, series, currentTotalCents, previousTotalCents, changePct, currentOrderCount: currentRows.length, previousOrderCount: previousRows.length };
+}
+
 /**
  * Confirma o pagamento de um pedido a partir do webhook do Mercado Pago —
  * só marca o status financeiro (payments.status / orders.paymentStatus) como
@@ -151,8 +210,8 @@ export async function getDashboardMetrics(startAt: number, endAt: number) {
  * aceitando/preparando o pedido normalmente, só passa a ver que já foi pago.
  * Idempotente — chamar de novo com o mesmo pagamento não causa efeito colateral.
  */
-export async function markOrderPaymentPaidByPublicCode(publicCode: string, providerReference: string) {
-  const db = await getDb();
+export async function markOrderPaymentPaidByPublicCode(publicCode: string, providerReference: string, dbOrTx?: DbOrTx) {
+  const db = dbOrTx ?? (await getDb());
   if (!db) throw new Error("Banco de dados indisponível");
   const [order] = await db.select().from(orders).where(eq(orders.publicCode, publicCode)).limit(1);
   if (!order) return { found: false as const };
@@ -176,14 +235,39 @@ export async function markOrderPaymentPaidByPublicCode(publicCode: string, provi
 // nunca muda aqui — o enum dele é só PENDING/PAID (nunca representou "falhou"
 // nem "estornado"); quem carrega esse detalhe é sempre payments.status, já
 // exposto em getOrderWithDetails/attachOrderDetails.
-export async function markOrderPaymentFailedByPublicCode(publicCode: string, providerReference: string, status: "CANCELLED" | "REFUNDED") {
-  const db = await getDb();
+export async function markOrderPaymentFailedByPublicCode(publicCode: string, providerReference: string, status: "CANCELLED" | "REFUNDED" | "EXPIRED", dbOrTx?: DbOrTx) {
+  const db = dbOrTx ?? (await getDb());
   if (!db) throw new Error("Banco de dados indisponível");
   const [order] = await db.select().from(orders).where(eq(orders.publicCode, publicCode)).limit(1);
   if (!order) return { found: false as const };
   const now = Date.now();
   const updates: Partial<typeof payments.$inferInsert> = { status, providerReference, updatedAt: now };
   if (status === "REFUNDED") updates.refundedAt = now;
-  await db.update(payments).set(updates).where(eq(payments.orderId, order.id));
+  // Mesma proteção de markOrderPaymentPaidByPublicCode, na direção oposta:
+  // uma notificação tardia de expiração/cancelamento (ex.: o Pix A venceu,
+  // o cliente gerou um Pix B novo pro mesmo pedido e pagou, e só DEPOIS
+  // chega a notificação de vencimento de A) nunca pode reverter um pagamento
+  // já CONFIRMADO (PAID) ou já ESTORNADO (REFUNDED) — sem isso, o pedido
+  // aparecia como não pago mesmo tendo sido pago de verdade.
+  await db.update(payments).set(updates).where(and(eq(payments.orderId, order.id), notInArray(payments.status, ["PAID", "REFUNDED"])));
   return { found: true as const, orderId: order.id };
+}
+
+/**
+ * Grava a cobrança Pix recém-criada no gateway — só o "copia e cola" e a
+ * expiração vão pro banco (dentro de `metadata`, reaproveitando o mesmo
+ * campo que já guarda `{changeForCents}` pra CASH); o QR visual é desenhado
+ * no cliente a partir do copia-e-cola, não guardamos a imagem base64 do
+ * gateway (evita inchar o banco com uma imagem que só serve por algumas
+ * horas). `providerReference` é o id do pagamento no gateway — mesmo campo
+ * que createCardPayment/webhook já usam pra cartão.
+ */
+export async function savePixChargeForOrder(orderId: number, charge: { providerReference: string; pixCopyPaste: string; expiresAt: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  await db.update(payments).set({
+    providerReference: charge.providerReference,
+    metadata: JSON.stringify({ pixCopyPaste: charge.pixCopyPaste, pixExpiresAt: charge.expiresAt }),
+    updatedAt: Date.now(),
+  }).where(eq(payments.orderId, orderId));
 }
