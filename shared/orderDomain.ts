@@ -105,6 +105,20 @@ export function endOfDayInRestaurantTimezone(isoDate: string): number {
   return start + 24 * 60 * 60 * 1000 - 1;
 }
 
+/** Início do mês (dia 1, 00:00:00.000) no fuso do restaurante, N meses atrás — mesmo raciocínio de startOfDayInRestaurantTimezone, mas por mês (usado pela visão "ano" do gráfico de movimento). */
+export function startOfMonthInRestaurantTimezone(monthsAgo = 0, now: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: RESTAURANT_TIMEZONE, year: "numeric", month: "2-digit" }).formatToParts(now);
+  const year = Number(parts.find(part => part.type === "year")!.value);
+  const month = Number(parts.find(part => part.type === "month")!.value);
+  const targetMonthAsUtc = Date.UTC(year, month - 1 - monthsAgo, 1, 0, 0, 0);
+  return targetMonthAsUtc - restaurantUtcOffsetMinutes(targetMonthAsUtc) * 60_000;
+}
+
+/** Fim do mês no fuso do restaurante, N meses atrás (o instante anterior ao início do mês seguinte). */
+export function endOfMonthInRestaurantTimezone(monthsAgo = 0, now: Date = new Date()): number {
+  return startOfMonthInRestaurantTimezone(monthsAgo - 1, now) - 1;
+}
+
 function timeToMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
@@ -176,4 +190,80 @@ export function addressMatchesRoute(
   );
   if (!words.length) return true;
   return words.some(word => routeText.includes(word));
+}
+
+function levenshtein(a: string, b: string): number {
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const dp: number[][] = Array.from({ length: rows }, () => new Array(cols).fill(0));
+  for (let i = 0; i < rows; i++) dp[i]![0] = i;
+  for (let j = 0; j < cols; j++) dp[0]![j] = j;
+  for (let i = 1; i < rows; i++) {
+    for (let j = 1; j < cols; j++) {
+      dp[i]![j] = a[i - 1] === b[j - 1] ? dp[i - 1]![j - 1]! : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
+    }
+  }
+  return dp[rows - 1]![cols - 1]!;
+}
+
+/** Quebra "Centro, Aldeota e ruas próximas" (nome da rota + observações de cobertura) em termos individuais comparáveis — cada um mantém a forma original (pra reaproveitar a grafia do admin numa correção) junto da forma normalizada (pra comparar). */
+function routeMatchTerms<T extends { name: string; coverageNotes?: string | null }>(route: T): { original: string; normalized: string }[] {
+  const phrases = `${route.name}, ${route.coverageNotes ?? ""}`.split(/[,;.\n]+/).map(phrase => phrase.trim()).filter(Boolean);
+  const terms: { original: string; normalized: string }[] = [];
+  for (const phrase of phrases) {
+    terms.push({ original: phrase, normalized: normalizeText(phrase) });
+    for (const word of phrase.split(/\s+/)) {
+      if (word.length > 2) terms.push({ original: word, normalized: normalizeText(word) });
+    }
+  }
+  return terms;
+}
+
+export type RouteMatch<T> =
+  | { confidence: "exact"; route: T }
+  | { confidence: "fuzzy"; route: T; correctedNeighborhood: string }
+  | { confidence: "ambiguous"; candidates: T[] }
+  | { confidence: "none" };
+
+/**
+ * Acha automaticamente a rota de entrega certa a partir do bairro (e cidade)
+ * digitados pelo cliente, sem exigir que ele escolha a rota manualmente. Duas
+ * fases: (1) inclusão exata — mesma regra que já vale no servidor
+ * (`addressMatchesRoute`), então um match aqui sempre passa na validação de
+ * lá também; (2) se nada bateu exato, distância de edição (Levenshtein)
+ * termo a termo contra o nome da rota e cada bairro citado nas observações de
+ * cobertura, tolerando erro de digitação — quando acha, devolve também o
+ * texto corrigido do bairro (precisa ser aplicado no endereço enviado, senão
+ * a checagem de inclusão do servidor rejeita o pedido por causa do erro de
+ * digitação que ainda estaria lá).
+ */
+export function findBestRouteMatch<T extends { name: string; coverageNotes?: string | null }>(
+  routes: T[],
+  typedNeighborhood: string,
+  typedCity?: string,
+): RouteMatch<T> {
+  const neighborhood = (typedNeighborhood ?? "").trim();
+  if (normalizeText(neighborhood).length < 3) return { confidence: "none" };
+
+  const exact = routes.filter(route => addressMatchesRoute(route, { neighborhood, city: typedCity }));
+  if (exact.length === 1) return { confidence: "exact", route: exact[0]! };
+  if (exact.length > 1) return { confidence: "ambiguous", candidates: exact };
+
+  const typedWords = normalizeText(neighborhood).split(/\s+/).filter(word => word.length > 2);
+  if (!typedWords.length) return { confidence: "none" };
+
+  let best: { route: T; distance: number; term: string } | null = null;
+  for (const route of routes) {
+    for (const term of routeMatchTerms(route)) {
+      if (term.normalized.length < 3) continue;
+      const maxAllowed = term.normalized.length <= 4 ? 1 : 2;
+      for (const typedWord of typedWords) {
+        const distance = levenshtein(typedWord, term.normalized);
+        if (distance <= maxAllowed && (!best || distance < best.distance)) best = { route, distance, term: term.original };
+      }
+    }
+  }
+  if (!best) return { confidence: "none" };
+  const correctedNeighborhood = best.term.replace(/\b\p{L}/gu, letter => letter.toUpperCase());
+  return { confidence: "fuzzy", route: best.route, correctedNeighborhood };
 }

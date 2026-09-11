@@ -3,7 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from "../../../drizzle/schema";
 import { ALLOWED_STATUS_TRANSITIONS, STATUS_LABELS, endOfDayInRestaurantTimezone, startOfDayInRestaurantTimezone } from "../../../shared/orderDomain";
-import { getAdminOrders, getDashboardMetrics, getDb, getOrderWithDetails, getStoreSettings } from "../../db";
+import { getAdminOrders, getDashboardMetrics, getDb, getOrderWithDetails, getRevenueTrend, getStoreSettings } from "../../db";
 import { adminProcedure, restaurantProcedure, restaurantProcedureFor, router } from "../../_core/trpc";
 import { assertRealImageMatchesDeclaredType, keyFromPublicUrl, storageGetSignedUrl, storagePut } from "../../storage";
 import { orderInfoSchema, statusSchema } from "./shared";
@@ -33,6 +33,7 @@ export const adminOrdersRouter = router({
     const settings = rawSettings ? (({ pixKey: _pixKey, pixQrCodeUrl: _pixQrCodeUrl, ...safeSettings }) => safeSettings)(rawSettings) : rawSettings;
     return { ...metrics, recentOrders, settings, startAt, endAt };
   }),
+  revenueTrend: restaurantProcedureFor("reports").input(z.object({ granularity: z.enum(["week", "month", "year"]).default("week") })).query(async ({ input }) => getRevenueTrend(input.granularity)),
   orders: restaurantProcedure.input(z.object({ status: statusSchema.optional(), startAt: z.number().optional(), endAt: z.number().optional(), limit: z.number().int().min(1).max(100).default(50) }).optional()).query(async ({ input }) =>
     getAdminOrders({ limit: input?.limit ?? 50, status: input?.status, startAt: input?.startAt, endAt: input?.endAt }),
   ),
