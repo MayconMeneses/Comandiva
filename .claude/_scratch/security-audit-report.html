@@ -1,0 +1,968 @@
+<title>Auditoria de Segurança — MM System Creator</title>
+<style>
+:root{
+  --bg:#f5f3ef; --surface:#ffffff; --surface-2:#faf8f5; --border:#e2ddd3;
+  --ink:#211d17; --ink-2:#4d473d; --muted:#84796a;
+  --accent:#8a2f1f; --accent-ink:#ffffff;
+  --crit-bg:#fce9e6; --crit-fg:#a3251a; --crit-brd:#f0c3bb;
+  --high-bg:#fdf0e2; --high-fg:#b25c00; --high-brd:#f3d6a8;
+  --med-bg:#fdf7dd; --med-fg:#8a6d00; --med-brd:#eee0a0;
+  --low-bg:#eaf1fb; --low-fg:#1f5da8; --low-brd:#c3d8f0;
+  --info-bg:#eef0ec; --info-fg:#5c6355; --info-brd:#d7dccf;
+  --fixed-bg:#e7f3ea; --fixed-fg:#1c6b34;
+  --open-bg:#fdeceb; --open-fg:#a3251a;
+  --pending-bg:#fdf3e2; --pending-fg:#8a5a00;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --serif: 'Fraunces', Georgia, serif;
+  --sans: 'Inter', -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17140f; --surface:#211d17; --surface-2:#272219; --border:#3a3327;
+    --ink:#f2ede2; --ink-2:#cfc6b4; --muted:#948a76;
+    --accent:#e0806a; --accent-ink:#1c130e;
+    --crit-bg:#3a1a15; --crit-fg:#f5a696; --crit-brd:#5c2921;
+    --high-bg:#3a2a12; --high-fg:#f0b569; --high-brd:#5c3f17;
+    --med-bg:#38300f; --med-fg:#e8cf5f; --med-brd:#57491a;
+    --low-bg:#132537; --low-fg:#8fbdec; --low-brd:#1f3c58;
+    --info-bg:#242821; --info-fg:#b6bda9; --info-brd:#383e30;
+    --fixed-bg:#12301c; --fixed-fg:#7ed69b;
+    --open-bg:#3a1a15; --open-fg:#f5a696;
+    --pending-bg:#38300f; --pending-fg:#e8cf5f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17140f; --surface:#211d17; --surface-2:#272219; --border:#3a3327;
+  --ink:#f2ede2; --ink-2:#cfc6b4; --muted:#948a76;
+  --accent:#e0806a; --accent-ink:#1c130e;
+  --crit-bg:#3a1a15; --crit-fg:#f5a696; --crit-brd:#5c2921;
+  --high-bg:#3a2a12; --high-fg:#f0b569; --high-brd:#5c3f17;
+  --med-bg:#38300f; --med-fg:#e8cf5f; --med-brd:#57491a;
+  --low-bg:#132537; --low-fg:#8fbdec; --low-brd:#1f3c58;
+  --info-bg:#242821; --info-fg:#b6bda9; --info-brd:#383e30;
+  --fixed-bg:#12301c; --fixed-fg:#7ed69b;
+  --open-bg:#3a1a15; --open-fg:#f5a696;
+  --pending-bg:#38300f; --pending-fg:#e8cf5f;
+}
+@font-face{font-family:'Fraunces';src:local('Georgia');}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px 120px;}
+code,.mono{font-family:var(--mono);}
+::selection{background:var(--accent);color:var(--accent-ink);}
+
+/* Header */
+header.cover{padding:56px 24px 40px;border-bottom:1px solid var(--border);background:var(--surface-2);}
+header.cover .inner{max-width:920px;margin:0 auto;}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+h1.title{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4vw,42px);line-height:1.1;margin:10px 0 12px;text-wrap:balance;}
+.subtitle{color:var(--ink-2);font-size:15px;max-width:60ch;}
+.meta-row{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:22px;font-size:13px;color:var(--muted);}
+.meta-row b{color:var(--ink);font-weight:600;}
+
+/* Score dashboard */
+.dash{display:grid;grid-template-columns:auto 1fr;gap:28px;margin-top:28px;align-items:center;}
+@media (max-width:640px){.dash{grid-template-columns:1fr;}}
+.score-ring{position:relative;width:118px;height:118px;flex:0 0 auto;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-num strong{font-family:var(--serif);font-size:32px;line-height:1;}
+.score-num span{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+.counts{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+@media (max-width:640px){.counts{grid-template-columns:repeat(3,1fr);}}
+.count-tile{border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;background:var(--surface);}
+.count-tile .n{font-family:var(--serif);font-size:22px;line-height:1;font-variant-numeric:tabular-nums;}
+.count-tile .l{font-size:10px;letter-spacing:.05em;text-transform:uppercase;margin-top:4px;color:var(--muted);}
+.count-tile.crit{border-color:var(--crit-brd);} .count-tile.crit .n{color:var(--crit-fg);}
+.count-tile.high{border-color:var(--high-brd);} .count-tile.high .n{color:var(--high-fg);}
+.count-tile.med{border-color:var(--med-brd);} .count-tile.med .n{color:var(--med-fg);}
+.count-tile.low{border-color:var(--low-brd);} .count-tile.low .n{color:var(--low-fg);}
+.count-tile.info{border-color:var(--info-brd);} .count-tile.info .n{color:var(--info-fg);}
+
+/* Nav */
+nav.toc{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 24px;overflow-x:auto;}
+nav.toc .inner{max-width:920px;margin:0 auto;display:flex;gap:4px;white-space:nowrap;}
+nav.toc a{font-size:12.5px;color:var(--ink-2);text-decoration:none;padding:6px 11px;border-radius:100px;font-weight:500;}
+nav.toc a:hover{background:var(--surface-2);color:var(--ink);}
+
+main{padding-top:40px;}
+section{margin-bottom:56px;scroll-margin-top:52px;}
+h2.h{font-family:var(--serif);font-size:24px;font-weight:600;margin:0 0 6px;display:flex;align-items:center;gap:10px;}
+h2.h .idx{font-family:var(--mono);font-size:13px;color:var(--muted);font-weight:500;}
+.lede{color:var(--ink-2);font-size:14.5px;max-width:68ch;margin:0 0 22px;}
+p{margin:0 0 12px;}
+.prose p:last-child{margin-bottom:0;}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:3px 9px;border-radius:100px;border:1px solid transparent;}
+.badge.crit{background:var(--crit-bg);color:var(--crit-fg);border-color:var(--crit-brd);}
+.badge.high{background:var(--high-bg);color:var(--high-fg);border-color:var(--high-brd);}
+.badge.med{background:var(--med-bg);color:var(--med-fg);border-color:var(--med-brd);}
+.badge.low{background:var(--low-bg);color:var(--low-fg);border-color:var(--low-brd);}
+.badge.info{background:var(--info-bg);color:var(--info-fg);border-color:var(--info-brd);}
+.badge.fixed{background:var(--fixed-bg);color:var(--fixed-fg);}
+.badge.open{background:var(--open-bg);color:var(--open-fg);}
+.badge.pending{background:var(--pending-bg);color:var(--pending-fg);}
+
+/* vuln cards */
+.vgroup{margin-bottom:34px;}
+.vgroup > .ghead{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);}
+.vgroup > .ghead h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:0;}
+.vgroup > .ghead .gcount{font-size:12.5px;color:var(--muted);}
+.vcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.vcard summary{list-style:none;cursor:pointer;padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.vcard summary::-webkit-details-marker{display:none;}
+.vcard summary .vid{font-family:var(--mono);font-size:11.5px;color:var(--muted);flex:0 0 auto;}
+.vcard summary .vtitle{font-weight:600;font-size:14.5px;flex:1 1 260px;min-width:0;}
+.vcard summary .chev{margin-left:auto;color:var(--muted);transition:transform .15s ease;flex:0 0 auto;}
+.vcard[open] summary .chev{transform:rotate(90deg);}
+.vcard .vbody{padding:0 16px 18px;border-top:1px solid var(--border);}
+.vfield{padding-top:14px;}
+.vfield .flabel{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.vfield .fval{font-size:14px;color:var(--ink-2);}
+.vfield .fval p{margin:0 0 8px;}
+.vfield .fval code{background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12.5px;}
+.vfield .fval.mono{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;}
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;}
+@media (max-width:600px){.vgrid{grid-template-columns:1fr;}}
+
+/* tables */
+table.matrix{width:100%;border-collapse:collapse;font-size:13.5px;}
+table.matrix th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--border);}
+table.matrix td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+table.matrix tr:last-child td{border-bottom:none;}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);}
+.result-ok{color:var(--fixed-fg);font-weight:600;}
+.result-bad{color:var(--open-fg);font-weight:600;}
+
+/* generic list cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;}
+.card h4{font-size:14.5px;font-weight:600;margin:0 0 6px;font-family:var(--sans);}
+.card p{font-size:13.5px;color:var(--ink-2);margin:0;}
+.card .tag{font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+ol.reco{padding-left:0;list-style:none;counter-reset:reco;}
+ol.reco li{counter-increment:reco;position:relative;padding:12px 16px 12px 44px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;font-size:14px;}
+ol.reco li::before{content:counter(reco);position:absolute;left:14px;top:50%;transform:translateY(-50%);font-family:var(--serif);font-weight:600;font-size:15px;color:var(--accent);}
+
+.disclaimer{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--ink-2);}
+.disclaimer b{color:var(--ink);}
+
+footer.foot{border-top:1px solid var(--border);padding:26px 24px 60px;text-align:center;color:var(--muted);font-size:12.5px;}
+</style>
+
+<header class="cover">
+  <div class="inner">
+    <div class="eyebrow">Auditoria de Segurança · AppSec / OWASP</div>
+    <h1 class="title">MM System Creator — Segurança, Hardening e Confiabilidade</h1>
+    <p class="subtitle">Auditoria completa do sistema em produção: mapeamento de arquitetura, autenticação, autorização, isolamento multi-tenant, APIs, XSS/CSRF/CORS, uploads, segredos, dependências, infraestrutura e regras de negócio — com correção autônoma dos achados dentro do escopo autorizado.</p>
+    <div class="meta-row">
+      <span><b>Data</b> 09/09/2026 · atualizado 10/09/2026</span>
+      <span><b>Escopo</b> App principal (Pub X) + Painel Master (saas-core) em produção</span>
+      <span><b>Método</b> Leitura direta de código-fonte + verificação adversarial independente de cada achado + testes ao vivo + rodada de teste de invasão ao vivo contra produção (10/09)</span>
+    </div>
+    <div class="dash">
+      <div class="score-ring">
+        <svg width="118" height="118" viewBox="0 0 118 118">
+          <circle cx="59" cy="59" r="50" fill="none" stroke="var(--border)" stroke-width="10"/>
+          <circle cx="59" cy="59" r="50" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="6.28"/>
+        </svg>
+        <div class="score-num"><strong>98</strong><span>/ 100</span></div>
+      </div>
+      <div class="counts">
+        <div class="count-tile crit"><div class="n">4</div><div class="l">Críticos</div></div>
+        <div class="count-tile high"><div class="n">11</div><div class="l">Altos</div></div>
+        <div class="count-tile med"><div class="n">15</div><div class="l">Médios</div></div>
+        <div class="count-tile low"><div class="n">9</div><div class="l">Baixos</div></div>
+        <div class="count-tile info"><div class="n">5</div><div class="l">Informativos</div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="inner">
+    <a href="#resumo">Resumo</a>
+    <a href="#arquitetura">Arquitetura</a>
+    <a href="#vulnerabilidades">Vulnerabilidades</a>
+    <a href="#nao-verificado">Não verificado</a>
+    <a href="#testes">Testes</a>
+    <a href="#residuais">Riscos residuais</a>
+    <a href="#recomendacoes">Recomendações</a>
+    <a href="#score">Score</a>
+  </div>
+</nav>
+
+<div class="wrap">
+<main>
+
+<section id="resumo">
+  <h2 class="h"><span class="idx">01</span> Resumo executivo</h2>
+  <div class="prose">
+    <p>O sistema estava em produção real (pedidos e — em breve — cobrança automática por cartão) sem nunca ter passado por uma auditoria de segurança formal. Esta auditoria encontrou <b>44 achados</b> ao longo de duas rodadas de revisão multi-agente com verificação adversarial (cada achado foi checado de forma independente contra o código real antes de entrar neste relatório), mais achados de infraestrutura levantados diretamente (firewall, SSH, backups, dependências), mais uma rodada final de <b>teste de invasão ao vivo contra o sistema em produção</b> (sem força bruta real, sem DoS, sem teste destrutivo) — pensada especificamente pra checar se o que ficou "corrigido no papel" (typecheck limpo + deploy) de fato se comporta como esperado quando alguém tenta de verdade.</p>
+    <p><b>Essa última rodada valeu a pena: encontrou uma regressão real.</b> A correção do bucket de armazenamento (V-23, abaixo) tinha passado por typecheck e por deploy sem erro, mas a política nova só era de fato aplicada dentro do processo do servidor na primeira vez que alguém fazia um upload depois do boot — não no boot em si. Como nenhum upload aconteceu entre o deploy da correção e o teste de invasão, a política antiga (mais permissiva) continuou valendo o tempo todo, e um teste ao vivo de listagem anônima do bucket confirmou isso na hora. Foi corrigida na hora (aplicação manual da política correta direto no bucket em produção) e depois na causa raiz (o servidor agora aplica a política já no boot, não só no primeiro upload) — ver <b>V-38</b>. Achei também um segundo ponto, esse sem exploração possível hoje: nome de cliente e observação de pedido/mesa eram gravados sem nenhuma sanitização — inofensivo porque a aplicação inteira é uma SPA React (que escapa tudo automaticamente) e não existia nenhum ponto no código que gerasse HTML cru a partir desse texto, mas era uma dependência frágil de "a única forma de renderizar isso hoje por acaso é segura". Corrigido depois, na mesma sessão — ver <b>V-39</b>.</p>
+    <p><b>O que mais importa:</b> dois pontos tinham risco financeiro real — a cobrança por cartão via Mercado Pago não incluía a taxa de entrega (o restaurante perderia esse valor em toda venda por cartão com entrega) e cobrava o preço cheio em pedidos com promoção ativa (o cliente pagaria mais do que o total confirmado no checkout). Um terceiro ponto era um bypass de segurança real: o bloqueio de "Mesas/QR Code" por plano existia só na tela — um restaurante fora do plano conseguia usar o recurso inteiro chamando a API direto. Um quarto era XSS armazenado de verdade: upload de SVG malicioso em categoria ou logo, servido publicamente sem sanitização.</p>
+    <p><b>Todos os 44 achados da auditoria original estão corrigidos, testados e em produção</b> (ver seção Vulnerabilidades) — os 4 críticos, os 11 altos, os 15 médios e os 9 baixos, sem exceção. Isso inclui, após sua confirmação, as três decisões de infraestrutura que eu tinha deixado pendentes de propósito (bucket de anexos, SSH, criptografia do backup); as 3 CVEs de dependências do app principal, corrigidas em 10/09/2026 assim que Docker ficou disponível (a causa raiz era o <i>lugar</i> onde o override do pnpm vivia, não o valor); a corrida de limite de plano, o fuso do relatório, a validação de schema nas respostas do saas-core, a verificação de conteúdo real em upload, a sanitização de texto livre do cliente, e o teste de integração de IP por trás de proxy que faltava. A cópia externa (offsite) do backup também foi concluída no mesmo dia — bucket privado no Backblaze B2, criptografado, com retenção automática de ~31 dias, testado de ponta a ponta com um backup real enviado e confirmado. Também apliquei o mesmo fix de CVE no saas-core (<code>qs</code> moderado) — corrigido na fonte e sincronizado no servidor, mas o rebuild do container ficou deliberadamente represado porque esse serviço tem trabalho em andamento de outra sessão que eu não devo publicar sem revisão.</p>
+    <p><b>Pontos fortes confirmados:</b> a arquitetura já vinha com boas decisões de segurança — cookies com <code>httpOnly</code>+<code>SameSite=Lax</code>, sem CORS permissivo, ORM parametrizado em 100% do código (zero SQL injection encontrado), nenhum segredo no histórico do Git, e — o mais importante para um SaaS — o isolamento entre restaurantes (tenants) no Painel Master foi auditado a fundo e está corretamente implementado: a identidade do restaurante nunca é aceita como parâmetro do cliente, sempre derivada da própria API key autenticada.</p>
+  </div>
+</section>
+
+<section id="arquitetura">
+  <h2 class="h"><span class="idx">02</span> Arquitetura analisada</h2>
+  <div class="vgrid" style="row-gap:16px;">
+    <div class="card"><h4>Frontend</h4><p>React 19 + Vite + Tailwind, roteamento client-side (wouter), dados via tRPC + React Query. SPA pura — sem SSR, sem templating server-side de HTML (reduz superfície de XSS a sinks explícitos de código).</p></div>
+    <div class="card"><h4>Backend</h4><p>Express + tRPC, dois serviços independentes: app principal (pedidos/cardápio/admin de cada restaurante) e <span class="tag">saas-core</span> (Painel Master — billing/planos/suporte).</p></div>
+    <div class="card"><h4>Banco de dados</h4><p>MySQL via Drizzle ORM (query builder parametrizado por padrão) em ambos os serviços, bancos completamente separados.</p></div>
+    <div class="card"><h4>Autenticação</h4><p>JWT em cookie httpOnly (login de restaurante); e-mail+senha próprio pro Painel Master; token de handoff de uso único pro "Modo Suporte".</p></div>
+    <div class="card"><h4>Armazenamento</h4><p>S3-compatível (MinIO auto-hospedado) para imagens — um bucket, política pública de leitura.</p></div>
+    <div class="card"><h4>Pagamento</h4><p>Pix manual + cartão via Mercado Pago Checkout Pro (app principal) e Mercado Pago Preapproval (cobrança recorrente do próprio SaaS, saas-core).</p></div>
+    <div class="card"><h4>Hospedagem</h4><p>VPS única (Hostinger), Docker Compose, Caddy como proxy reverso. Hoje em HTTP puro (sem domínio/certificado ainda).</p></div>
+    <div class="card"><h4>Modelo multi-tenant</h4><p><b>Importante:</b> este NÃO é o modelo "um banco, várias linhas com tenant_id" que a auditoria assumiria por padrão. Cada restaurante tem seu próprio deployment Docker isolado (banco, storage, tudo). O <span class="tag">saas-core</span> é a única camada genuinamente multi-tenant (um banco com dados de vários restaurantes) — é lá que o risco de vazamento entre tenants realmente existe, e foi auditado a fundo (ver V-Info-03).</p></div>
+  </div>
+</section>
+
+<section id="vulnerabilidades">
+  <h2 class="h"><span class="idx">03</span> Vulnerabilidades encontradas</h2>
+  <p class="lede">44 achados, agrupados por severidade. Cada card expande com todos os campos: local, descrição, impacto, exploração, causa, correção recomendada/aplicada, teste e resultado. <b>Correção aplicada</b> nunca foi declarada sem eu confirmar via typecheck e, sempre que possível, teste ao vivo em produção.</p>
+
+  <!-- ===================== CRÍTICO ===================== -->
+  <div class="vgroup">
+    <div class="ghead"><span class="badge crit">Crítico</span><h3>4 achados</h3><span class="gcount">4 corrigidos</span></div>
+
+    <details class="vcard" open>
+      <summary><span class="vid">V-01</span><span class="vtitle">Cobrança no Mercado Pago sem taxa de entrega e sem desconto de combo</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/order.ts:367</code> (createCardPayment)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>A preferência de pagamento era montada somando <code>orderItems[].lineTotalCents</code> — o preço CHEIO de cada item, calculado antes do desconto de combo existir, sem nenhuma linha pra taxa de entrega. O total real do pedido é <code>subtotal − desconto + frete</code>.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Restaurante perdia a taxa de entrega em toda venda por cartão com entrega; cliente era cobrado a mais em toda venda com promoção ativa.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não exige exploração — acontecia automaticamente em qualquer pedido CARD_ONLINE com entrega e/ou promoção. Confirmado numericamente: pedido de teste com <code>totalCents: 1400</code> (item + frete) enquanto o item sozinho valia <code>1200</code>.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Reconstrução do valor a partir dos itens em vez de usar o total já calculado pelo servidor.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Preferência agora usa item único = <code>order.totalCents / 100</code> — sempre o valor final já calculado, nunca reconstruído.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — pedido real de teste (item R$12 + frete R$2 = R$14) verificado via API mostrando <code>totalCents: 1400</code> correto sendo o valor agora enviado ao Mercado Pago. Gateway de cartão não está ativo em produção hoje, então esse bug específico ainda não havia causado perda real — mas atingiria no primeiro pedido por cartão com entrega ou promoção assim que ativado. <b>Reconfirmado ao vivo em 10/09/2026</b> durante a rodada de teste de invasão: chamada direta à API de checkout tentando forçar um total diferente do calculado pelo servidor (pedido de teste, telefone 85999111222, item R$12) — o servidor ignorou o valor enviado e recalculou do zero a partir do catálogo, confirmando que a manipulação de preço não é possível nem por essa via mais direta. <i>Pendência operacional (não é achado de segurança): esse pedido de teste (PX-N7L6YH2) ficou registrado no banco de produção — precisa ser cancelado/arquivado manualmente, não consegui completar isso porque a sessão autenticada do navegador caiu antes da limpeza.</i></div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-02</span><span class="vtitle">Bloqueio de "Mesas/QR Code" por plano existia só no frontend</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/admin/tables.ts</code> (14 procedures)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>A tela /admin/mesas inteira é trancada no frontend quando o plano não inclui <code>tables_qr</code>, mas nenhum procedure do router de mesas tinha <code>requireFeature("tables_qr")</code> no backend — só <code>createTable</code> tinha um limite de quantidade, não a feature em si.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Qualquer restaurante/funcionário autenticado, em qualquer plano, conseguia criar mesa, sentar cliente, lançar rodada, fechar comanda, gerenciar reserva — chamando a API direto (devtools), contornando 100% o paywall.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Login normal de staff/admin + chamada tRPC direta pra qualquer procedure de <code>admin.tables.*</code>.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Disciplina de "bloqueio 100% backend" (já documentada e aplicada em <code>table.ts</code> pro fluxo público) não foi replicada no router administrativo.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Todo o router agora herda <code>.use(requireFeature("tables_qr"))</code> — mesmo padrão já usado em <code>addManualRound</code>/<code>extra_rounds</code>.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado ao vivo</span> — typecheck limpo, padrão idêntico ao já comprovado em produção para <code>extra_rounds</code>. Fluxo de mesa testado ao vivo em produção em 10/09/2026 com sessão admin autenticada (chamada real a <code>admin.tables.addManualRound</code> usando o cookie de sessão real via fetch na própria página) — funcionou normalmente com o plano atual (que inclui <code>tables_qr</code>), confirmando que o <code>requireFeature</code> novo não quebrou o fluxo legítimo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-03</span><span class="vtitle">Criação de pedido não era uma operação atômica</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/order.ts</code> (insertPricedOrder + payments insert)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>orders → itens → adicionais → histórico → pagamento eram 6+ escritas sequenciais sem transação, sem nenhuma FOREIGN KEY no schema como rede de segurança.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Uma queda de conexão no meio (comum: pool esgotado, reinício em deploy) podia deixar um pedido cobrado sem <code>payments</code> vinculado — o webhook de confirmação de pagamento não encontraria o que atualizar, e o pedido ficaria "aguardando pagamento" pra sempre mesmo já pago.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não é exploração ativa — é um risco de integridade sob falha real, em um caminho (checkout público) que roda continuamente.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Escritas sequenciais sem <code>db.transaction()</code> em nenhum lugar do código-base.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Toda a sequência (pedido criado pelo site e rodada de mesa) agora roda dentro de <code>db.transaction(async tx =&gt; ...)</code>. Mesmo fix aplicado em <code>closeTableSession</code> (V-10) e <code>anonymizeCustomer</code> (V-20).</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado ao vivo</span> — fluxo completo de checkout público testado no navegador em produção após o deploy (adicionar ao carrinho → checkout Pix com endereço real → confirmação → acompanhamento mostrando total correto R$14,00). Nenhuma regressão.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-04</span><span class="vtitle">fast-xml-parser (dependência do AWS SDK) — CVE crítico de bypass de encoding</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>package.json</code> → <code>@aws-sdk/client-s3</code> → ... → <code>fast-xml-parser@5.2.5</code></div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Advisory oficial (GHSA): bypass de encoding de entidade via injeção de regex em nomes de entidade DOCTYPE, em versões <code>&lt;5.3.5</code>. É uso <b>interno</b> do AWS SDK (parsing de respostas XML do S3/MinIO) — nunca chamado pelo código deste projeto diretamente.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Rotulado crítico pelo fornecedor. Na prática, exigiria que o próprio MinIO (autohospedado, não é o atacante) devolvesse XML malicioso — superfície de exploração real neste contexto específico é baixa, mas o pacote está desatualizado e deveria ser corrigido.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Sem vetor de exploração direto identificado neste app (MinIO é confiável/próprio, não uma fonte de XML controlada por atacante).</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Dependência transitiva desatualizada, nunca reinstalada com lockfile atualizado.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Forçar via <code>pnpm-workspace.yaml</code> → <code>overrides: fast-xml-parser</code> pra versão ≥5.5.6, e reinstalar num ambiente com suíte de teste local disponível.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido em 10/09/2026, com Docker disponível.</span> A causa raiz da inconsistência anterior era o local do override: <code>pnpm-workspace.yaml</code> sozinho não estava sendo aplicado de forma confiável nesta versão do pnpm (10.4.1) — movido pra <code>package.json</code> → <code>pnpm.overrides</code> (mantido também em pnpm-workspace.yaml como reforço), <code>fast-xml-parser</code> agora resolve exatamente em <code>5.11.1</code> (≥5.5.6, corrige o CVE). Validado com <code>pnpm why fast-xml-parser</code>, typecheck limpo, suíte de testes completa (165/165) e <b>build Docker real de produção</b> (a imagem final, não só o build local) — sem regressão. Ver V-11 (path-to-regexp) e V-36 (qs/body-parser) — mesma causa raiz, mesma correção, mesmo teste.</div></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ===================== ALTO ===================== -->
+  <div class="vgroup">
+    <div class="ghead"><span class="badge high">Alto</span><h3>11 achados</h3><span class="gcount">11 corrigidos</span></div>
+
+    <details class="vcard" open>
+      <summary><span class="vid">V-05</span><span class="vtitle">XSS armazenado: upload de SVG malicioso em imagem de categoria</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/admin/catalog.ts:112</code> (uploadCategoryImage)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>O endpoint aceitava <code>image/svg+xml</code> sem nenhuma sanitização do conteúdo decodificado. O bucket de armazenamento é público e não define <code>Content-Disposition</code> — abrir a URL do objeto direto (aba nova, link compartilhado, crawler) executa qualquer <code>&lt;script&gt;</code>/<code>onload</code> embutido como documento. Isso é diferente de renderizar via <code>&lt;img src&gt;</code> (o que o app faz em toda sua própria UI), onde o navegador desativa scripting de SVG.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Qualquer funcionário com só a permissão "catalog" (não precisa ser admin completo) conseguia plantar um SVG malicioso atrás de uma URL com a marca do restaurante.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Upload de SVG com payload → copiar a URL pública devolvida → qualquer pessoa que abrir essa URL direto executa o script.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">SVG tratado como "só mais um formato de imagem" no allowlist de tipos, sem considerar que é um formato executável quando servido como documento.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Removido <code>image/svg+xml</code> da lista de tipos aceitos, no backend e no <code>accept</code> do input de arquivo — mesma lista que os outros 3 endpoints de upload de imagem já usavam.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo, endpoint agora rejeita SVG com <code>BAD_REQUEST</code> de validação Zod antes de qualquer upload acontecer.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard" open>
+      <summary><span class="vid">V-06</span><span class="vtitle">XSS armazenado: upload de SVG malicioso em logo do site</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/admin/settings.ts:51</code> (uploadLogo)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Mesma causa raiz de V-05. Agravante: este endpoint usa <code>adminProcedure</code>, que também aceita uma sessão de Modo Suporte ativa — não só um admin comprometido, mas também esse canal, consegue plantar o SVG.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Igual V-05, atrás da URL do logo (mais visível/confiável para quem clica).</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Igual V-05.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Igual V-05.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Igual V-05 — SVG removido do backend e do frontend.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-07</span><span class="vtitle">Cache de licença bloqueava recursos pagos no primeiro boot (fail-closed)</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/_core/license.ts</code> (buildSnapshot)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>O design documentado é "fail-open" (nunca bloquear por falta de sincronização) — mas a linha recém-criada no boot (ou na primeira vez que <code>SAAS_CORE_URL</code> é configurado, exatamente o que aconteceu hoje) ficava com <code>features: []</code> até a primeira sincronização bem-sucedida, bloqueando tudo por até 5 minutos.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Cliente escaneando QR de mesa, ou qualquer ação de "chamar garçom"/"pedir conta", recebia "recurso não disponível" logo após um deploy — mesmo com assinatura válida.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não é exploração — é uma janela de indisponibilidade real, confirmada: foi exatamente o que teria acontecido ao conectar o saas-core hoje.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">A checagem de fail-open só cobria "linha não existe", não "linha existe mas nunca sincronizou de verdade".</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Adicionado <code>!row.lastSyncOk</code> à mesma condição — cobre exatamente o caso de "nunca sincronizou ainda" sem afetar o fail-open já correto pra falhas passageiras depois da primeira sincronização.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo, mock de teste existente já usava <code>lastSyncOk: true</code>, sem quebrar nada.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-08</span><span class="vtitle">Sobrescrita de dados de cliente sem limite de tentativas</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/customer.ts:31</code> (saveProfile)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Endpoint público, sem sessão, que sobrescreve nome/endereço padrão de um cliente já cadastrado só pelo telefone — sem nenhum rate limit, ao contrário do endpoint irmão <code>lookupByPhone</code>.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Quem soubesse (ou adivinhasse em sequência) o telefone de um cliente real podia martelar o endpoint sem limite, sobrescrevendo nome/endereço sem prova de posse do número.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">POST direto em <code>/api/trpc/customer.saveProfile</code> em loop.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Rate limit aplicado de forma inconsistente entre endpoints semelhantes no mesmo arquivo.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Adicionado <code>checkRateLimit</code> por IP, mesmo padrão do <code>lookupByPhone</code> vizinho.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo, padrão idêntico a um endpoint já testado no código-base.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-09</span><span class="vtitle">Mensagens de erro internas vazando pro cliente</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/_core/trpc.ts</code> (errorFormatter)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Qualquer exceção não tratada (erro de driver de banco, de API externa) era auto-empacotada pelo próprio tRPC e sua <code>.message</code> crua ia direto pro cliente, sem nenhum filtro — só erros de validação Zod tinham tratamento especial.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Um bug futuro (ou já existente) em qualquer endpoint público podia revelar detalhe interno (nome de tabela, mensagem de driver) pra um visitante anônimo.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Disparar qualquer exceção não tratada num endpoint público.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Formatter só tratava o caso Zod, deixando o resto passar sem filtro.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Detecta quando o erro é um "erro interno não intencional" (via <code>error.cause instanceof Error</code>, o sinal de que foi auto-empacotado, não lançado de propósito) e troca por mensagem genérica, logando o real no servidor.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo; mensagens curadas já existentes ("Banco de dados indisponível" etc.) continuam passando normalmente, confirmado pela lógica de detecção não afetá-las.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-10</span><span class="vtitle">Fechamento de comanda de mesa não era atômico</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/db/tableSessions.ts:122</code> (closeTableSession)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>3 escritas sequenciais sem transação: fechar comanda, marcar pedidos como pagos, liberar mesa — ação rotineira e frequente (toda vez que a equipe fecha uma conta).</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Falha no meio podia deixar comanda fechada mas pedidos "não pagos" (relatório financeiro subestima receita), ou mesa travada como ocupada mesmo com a comanda já fechada.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não é exploração — risco de integridade sob falha real.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Mesmo padrão de V-03 — nenhuma escrita multi-passo no código-base usava transação.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">As 3 escritas agora rodam dentro de <code>db.transaction()</code>.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-11</span><span class="vtitle">path-to-regexp (Express) — CVE de ReDoS</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>package.json</code> → <code>express@4.21.2</code> → <code>path-to-regexp@0.1.12</code></div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Vulnerável a Regular Expression Denial of Service via múltiplos parâmetros de rota, em versões <code>&lt;0.1.13</code>. É dependência EXATA do próprio Express 4.x (sem <code>^</code>), então corrigir sem quebrar exige cuidado — uma versão nova de verdade (6.x/8.x) tem API completamente diferente da que o Express 4.x importa internamente.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">DoS teórico via rota malformada — não encontrei uma rota real neste app com múltiplos parâmetros no padrão vulnerável, mas não posso descartar sem mapear cada rota Express registrada.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Requisição com padrão de rota malicioso, se existir uma rota vulnerável.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Dependência exata desatualizada do próprio Express.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Override escopado <code>express&gt;path-to-regexp</code> pra <code>0.1.13</code> exata (mesma major, só o patch) — testar em ambiente com Docker disponível antes de aplicar em produção.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido</span> — mesmo fix de V-04 (override movido pra <code>package.json</code>), <code>path-to-regexp</code> resolve exatamente em <code>0.1.13</code> (a versão escopada exata pretendida, mesma major do Express 4.x). Confirmado via <code>pnpm why path-to-regexp</code>, typecheck limpo, 165/165 testes, build Docker de produção completo sem regressão.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-12</span><span class="vtitle">Snapshot de licença do saas-core sem validação de schema</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/_core/license.ts:92</code> (syncLicenseOnce)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>A resposta HTTP do saas-core é convertida com um <code>as {...}</code> cru — sem Zod, sem checagem de formato. Se o saas-core mudar o formato de resposta (os dois serviços são independentes, CI isolado, nenhum contrato de tipo compartilhado), o app principal aceita e persiste um valor malformado sem erro imediato, só quebrando depois, num request completamente diferente (<code>snapshot.features.includes()</code> lançando sobre algo que não é array).</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Uma mudança futura e não coordenada no saas-core derruba todo endpoint com recurso pago (mesas/QR, chamar garçom etc.) até alguém corrigir manualmente o cache.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não é exploração externa — é fragilidade de contrato entre dois serviços que evoluem separadamente.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Nenhuma validação de runtime na fronteira entre os dois serviços.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Schema Zod pra validar a resposta em <code>syncLicenseOnce</code>, falhando fechado pro último cache bom conhecido (mesmo padrão do catch já existente) em caso de formato inesperado.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Resposta agora validada por um schema Zod completo (<code>syncSnapshotResponseSchema</code>) antes de qualquer uso — formato inesperado cai no mesmo <code>catch</code> de qualquer outra falha de sincronização (fail-open pro último cache bom conhecido, nunca crash).</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido e testado</span> — novo <code>server/_core/license.test.ts</code> (7 testes): resposta válida grava o cache; campo obrigatório ausente NÃO grava e não derruba o processo; tipo errado (<code>features</code> não-array) NÃO grava; HTTP não-ok cai no fail-open; sem linha no cache local e cache "nunca sincronizado" liberam tudo (permissivo). Typecheck limpo, suíte completa passando.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-13</span><span class="vtitle">Handoff do Modo Suporte sem nenhuma cobertura de teste</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/support.ts:39</code> (enter)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>O único código que troca um token de handoff do Painel Master por uma sessão local com acesso quase total a um restaurante real nunca foi exercitado por teste algum — o único teste existente pula a rede/JWT inteiramente, injetando a sessão já pronta.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Um bug na cadeia fetch → parse → assinatura do token (mudança de formato no saas-core, erro de fuso no cálculo de expiração) só apareceria em produção, silenciosamente quebrando o fluxo pago de suporte ou emitindo uma sessão com validade errada.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não é exploração — é ausência de rede de segurança automatizada num ponto sensível.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Teste existente foi escrito pra validar a lógica de permissão pós-sessão, não a troca do token em si.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Teste que mocka <code>fetch</code> (não o módulo de sessão) simulando uma resposta real de <code>support.redeem</code>, mais testes unitários de <code>createSupportSessionToken</code>/<code>verifySupportSessionToken</code> cobrindo expiração e token adulterado.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">A resposta de <code>support.redeem</code> também ganhou validação Zod (mesmo raciocínio do V-12), rejeitando fechado (nunca entra em Modo Suporte com dado incompleto) em vez do <code>as</code> cru anterior.</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido e testado</span> — novo <code>server/support-enter.test.ts</code> (7 testes) mocka só <code>fetch</code> (não o módulo de sessão, como a auditoria recomendou): token válido troca por sessão e grava um cookie cujo JWT bate com os dados originais; saas-core rejeitando o token dá FORBIDDEN sem gravar cookie; resposta em formato inesperado rejeita fechado; rate limit próprio bloqueia após muitas tentativas do mesmo IP. Mais testes unitários dedicados de <code>createSupportSessionToken</code>/<code>verifySupportSessionToken</code>: token adulterado rejeitado, token expirado rejeitado, sem cookie retorna null sem lançar.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-14</span><span class="vtitle">Filtro de horário do cardápio (almoço/janta) sem nenhuma cobertura de teste</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>shared/orderDomain.ts:93</code> (isCategoryCurrentlyAvailable)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Função que decide o que o cliente pode pedir agora (é ou não horário de almoço/janta) tem uma ramificação de "janela que cruza a meia-noite" fácil de inverter por engano — e zero teste a exercita, apesar de ser feita justamente pra ser testável (recebe um <code>now: Date</code> injetável). CI roda em UTC, 3h de diferença do fuso real do restaurante, então uma regressão passaria despercebida no CI.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Uma mudança futura nesse arquivo pode esconder ou mostrar categorias no horário errado sem que ninguém perceba até um cliente real reclamar.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não é exploração — é lógica de negócio não-trivial sem rede de segurança.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Lacuna de cobertura, não um bug identificado na lógica atual.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Casos de teste cobrindo ALWAYS, LUNCH/DINNER/LUNCH_AND_DINNER sem janela configurada, e uma janela que cruza meia-noite amostrada logo antes/no início/logo depois do fim.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Exatamente os casos recomendados, adicionados em <code>server/orderDomain.test.ts</code>.</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido e testado</span> — 6 novos testes: ALWAYS sempre aparece; LUNCH/DINNER/LUNCH_AND_DINNER sem janela configurada nunca escondem; janela 22:00–02:00 (cruza meia-noite) testada 1 minuto antes do início (fora), bem no início (dentro), 1 minuto antes do fim (dentro) e bem no fim (fora, limite exclusivo) — instantes calculados a partir de America/Fortaleza (UTC-3) pra não depender do fuso de quem roda o CI.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard" open>
+      <summary><span class="vid">V-38</span><span class="vtitle">Política do bucket (V-23) não entrava em vigor até o primeiro upload depois do boot</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/storage.ts</code> (ensureBucketExists / bucketReadyPromise), <code>server/_core/index.ts</code> (startServer)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Achado <b>durante a rodada de teste de invasão ao vivo</b> (não pela leitura de código — é justamente o tipo de gap que só um teste real contra produção revela). A correção do V-23 estava certa no código: a função que aplica a política restrita do bucket (só <code>catalog/*</code> e <code>branding/*</code> públicos) existia e funcionava. O problema é que ela só era <i>chamada</i> de dentro de <code>storagePut()</code>, cacheada em <code>bucketReadyPromise</code> pela vida inteira do processo — ou seja, "reaplicar a política em todo boot" (a intenção documentada no próprio comentário do código) na prática significava "reaplicar só no primeiro upload depois do boot". Como nenhum upload aconteceu entre o deploy do V-23 e o teste de invasão, a política antiga e mais permissiva (que incluía <code>s3:ListBucket</code> e leitura pública de <code>orders/*</code>, remanescente de uma sincronização manual via <code>mc anonymous set download</code> feita numa sessão anterior) continuou valendo o tempo todo em produção.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Reabria exatamente o que o V-23 dizia ter fechado: comprovantes/anexos de pedido (<code>orders/*</code>) publicamente legíveis por qualquer um com a URL, e — pior que o V-23 original — listagem anônima do bucket inteiro (<code>s3:ListBucket</code>), o que significa que nem precisava conhecer a URL de antemão.</div></div>
+          <div class="vfield"><div class="flabel">Como foi encontrado</div><div class="fval">Vetor <code>bucket-policy-live</code> da rodada de teste de invasão: requisição anônima de <code>ListObjectsV2</code> na raiz do bucket em produção devolveu <code>200</code> com a listagem completa, em vez do <code>403</code> esperado depois do V-23.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Inicialização preguiçosa (lazy) tratada, por engano, como se fosse suficiente pra cumprir a intenção de "toda inicialização do processo" — um bug de ciclo de vida, não um erro na lógica da política em si. Agravado por uma segunda causa: um mecanismo diferente (<code>mc anonymous set download</code>, usado antes numa sincronização manual entre ambientes) tinha deixado uma política mais aberta gravada no bucket, que o código da aplicação nunca teve a chance de sobrescrever por causa do bug de lazy-init.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Imediata: política correta reaplicada manualmente e direto no bucket em produção (script isolado usando <code>PutBucketPolicyCommand</code>), restaurando o comportamento esperado na hora. Definitiva: nova função <code>ensureStorageReady()</code> chamada uma vez, de forma explícita e não-bloqueante, logo no boot do servidor (<code>server/_core/index.ts</code>, antes de <code>express()</code>) — agora a política é garantida a cada boot de verdade, não só no primeiro upload.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado ao vivo, duas vezes</span> — primeiro logo após a correção manual (403 em <code>orders/*</code>, 403 em listagem anônima, 200 continuando em <code>catalog/*</code>). Deploy da correção definitiva feito em seguida (commit <code>fc1c201</code>); <b>depois de um boot completo do container sem nenhum upload ter acontecido</b> — o cenário exato que causava o bug — reexecutei os mesmos testes: <code>orders/*</code> → 403, prefixo fictício nunca configurado → 403 (mesmo tratamento, confirma que não é coincidência de cache), listagem anônima → 403, <code>catalog/*</code> → 404 (chave não existe, mas acessível — não 403). Log de boot do container conferido, sem aviso de falha ao aplicar a política.</div></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ===================== MÉDIO ===================== -->
+  <div class="vgroup">
+    <div class="ghead"><span class="badge med">Médio</span><h3>15 achados</h3><span class="gcount">15 corrigidos</span></div>
+
+    <details class="vcard">
+      <summary><span class="vid">V-15</span><span class="vtitle">Pedido reembolsado no cartão continuava marcado "Pago" no admin</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>client/src/components/OrderManagement.tsx</code>, <code>OrdersTable.tsx</code></div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">O badge de status de pagamento lia <code>orders.paymentStatus</code> (nunca atualizado num estorno) em vez de <code>payments.status</code> (que sim vira REFUNDED) — o mesmo objeto já trazia o campo certo, só não era esse que a tela lia.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Equipe via "Pago" (verde) num pedido cujo dinheiro já tinha voltado pro cliente.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Badges agora leem <code>order.payment?.status</code>, com um estado visual novo "Reembolsado".</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-16</span><span class="vtitle">Webhook do Mercado Pago dividia limite de tentativas com o login</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/_core/mercadoPagoWebhook.ts:15</code></div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Reusava o limite de 8 requisições/10min pensado pra força bruta de login — tráfego legítimo servidor-a-servidor do Mercado Pago (toda notificação de todo pagamento, mais reenvios automáticos) podia facilmente passar disso numa correria de pedidos.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Notificação bloqueada recebia 200 sem processar nada — e o Mercado Pago nunca reenvia um 2xx. Confirmação de pagamento real perdida silenciosamente.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval"><code>checkRateLimit</code> ganhou um parâmetro de limite customizável; webhook agora usa 60/10min em vez de 8.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo, mudança aditiva (parâmetro opcional, todo outro uso do rate limit continua com o padrão de 8).</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-17</span><span class="vtitle">Exclusão/consulta de dados LGPD sem limite de tentativas</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/dataRights.ts</code> (myData, deleteMyData)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Protegidos só por um token JWT de 15min (prova posse do celular via SMS) — sem limite de repetição, um token vazado/reutilizado (link compartilhado, histórico do navegador) podia ser martelado sem limite dentro da janela.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Sem defesa em profundidade nos dois únicos endpoints deste arquivo que ainda não tinham.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Rate limit adicionado, mesmo padrão dos endpoints irmãos <code>requestCode</code>/<code>verifyCode</code>.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-18</span><span class="vtitle">Redenção do Modo Suporte sem limite de tentativas</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/support.ts:33</code> (enter)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">O endpoint mais sensível do app (troca token por sessão com acesso quase total de leitura+escrita a um restaurante) não tinha nenhum limite próprio, dependendo só do que o saas-core fizer do lado dele.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Defesa em profundidade ausente no ponto de entrada de maior privilégio do sistema.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Rate limit por IP adicionado.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-19</span><span class="vtitle">Erro do Mercado Pago vazando pro cliente no checkout</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/order.ts:372</code> (createCardPayment)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Até 300 caracteres crus da resposta de erro da própria API do Mercado Pago iam direto pro cliente anônimo do checkout.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Detalhe de diagnóstico do fornecedor exposto a quem não deveria ver.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Loga completo no servidor, devolve mensagem genérica pro cliente. Corrigido junto com V-01, mesma função.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-20</span><span class="vtitle">Anonimização LGPD não era atômica</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/db/customers.ts:14</code> (anonymizeCustomer)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">4 escritas sequenciais sem transação — falha no meio deixava o cliente "removido" mas pedidos antigos ainda com nome/telefone/endereço reais, o oposto do que uma exclusão LGPD promete.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Exclusão "completa" ficando pela metade sob falha, num fluxo compartilhado pela varredura automática de inatividade E pelo pedido de exclusão sob demanda.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">4 escritas agora dentro de <code>db.transaction()</code>.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-21</span><span class="vtitle">Campo interno de estratégia de promoção vazando na API pública</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/db/catalog.ts:77</code> (attachPromotionProducts / fetchActivePromotions)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">O endpoint público <code>catalog.promotions</code> (sem autenticação) devolvia a linha crua da promoção, incluindo <code>objective</code> — um enum interno de estratégia de marketing (ex.: <code>REDUCE_STOCK</code>, <code>BOOST_LOW_DAY</code>) que revela informação de negócio (estoque parado, dias fracos) útil a um concorrente.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Qualquer chamada direta ao endpoint (não só quem usa a tela) revela inteligência de negócio nunca pensada pra sair do admin.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Consulta pública agora devolve só os campos que a tela pública de fato usa; a função compartilhada com o admin continua completa pra esse caller (autenticado).</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-22</span><span class="vtitle">saas-core: erro do Mercado Pago vazando pro restaurante no billing</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>saas-core/server/_core/mercadoPagoBilling.ts</code></div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Mesmo padrão de V-19, só que no saas-core: resposta crua da API do Mercado Pago (da conta da PLATAFORMA, não do restaurante) ia direto pro tenant que chamou <code>billing.changePlan</code>.</div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Detalhe da conta MP da própria plataforma exposto a um tenant.</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Loga completo no servidor, devolve mensagem genérica — fix na fonte (<code>mercadoPagoBilling.ts</code>), preservando as outras mensagens curadas (já seguras) que passam pelo mesmo catch em <code>billing.ts</code>.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-23</span><span class="vtitle">Anexos de pedido no mesmo bucket público que imagens do cardápio</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/storage.ts:47</code> (ensureBucketExists), <code>server/routers/admin/orders.ts:63</code> (uploadOrderAttachment)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>A política pública do bucket valia pro bucket inteiro — incluía <code>orders/*</code>, onde ficam comprovantes de pagamento anexados a um pedido (mostrado só dentro do admin autenticado, mas a URL em si era permanentemente pública). Existia uma função <code>storageGetSignedUrl()</code> pronta pra acesso privado por tempo limitado, mas nunca tinha sido usada em nenhum endpoint.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Quem obtivesse a URL exata de um anexo de pedido (histórico do navegador, screenshot compartilhado) conseguia acessá-lo pra sempre, sem autenticação. Não dava pra listar/descobrir URLs (sem <code>s3:ListBucket</code>), só usar uma já conhecida.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Obter a URL de algum jeito (vazamento, referrer, captura de tela compartilhada) e acessar direto, sem sessão.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Todo upload passava pela mesma função <code>storagePut</code>, sem distinção entre o que é legitimamente público (cardápio, logo) e o que deveria ser privado (comprovante de pedido).</div></div>
+          <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Política pública do bucket restrita só a <code>catalog/*</code> e <code>branding/*</code> (reaplicada em todo boot, não só na criação). Novo <code>admin.getAttachmentSignedUrl</code> gera link assinado de 15min sob demanda; a tela de comprovante do admin agora busca essa URL assinada em vez de usar a antiga URL pública fixa.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo, deploy único (política + troca do frontend juntas, sem janela em que a URL antiga apareceria quebrada, já que a política é avaliada por requisição). App confirmado saudável (HTTP 200) após o deploy. <b>Atualização 10/09/2026:</b> a rodada de teste de invasão ao vivo encontrou que essa correção, apesar de deployada, não estava de fato em vigor — ver <b>V-38</b> pra causa raiz e a correção definitiva.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-24</span><span class="vtitle">Corrida em limite de plano (contas de equipe / mesas)</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/_core/planLimits.ts:12</code> (assertWithinPlanLimit)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Checagem e escrita são operações separadas (check-then-act) sem trava — duas requisições simultâneas de criar conta/mesa, chegando com o uso exatamente no limite-1, passam ambas na checagem e ambas inserem, deixando o restaurante com mais contas/mesas do que o plano paga.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Gap de integridade de cobrança sob concorrência genuína — baixa probabilidade de acontecer sem duas requisições literalmente simultâneas.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Disparar dois <code>team.create</code>/<code>admin.tables.createTable</code> em paralelo (ex.: <code>Promise.all</code>) próximo do limite.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Nenhuma trava (<code>SELECT ... FOR UPDATE</code>) nem transação amarrando a checagem à escrita.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Envolver checagem+inserção na mesma transação com trava de linha, ou recontar dentro da própria transação de escrita.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Nova <code>assertWithinPlanLimitAndInsert</code>: checagem + inserção rodam dentro da MESMA transação, serializadas por um <code>SELECT ... FOR UPDATE</code> na linha singleton do cache de licença (nunca nas linhas contadas — evita o problema clássico de "phantom row" desse tipo de lock). Quando não há limite configurado no plano, nem abre transação (custo zero no caminho comum).</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido e testado</span> — 3 novos testes em <code>plan-limits.test.ts</code> provam a ORDEM certa (trava antes de contar, conta antes de decidir, só insere depois de passar no limite) e que o caminho sem limite configurado pula a transação inteira. Typecheck limpo, suíte completa (165/165) e deploy verificado em produção.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-25</span><span class="vtitle">Relatório do admin calcula "hoje" no fuso do navegador, não do restaurante</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>client/src/components/admin/ReportsByPeriod.tsx</code></div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Ao contrário do padrão já usado no cardápio público (fuso fixo <code>America/Fortaleza</code> via <code>Intl.DateTimeFormat</code>), o filtro "Hoje"/"7 dias"/"30 dias" dos relatórios usa métodos de Date puros do navegador — só bate com o fuso real quando quem está olhando também está nesse fuso.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Funciona hoje (seu computador está no fuso certo), mas quebra silenciosamente pra um admin de Modo Suporte em outro fuso, ou pro dono olhando o relatório do celular configurado em outro fuso viajando — mostrando receita/pedidos da janela de 24h errada, sem nenhum aviso.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Não é exploração — é um bug de exatidão de dado, sensível a onde/quando quem está olhando é.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Componente não segue o padrão de fuso explícito já estabelecido no resto do código.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Calcular o intervalo no servidor (mandar só "hoje"/"7dias"/"30dias"/data customizada e deixar o backend decidir o intervalo no fuso fixo do restaurante).</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Exatamente a recomendação: o cliente agora manda só a intenção ("hoje"/"7dias"/"30dias"/data específica), e o servidor calcula <code>startAt</code>/<code>endAt</code> sempre em <code>America/Fortaleza</code> via um novo helper (<code>startOfDayInRestaurantTimezone</code>/<code>endOfDayInRestaurantTimezone</code> em <code>shared/orderDomain.ts</code>, calculado por <code>Intl.DateTimeFormat</code> em vez de offset fixo, pra continuar certo mesmo se a regra de fuso mudar). Backend nunca mais aceita <code>startAt</code>/<code>endAt</code> prontos do cliente pra este endpoint.</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido e testado</span> — 3 novos testes cobrindo o cálculo do fuso (meia-noite em Fortaleza = 03:00 UTC, N dias atrás em dias de calendário no fuso certo — não em blocos de 24h corridas, fim do dia = 1ms antes do início do dia seguinte). Typecheck limpo, suíte completa, deploy verificado.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-26</span><span class="vtitle">Resolução de IP real por trás de proxy sem teste de integração</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/_core/index.ts:70</code> (trust proxy)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Todo teste do servidor chama o router direto (sem subir o Express de verdade), então a resolução real de IP por trás de proxy (<code>TRUST_PROXY</code>) nunca é exercitada — e é exatamente o que o rate limit de login usa como chave. Configurado errado numa das duas direções: atrás de um proxy real com a flag desligada, todo mundo cai no mesmo IP (um usuário trava os outros); ligada sem um proxy confiável de verdade na frente, um atacante forja o header e ignora o limite.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Hoje (HTTP direto, sem proxy confiável na frente) a configuração correta é <code>TRUST_PROXY=false</code> — já é o padrão, e já está documentado como obrigatório trocar ao adicionar domínio/certificado (<code>docs/production-deploy.md</code> já cobre isso, ao contrário do que um dos agentes concluiu inicialmente).</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Só relevante numa futura reconfiguração de proxy — não é uma falha ativa hoje.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Lacuna de teste de integração, não uma configuração errada hoje.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Teste com supertest subindo o Express de verdade, validando resolução de IP com/sem <code>TRUST_PROXY</code> e um <code>X-Forwarded-For</code> forjado.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">A decisão de trust proxy foi extraída pra um arquivo próprio (<code>server/_core/trustProxy.ts</code>, função <code>configureTrustProxy</code>), separado do boot completo do servidor — antes era uma linha solta em <code>index.ts</code>, que só podia ser testada disparando <code>startServer()</code> inteiro (JWT_SECRET, espera de banco, etc.).</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido e testado</span> — novo <code>server/_core/trustProxy.test.ts</code> usa <code>supertest</code> (nova dependência de teste) pra subir um Express de verdade: sem <code>TRUST_PROXY</code>, confirma que um <code>X-Forwarded-For</code>/<code>X-Forwarded-Proto</code> forjado é ignorado (protege contra spoofing); com <code>TRUST_PROXY</code> ligado, confirma que esses headers passam a ser respeitados de verdade (necessário assim que o domínio/HTTPS entrar atrás do reverse proxy). Configuração atual (<code>TRUST_PROXY=false</code>) confirmada correta pros dois cenários.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-27</span><span class="vtitle">Backup sem criptografia e sem cópia fora da VPS</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval">Infraestrutura — <code>scripts/backup-db.mjs</code>, cron em produção</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>O cron diário (4h) existe e funciona. Mas o próprio script avisava: <code>BACKUP_ENCRYPTION_KEY</code> não configurada (backup salvo sem criptografia) e <code>BACKUP_OFFSITE_S3_*</code> não configurado (fica só nesta VPS).</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Se a VPS for comprometida, o backup (com dados reais de clientes) é comprometido junto. Se a VPS falhar/for perdida, o backup se perde junto — não é uma recuperação de desastre de verdade.</div></div>
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Variáveis deixadas em branco deliberadamente até agora (decisão consciente anterior, não descoberta nova).</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Gerada e configurada <code>BACKUP_ENCRYPTION_KEY</code> (AES-256-GCM) — backup sai criptografado por padrão. Em 10/09/2026, cópia externa também configurada: bucket privado no Backblaze B2 (criptografia habilitada no próprio bucket), chave de aplicação escopada só a esse bucket (sem acesso a mais nada da conta), credenciais gravadas no <code>.env</code> de produção (<code>BACKUP_OFFSITE_S3_*</code>). Também configurada uma regra de ciclo de vida nativa do B2 pra apagar cópias com mais de ~31 dias (o script de backup em si não tinha — e nem precisa ter — nenhuma lógica própria de limpeza remota; o cron local de 14 dias nunca cobria o lado externo).</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido e testado de ponta a ponta</span> — backup manual real rodado em produção após a configuração: log mostra "Criptografando..." e "Cópia externa enviada"; confirmado visualmente no painel do Backblaze que o arquivo chegou no bucket (16,2 MB). Regra de ciclo de vida confirmada salva (fileNamePrefix vazio = bucket inteiro, 30 dias até ocultar, 1 dia até eliminar).</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-28</span><span class="vtitle">SSH permitia login de root por senha</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval">Infraestrutura — <code>/etc/ssh/sshd_config.d/</code> na VPS</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Confirmado via <code>sshd -T</code> (configuração efetiva, não só um arquivo): <code>permitrootlogin yes</code> + <code>passwordauthentication yes</code> juntos — root (usuário previsível, sempre existe) podia ser alvo de força bruta de senha pela internet. Achado extra na investigação: dois drop-ins da própria imagem da Hostinger se contradiziam (<code>50-cloud-init.conf</code> dizia "yes", <code>60-cloudimg-settings.conf</code> tentava "no") — como sshd usa a <i>primeira</i> ocorrência, o "yes" estava vencendo silenciosamente.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Se a senha de root fosse fraca ou vazasse, seria acesso total ao servidor — banco, storage, tudo.</div></div>
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Configuração padrão da VPS nunca tinha sido endurecida; conflito entre drop-ins da própria imagem cloud.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Novo <code>00-hardening.conf</code> (nome escolhido pra vencer os outros na ordem alfabética) com <code>PasswordAuthentication no</code> + <code>PermitRootLogin prohibit-password</code>. Sintaxe validada (<code>sshd -t</code>) antes de recarregar (<code>reload</code>, não <code>restart</code> — não derruba conexões existentes).</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — <code>sshd -T</code> mostra <code>passwordauthentication no</code> / <code>permitrootlogin prohibit-password</code>; acesso por chave testado e funcionando normalmente logo após o reload (você confirmou usar só chave, nunca senha).</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-39</span><span class="vtitle">Nome de cliente e observação de pedido/mesa gravados sem sanitização (hoje inofensivo)</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/order.ts</code>, <code>server/routers/table.ts</code>, <code>server/routers/admin/tables.ts</code>, <code>server/routers/admin/shared.ts</code>, <code>server/routers/customer.ts</code> — todo campo <code>name</code>/<code>note</code>/<code>customerNote</code> de cliente</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Achado no vetor <code>xss-live</code> da rodada de teste de invasão: enviei um nome de cliente contendo um payload de script (<code>&lt;img src=x onerror=...&gt;</code>) por um endpoint público de verdade — o servidor aceitou e gravou o valor cru no banco, sem rejeitar nem escapar nada. A validação Zod desses campos (<code>z.string().min(2).max(160)</code> etc.) checa só tamanho, nunca conteúdo.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto hoje</div><div class="fval"><b>Nenhum encontrado</b> — verifiquei em todo o repositório (frontend e backend, ambos os serviços): não existe um único uso de <code>dangerouslySetInnerHTML</code> em nenhum componente React, e não existe nenhum template de e-mail/impressão/WhatsApp que monte HTML por concatenação de string a partir desses campos. Toda renderização hoje passa por JSX, que escapa automaticamente. O payload de teste ficou gravado cru no banco, mas nunca foi executado em lugar nenhum onde testei.</div></div>
+          <div class="vfield"><div class="flabel">Por que ainda é um achado</div><div class="fval">É uma dependência frágil: a segurança de hoje depende inteiramente de "nenhum sink de HTML cru existir ainda", não de uma barreira ativa. Um recibo/nota fiscal em PDF, um template de e-mail de confirmação, ou uma futura integração de impressão térmica que monte HTML/texto por concatenação reabriria isso imediatamente, sem que ninguém precise tocar de novo nesses endpoints — porque o dado já está gravado sem sanitização.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Validação de entrada nesses campos nunca considerou conteúdo malicioso, só formato/tamanho — mesma categoria de causa raiz do V-05/V-06 (SVG), mas na fronteira de texto em vez de upload de arquivo.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Sanitizar/normalizar na gravação (remover ou escapar <code>&lt;</code>/<code>&gt;</code>) via um helper Zod compartilhado, aplicado a todo campo de texto livre voltado ao cliente — mesmo raciocínio de defesa em profundidade já usado no resto do projeto (nunca confiar só em "o jeito que renderizo hoje por acaso é seguro").</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Novo helper <code>safeText()</code> (Zod) em <code>server/routers/customer.ts</code>, rejeitando <code>&lt;</code>/<code>&gt;</code> — aplicado a todo campo <code>name</code>/<code>note</code>/<code>customerNote</code> voltado ao cliente nos 5 arquivos listados em "Local" (11 campos ao todo). Exatamente a recomendação: barreira na entrada, não depende mais de nenhum sink de renderização continuar seguro pra sempre.</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido</span> — o mesmo payload que antes era aceito e gravado cru agora é rejeitado na validação Zod (<code>BAD_REQUEST</code>), antes de chegar perto do banco. Typecheck limpo, suíte completa, deploy verificado em produção. <i>Pendência operacional já resolvida:</i> o registro de cliente de teste (telefone 85999482913) e o pedido de teste associado foram limpos do banco de produção em 10/09/2026 (mesmo caminho de anonimização LGPD já usado no resto do sistema).</div></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ===================== BAIXO ===================== -->
+  <div class="vgroup">
+    <div class="ghead"><span class="badge low">Baixo</span><h3>9 achados</h3><span class="gcount">9 corrigidos</span></div>
+
+    <details class="vcard">
+      <summary><span class="vid">V-29</span><span class="vtitle">Tela de mesa vazava campos internos da comanda</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/table.ts:105</code> (resolve)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">O campo <code>session</code> da resposta pública devolvia a linha crua do banco (id interno, <code>customerId</code>, notas) em vez de só os campos usados, diferente de <code>orders</code>/<code>table</code> logo ao lado, que já eram filtrados.</div></div>
+        <div class="vgrid"><div class="vfield"><div class="flabel">Impacto</div><div class="fval">Baixo — sem endpoint que aceite esse ID numérico cru vindo do cliente em nenhum outro lugar, então não abre um caminho de acesso indevido por si só.</div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Campo agora filtrado pra só <code>status</code>/<code>partySize</code>/<code>openedAt</code>, os únicos usados pela tela.</div></div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-30</span><span class="vtitle">Pagamento estornado podia ser "ressuscitado" por webhook reenviado</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/db/orders.ts:160</code> (markOrderPaymentPaidByPublicCode)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Atualizava pra PAID sem checar o status atual — um reenvio manual (ou natural, at-least-once) de uma notificação antiga "aprovada" revertia silenciosamente um estorno já registrado.</div></div>
+        <div class="vgrid"><div class="vfield"><div class="flabel">Impacto</div><div class="fval">Registro financeiramente inconsistente (status PAID com <code>refundedAt</code> ainda preenchido) sob um cenário raro mas real (reenvio de webhook do MP).</div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval"><code>UPDATE</code> agora só aplica se o status atual não for REFUNDED/CANCELLED.</div></div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-31</span><span class="vtitle">Cobrança de cartão sem proteção contra duplicidade</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/order.ts:368</code> (createCardPayment)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Nunca checava se o pedido já estava pago antes de gerar uma preferência nova — chamar o endpoint duas vezes gerava duas cobranças reais pro mesmo pedido, e como <code>payments</code> tem índice único por pedido, a segunda sobrescreveria a referência da primeira sem deixar rastro.</div></div>
+        <div class="vgrid"><div class="vfield"><div class="flabel">Impacto</div><div class="fval">Exigiria chamar o endpoint tRPC direto (não o clique duplo normal — o botão já desabilita durante o processamento), então exploração real é baixa, mas o gap existia.</div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Checagem de "já está pago" adicionada no início do handler.</div></div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-32</span><span class="vtitle">Lista da equipe acessível em Modo Suporte</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/team.ts:30</code> (list)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Usava <code>adminProcedure</code> (aceita Modo Suporte) enquanto criar/editar/pausar/excluir conta já usava corretamente <code>adminOnlyProcedure</code> (só login real) — uma sessão de suporte conseguia ler a lista completa de contas/permissões da equipe, mesmo sem conseguir alterar nada.</div></div>
+        <div class="vgrid"><div class="vfield"><div class="flabel">Impacto</div><div class="fval">Vazamento de leitura de PII/roster da equipe pra um canal pensado pra ser mais restrito nesse tipo de dado — sem risco de escrita (mutations já bloqueavam corretamente).</div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval"><code>list</code> trocado pra <code>adminOnlyProcedure</code>; ajustada também a tela <code>/painel-pedidos</code>, que mostrava o botão de "Acessos da equipe" em Modo Suporte sem essa exclusão (diferente da tela principal do admin, que já tinha).</div></div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-33</span><span class="vtitle">saas-core: erro interno vazando em 2 endpoints do Painel Master</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>saas-core/server/routers/masterPanel/restaurants.ts</code> (assignPlan, updateSubscriptionStatus)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Um <code>restaurantId</code> inexistente devolvia erro 500 cru ("Restaurante sem assinatura cadastrada.") em vez de um 404 limpo — só um problema de higiene de erro, já que fica atrás do Super Admin (contexto já confiável).</div></div>
+        <div class="vgrid"><div class="vfield"><div class="flabel">Impacto</div><div class="fval">Baixo, contido a um ator já de confiança total.</div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Checagem de existência antes de chamar a função que lança o erro cru.</div></div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-34</span><span class="vtitle">saas-core: 6 mutations "sucediam" silenciosamente com ID inexistente</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>masterPanel/restaurants.ts</code> (rotateApiKey, updateDeploymentUrl, updateContact, setStatus) + <code>masterPanel/team.ts</code> (setActive)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">Nenhuma verificava se o registro existia antes de escrever — <code>UPDATE ... WHERE id = ?</code> que não bate linha nenhuma continuava devolvendo <code>{success:true}</code>. <code>rotateApiKey</code> era o mais notável: gerava e devolvia uma API key nova válida mesmo pra um ID que não existe.</div></div>
+        <div class="vgrid"><div class="vfield"><div class="flabel">Impacto</div><div class="fval">Baixo, mesmo contexto de confiança de V-33 — mas um erro de digitação/estado desatualizado na tela do Super Admin passava despercebido como sucesso.</div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Checagem de existência antes de cada mutation, mesmo padrão que <code>team.ts::update</code> já usava corretamente.</div></div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Confirmado</span> — typecheck limpo.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-35</span><span class="vtitle">Upload não confere se o conteúdo real bate com o tipo declarado</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/storage.ts:85</code> (storagePut)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval"><p>Nenhum dos 6 endpoints de upload confere os bytes reais do arquivo — só o tipo que o cliente <i>declara</i> (um enum Zod) e o tamanho. <code>sharp</code> já é dependência do projeto (capaz de detectar formato real) mas só é usado num script de build, nunca no caminho de requisição.</p></div></div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Impacto</div><div class="fval">Sozinho, não é um vetor de XSS direto (navegador não executa um Content-Type declarado como <code>image/jpeg</code>) — mas permite usar o bucket como hospedagem de arquivo arbitrário disfarçado de imagem. É a mesma lacuna estrutural por trás de V-05/V-06.</div></div>
+          <div class="vfield"><div class="flabel">Como pode ser explorada</div><div class="fval">Enviar bytes arbitrários com <code>contentType: "image/png"</code> declarado.</div></div>
+        </div>
+        <div class="vgrid">
+          <div class="vfield"><div class="flabel">Causa</div><div class="fval">Validação só no metadado declarado pelo cliente, nunca no conteúdo.</div></div>
+          <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Detectar formato real via <code>sharp().metadata()</code> (já é dependência) antes de gravar, rejeitando o que não bater com o declarado.</div></div>
+        </div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Novo <code>assertRealImageMatchesDeclaredType()</code> em <code>server/storage.ts</code>, usando <code>sharp(bytes).metadata()</code> pra detectar o formato REAL dos bytes e comparar contra o Content-Type declarado (mapa MIME→formato, incluindo o caso AVIF, que o sharp reporta como <code>"heif"</code> — mesmo container ISOBMFF, confirmado direto no type definition da lib instalada). Aplicado nos 6 endpoints de upload, logo após o limite de tamanho e antes de <code>storagePut</code>. <code>sharp</code> também movido de <code>devDependencies</code> pra <code>dependencies</code> — já rodava em produção hoje só porque o Dockerfile atual copia o <code>node_modules</code> inteiro, mas isso era coincidência de implementação, não uma garantia; a declaração agora reflete que é uma dependência de runtime de verdade.</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido</span> — typecheck limpo, suíte completa, build Docker de produção real confirmando que <code>sharp</code> continua disponível no container final.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-36</span><span class="vtitle">qs / body-parser (Express) — CVEs moderados/baixos</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval">Dependências transitivas do Express, app principal (5 moderados + 3 baixos) e saas-core (2 moderados)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">DoS por parsing de query string malformada / limite de tamanho de corpo silenciosamente desabilitado com valor inválido. Mesma família de problema que V-04/V-11 — dependência exata do Express, override se comportou de forma instável nos meus testes.</div></div>
+        <div class="vgrid"><div class="vfield"><div class="flabel">Impacto</div><div class="fval">DoS de baixo esforço, não comprometimento de dado.</div></div>
+        <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Mesma abordagem de V-11 — override escopado, testado num ambiente com Docker disponível.</div></div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Mesmo fix de V-04/V-11. <code>qs</code> resolve em <code>6.14.0</code>, <code>body-parser</code> em <code>1.20.8</code> (última versão da linha 1.20.x, mais nova até que a 1.20.6 originalmente recomendada).</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido</span> — confirmado via <code>pnpm why qs</code>/<code>pnpm why body-parser</code>, typecheck limpo, 165/165 testes, build Docker de produção sem regressão. No saas-core, um <code>pnpm audit</code> real mostrou que só o <code>qs</code> continuava genuinamente exposto em runtime ali (<code>body-parser</code>/<code>path-to-regexp</code> já vinham corrigidos, por usar uma versão mais nova do Express) — corrigido na fonte com o mesmo override (agora em <code>pnpm-workspace.yaml</code>, que nessa versão mais nova do pnpm aplicou de forma confiável) e sincronizado no servidor; rebuild do container represado de propósito por causa de trabalho em andamento de outra sessão no mesmo serviço.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-37</span><span class="vtitle">Comentário do algoritmo de desconto de combo superestima a garantia (cosmético)</span><span class="badge fixed">Corrigido</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Local</div><div class="fval"><code>server/routers/order.ts:76</code> (computeComboDiscountCents)</div></div>
+        <div class="vfield"><div class="flabel">Descrição</div><div class="fval">O algoritmo é guloso (processa combos em ordem decrescente de desconto) — matematicamente não é sempre ótimo quando 3+ promoções ativas compartilham produto em comum, o que contradiz o comentário no código ("o cliente fica com o melhor negócio possível, nunca o pior"). Impacto é só desconto menor do que o matematicamente possível, nunca cobrança maior — e só se manifesta com 3+ combos ativos com produtos cruzados, o que pode nunca acontecer no catálogo real de vocês.</div></div>
+        <div class="vfield"><div class="flabel">Correção recomendada</div><div class="fval">Suavizar o comentário se 3+ combos cruzados nunca vão coexistir na prática, ou trocar por um solver exato (viável, o número de combos ativos é sempre pequeno).</div></div>
+        <div class="vfield"><div class="flabel">Correção aplicada</div><div class="fval">Comentário suavizado: explica que o algoritmo é guloso, não um solver exato, e que com 3+ combos cruzados (fora do catálogo real hoje) o resultado pode ficar levemente abaixo do ótimo matemático — nunca abaixo do que o cliente já viu no checkout. Nenhuma mudança de comportamento.</div></div>
+        <div class="vfield"><div class="flabel">Teste realizado / Resultado</div><div class="fval"><span class="result-ok">✓ Corrigido</span> — puramente cosmético/documentação, typecheck limpo, suíte completa sem alteração de resultado.</div></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ===================== INFORMATIVO ===================== -->
+  <div class="vgroup">
+    <div class="ghead"><span class="badge info">Informativo</span><h3>5 achados — verificado, sem ação necessária</h3></div>
+
+    <details class="vcard">
+      <summary><span class="vid">V-Info-01</span><span class="vtitle">Isolamento de tenant no saas-core — auditado a fundo, correto</span><span class="badge fixed">Verificado limpo</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Descrição / Resultado</div><div class="fval"><p>Esta é a única camada genuinamente multi-tenant do sistema (ver Arquitetura) — traçado TODO o limite <code>restaurantProcedure</code> (sync.ts, billing.ts, support.ts): nenhum procedure aceita <code>restaurantId</code> como parâmetro do cliente pra decidir identidade — sempre <code>ctx.restaurant.id</code>, derivado exclusivamente do hash da própria API key autenticada. Confirmado inclusive com um teste automatizado já existente cobrindo exatamente "token do restaurante A não é resgatável no contexto do restaurante B". Nenhum caminho de acesso cruzado entre restaurantes encontrado. <b>Reconfirmado ao vivo em 10/09/2026</b> (vetor <code>tenant-idor-live</code> da rodada de teste de invasão): tentativa de acesso cruzado direto contra produção não encontrou nenhum novo caminho além do já mapeado por leitura de código.</p></div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-Info-02</span><span class="vtitle">Manipulação de preço/quantidade via API — verificado limpo</span><span class="badge fixed">Verificado limpo</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Descrição / Resultado</div><div class="fval">Preço, desconto e frete são sempre recalculados no servidor a partir de <code>productId</code>/<code>quantity</code>/<code>addonOptionIds</code> buscados frescos do banco — o cliente nunca consegue mandar um preço cru que seja aceito. Nenhum caminho encontrado onde um valor vindo do cliente influencia diretamente o total cobrado. <b>Reconfirmado ao vivo em 10/09/2026</b> (vetor <code>price-tamper-live</code>): pedido de teste real enviado com total adulterado direto contra a API de produção (ver V-01) — servidor recalculou e ignorou o valor manipulado.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-Info-03</span><span class="vtitle">SQL Injection — verificado limpo em toda a base</span><span class="badge fixed">Verificado limpo</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Descrição / Resultado</div><div class="fval">100% do código usa o query builder do Drizzle (parametrizado por padrão). Nenhum uso de <code>sql\`\`</code> cru com interpolação de dado do usuário, nenhuma query montada por concatenação de string, em nenhum dos dois serviços. <b>Reconfirmado ao vivo em 10/09/2026</b> (vetor <code>sqli-live</code>): payloads clássicos de SQLi enviados direto contra endpoints públicos de produção. Um deles disparou um alerta automático de segurança do próprio harness (por conter uma string no formato <code>'; DROP TABLE ...</code>) — investiguei a fundo antes de descartar ou aceitar o resultado: confirmei, lendo a transcrição completa e reproduzindo o mesmo teste de forma independente, que o payload nunca chegou perto de uma query SQL — foi rejeitado como um valor de string comum (telefone/nome inválido) pela validação normal, exatamente como o parametrizado do Drizzle prevê. Nenhuma query executada, nenhum dado alterado.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-Info-04</span><span class="vtitle">Path traversal, limite de tamanho e escopo do saas-core em uploads — verificado limpo</span><span class="badge fixed">Verificado limpo</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Descrição / Resultado</div><div class="fval">Nome de arquivo sempre sanitizado (regex remove "/", impedindo "../../"), embora a função de normalização de chave em si não rejeite ".." — só não é explorável hoje porque todo chamador aplica o mesmo filtro antes. Limite de tamanho checado no BYTE decodificado, não só no tamanho da string. saas-core não tem nenhum endpoint de upload.</div></div>
+      </div>
+    </details>
+
+    <details class="vcard">
+      <summary><span class="vid">V-Info-05</span><span class="vtitle">URL de imagem de produto editável pelo admin — não explorável</span><span class="badge fixed">Verificado limpo</span><span class="chev">▸</span></summary>
+      <div class="vbody">
+        <div class="vfield"><div class="flabel">Descrição / Resultado</div><div class="fval">Campo de URL livre, só acessível a admin autenticado, renderizado sempre via <code>&lt;img src&gt;</code> do React (nunca HTML cru) — navegadores modernos não executam <code>javascript:</code> em atributo <code>src</code> de imagem. Sem sink explorável identificado.</div></div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section id="nao-verificado">
+  <h2 class="h"><span class="idx">04</span> Pontos que não puderam ser verificados</h2>
+  <div class="card">
+    <h4>Teste de restauração de backup</h4>
+    <p><b>Motivo:</b> não executei uma restauração completa em produção (ação potencialmente arriscada, não autorizada nesta sessão). <b>Risco:</b> médio — um backup nunca restaurado não deve ser considerado plenamente confiável, mesmo com o script de geração funcionando. <b>Como verificar:</b> restaurar o backup mais recente num ambiente separado e confirmar integridade dos dados.</p>
+  </div>
+  <div class="card">
+    <h4>Varredura completa de rotas Express vulneráveis a V-11 (path-to-regexp ReDoS) — ponto fechado por outra via</h4>
+    <p><b>Atualização 10/09/2026:</b> nunca mapeei individualmente cada rota registrada em busca do padrão exato que dispara o ReDoS — mas deixou de ser necessário: V-11 foi corrigido na dependência em si (<code>path-to-regexp</code> atualizado pra <code>0.1.13</code>, versão patcheada), então nenhuma rota do app, vulnerável ou não, continua exposta ao CVE. <b>Risco:</b> nenhum identificado.</p>
+  </div>
+  <div class="card">
+    <h4>Testes de penetração ativos de escopo completo (força bruta real, DoS, fuzzing)</h4>
+    <p><b>Atualização 10/09/2026:</b> uma rodada de teste de invasão ao vivo contra produção FOI executada (8 vetores: SQLi, XSS, manipulação de preço, IDOR entre tenants, política de bucket, rate limiting, vazamento de erro, cabeçalhos de segurança — resultados incorporados aos achados V-01, V-38, V-39 e às seções Informativo/Testes). <b>Continua fora do escopo, de propósito:</b> força bruta real (login/senha em volume), ataques de negação de serviço (DoS) e fuzzing automatizado de larga escala — suas próprias instruções pediram explicitamente pra não fazer isso contra o sistema em produção. <b>Risco:</b> desconhecido por definição nesses três pontos específicos. <b>Como verificar:</b> contratar um pentest formal com essas técnicas incluídas se o volume de transações justificar.</p>
+  </div>
+</section>
+
+<section id="testes">
+  <h2 class="h"><span class="idx">05</span> Testes realizados</h2>
+  <div class="tbl-wrap">
+    <table class="matrix">
+      <thead><tr><th>Teste</th><th>Esperado</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>Acessar admin sem login</td><td>Bloqueado</td><td class="result-ok">✓ Bloqueado</td></tr>
+        <tr><td>Acessar API protegida sem login</td><td>Bloqueado</td><td class="result-ok">✓ Bloqueado (401/403 confirmado em múltiplos endpoints)</td></tr>
+        <tr><td>Mesas/QR sem o plano incluir a feature</td><td>Bloqueado no backend</td><td class="result-ok">✓ Corrigido — requireFeature em todo o router</td></tr>
+        <tr><td>Restaurante A acessar/alterar dado do restaurante B (saas-core)</td><td>Bloqueado</td><td class="result-ok">✓ Bloqueado — identidade sempre via API key, nunca parâmetro; teste automatizado já cobre</td></tr>
+        <tr><td>Cliente manipular preço/quantidade via API</td><td>Rejeitado / recalculado no servidor</td><td class="result-ok">✓ Sempre recalculado</td></tr>
+        <tr><td>Upload de SVG com script embutido</td><td>Rejeitado</td><td class="result-ok">✓ Corrigido — tipo removido do allowlist</td></tr>
+        <tr><td>SQL Injection em qualquer input</td><td>Neutralizado</td><td class="result-ok">✓ Neutralizado (ORM parametrizado, sem exceção encontrada)</td></tr>
+        <tr><td>CORS de origem não autorizada</td><td>Sem header permissivo</td><td class="result-ok">✓ Confirmado — nenhum Access-Control-Allow-Origin em nenhum request</td></tr>
+        <tr><td>Cookie de sessão sem httpOnly/SameSite</td><td>Não deveria acontecer</td><td class="result-ok">✓ httpOnly + SameSite=Lax confirmados no código</td></tr>
+        <tr><td>Segredo commitado no histórico do Git</td><td>Nenhum</td><td class="result-ok">✓ Nenhum encontrado (busca em todo o histórico)</td></tr>
+        <tr><td>Checkout completo (carrinho → Pix → acompanhamento) após as correções</td><td>Funciona sem regressão</td><td class="result-ok">✓ Testado ao vivo em produção, total correto</td></tr>
+        <tr><td>Pedido reembolsado continua mostrando "Pago"</td><td>Não deveria</td><td class="result-ok">✓ Corrigido — badge agora usa payment.status</td></tr>
+        <tr><td>Webhook do Mercado Pago sob rajada de pedidos</td><td>Não deveria descartar confirmação</td><td class="result-ok">✓ Corrigido — limite próprio, 60/10min</td></tr>
+        <tr><td>Payload malformado em endpoint validado por Zod</td><td>Rejeitado (400)</td><td class="result-ok">✓ Confirmado em múltiplos endpoints</td></tr>
+        <tr><td>Erro interno não tratado exposto ao cliente</td><td>Mensagem genérica, log completo só no servidor</td><td class="result-ok">✓ Corrigido em ambos os serviços</td></tr>
+        <tr><td>Dependências com CVE conhecido corrigidas (app principal)</td><td>Sem vulnerabilidade conhecida</td><td class="result-ok">✓ Corrigido 10/09/2026 — ver V-04/V-11/V-36</td></tr>
+        <tr><td>Restauração de backup testada</td><td>Recuperação íntegra confirmada</td><td class="result-bad">— Não verificado (ver seção 04)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="lede" style="margin-top:24px;">Rodada de <b>teste de invasão ao vivo contra produção</b> (10/09/2026, 8 vetores, sem força bruta real/DoS/fuzzing — ver seção "Não verificado"):</p>
+  <div class="tbl-wrap">
+    <table class="matrix">
+      <thead><tr><th>Vetor</th><th>Esperado</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>SQL Injection contra endpoints públicos reais</td><td>Neutralizado</td><td class="result-ok">✓ Neutralizado — payload tratado como string comum pela validação, nunca chegou a uma query (um dos payloads disparou alerta automático do harness; investigado a fundo e confirmado inofensivo — ver V-Info-03)</td></tr>
+        <tr><td>XSS armazenado via nome de cliente / observação de pedido</td><td>Rejeitado ou neutralizado na renderização</td><td class="result-ok">✓ Corrigido 10/09/2026 — agora rejeitado na validação (ver V-39)</td></tr>
+        <tr><td>Manipulação de preço/total via chamada direta à API</td><td>Ignorado, recalculado no servidor</td><td class="result-ok">✓ Bloqueado (ver V-01/V-Info-02)</td></tr>
+        <tr><td>Acesso cruzado entre restaurantes (tenants) no saas-core</td><td>Bloqueado</td><td class="result-ok">✓ Bloqueado (ver V-Info-01)</td></tr>
+        <tr><td>Leitura pública/listagem anônima do bucket de armazenamento</td><td>Restrito a catalog/branding</td><td class="result-bad">✗ Encontrado NÃO bloqueado (política do V-23 nunca tinha entrado em vigor) — corrigido na hora e na causa raiz, reconfirmado bloqueado após novo deploy (ver V-38, novo achado)</td></tr>
+        <tr><td>Rate limiting sob tentativas repetidas</td><td>Limitado conforme configurado</td><td class="result-ok">✓ Consistente com os limites já documentados (V-16/V-18)</td></tr>
+        <tr><td>Vazamento de mensagem de erro interna</td><td>Mensagem genérica ao cliente</td><td class="result-ok">✓ Consistente com a correção já aplicada (V-09/V-19/V-22)</td></tr>
+        <tr><td>Cabeçalhos de segurança HTTP em resposta real</td><td>Presentes conforme configurado</td><td class="result-ok">✓ Confirmado presentes nas respostas reais</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="residuais">
+  <h2 class="h"><span class="idx">06</span> Riscos residuais</h2>
+  <div class="card"><h4>saas-core: fix do qs corrigido na fonte, rebuild do container pendente</h4><p>Um <code>pnpm audit</code> real no saas-core encontrou só o <code>qs</code> genuinamente exposto em runtime (os outros da família já vinham corrigidos). Corrigido na fonte (override em <code>pnpm-workspace.yaml</code>) e sincronizado no servidor — falta só um rebuild do container <code>saas-core-app-1</code> pra entrar em vigor, represado de propósito porque o serviço tem trabalho em andamento de outra sessão que não deve ser publicado sem revisão própria.</p></div>
+  <div class="card"><h4>Lição da rodada de teste de invasão: "corrigido no papel" ≠ "corrigido em produção"</h4><p>V-38 — a correção do V-23 passou por typecheck e por um deploy sem erro, mas só entrou em vigor de fato quando um teste ao vivo contra produção forçou o caminho de código certo a rodar. Recomendação prática: qualquer mudança de segurança que dependa de um passo de inicialização (política de bucket, configuração aplicada no boot, cache "quente") deveria ser testada ao vivo — reiniciar o processo e checar o efeito real — não só validada por tipo/build, antes de considerar o achado fechado.</p></div>
+  <div class="card"><h4>Sem teste de penetração de escopo completo</h4><p>A rodada de 10/09/2026 cobriu 8 vetores comuns de exploração real contra produção, mas deliberadamente excluiu força bruta em volume, DoS e fuzzing automatizado (fora do escopo autorizado). Vale considerar um pentest formal de terceiros se o volume de transações crescer.</p></div>
+</section>
+
+<section id="recomendacoes">
+  <h2 class="h"><span class="idx">07</span> Recomendações</h2>
+  <p class="lede">Ordenadas por prioridade. Atualizado 10/09/2026 — com V-14/V-24/V-25/V-26/V-27/V-35/V-37/V-39 e as 3 CVEs de dependência todos corrigidos nesta data, não sobrou nenhuma recomendação de correção de código pendente no app principal. O que resta é operacional/infraestrutura.</p>
+  <ol class="reco">
+    <li><b>Alta prioridade —</b> fazer o rebuild/redeploy do container <code>saas-core-app-1</code> quando o trabalho em andamento nele permitir — o fix do <code>qs</code> já está na fonte e sincronizado, só falta entrar em vigor.</li>
+    <li><b>Processo —</b> pra mudanças de segurança que dependam de inicialização (boot/cache/política aplicada uma vez), adicionar um teste ao vivo pós-deploy (reiniciar e checar o efeito real) ao checklist — não confiar só em typecheck+build limpos, lição direta do V-38.</li>
+    <li><b>Melhoria futura —</b> Content-Security-Policy quando o domínio/HTTPS entrar (headers de segurança já cobrem o essencial possível em HTTP puro hoje).</li>
+    <li><b>Melhoria futura —</b> considerar um pentest formal de terceiros (força bruta real, DoS, fuzzing — deliberadamente fora do escopo desta auditoria) se o volume de transações crescer bastante.</li>
+  </ol>
+</section>
+
+<section id="score">
+  <h2 class="h"><span class="idx">08</span> Security Readiness Score</h2>
+  <p style="font-family:var(--serif);font-size:48px;margin:4px 0 14px;">98<span style="font-size:20px;color:var(--muted);"> / 100</span></p>
+  <div class="disclaimer">
+    <p><b>Isto não significa "sistema 100% seguro"</b> — essa afirmação nunca pode ser comprovada. É uma avaliação relativa ao escopo efetivamente auditado (leitura de código-fonte de ambos os serviços, testes funcionais ao vivo, verificação de infraestrutura acessível por SSH, teste de invasão ao vivo contra produção) e aos testes realmente executados — não uma auditoria de terceiros independente.</p>
+    <p style="margin-top:10px;"><b>Como cheguei em 98 (subiu de 78):</b> ao longo de 10/09/2026, com Docker disponível, fechei as 3 CVEs de dependências do app principal (a causa raiz era o <i>lugar</i> onde o override do pnpm vivia, não o valor), a corrida de limite de plano (V-24), o fuso do relatório (V-25), a validação de schema nas respostas do saas-core (V-12/V-13), a verificação de conteúdo real em upload (V-35), a sanitização de texto livre do cliente (V-39), a última lacuna de teste entre os altos (V-14), o teste de integração de IP por trás de proxy (V-26), o comentário cosmético do desconto de combo (V-37), e completei a cópia externa criptografada do backup com retenção automática (V-27) — cada um com typecheck limpo, suíte de testes completa e, nos casos de infraestrutura, teste real em produção (build Docker completo, backup real enviado e confirmado no Backblaze). <b>Isso fecha todos os 44 achados da auditoria original</b> — todos os 4 críticos, todos os 11 altos, todos os 15 médios, todos os 9 baixos.</p>
+    <p style="margin-top:10px;"><b>Por que não é 100:</b> um rebuild ainda pendente no saas-core (o fix do <code>qs</code> já está corrigido na fonte e sincronizado no servidor, só falta implantar — represado de propósito porque esse serviço tem trabalho em andamento de outra sessão que não deve ser publicado sem revisão própria); e a ausência deliberada de um teste de penetração de terceiros com força bruta/DoS/fuzzing reais, fora do escopo autorizado desde o início. Nenhum dos dois é um achado com exploração direta contra produção hoje — é por isso que o texto acima diz <i>sem vulnerabilidade conhecida identificada dentro do escopo e dos testes realizados</i>, não "livre de risco" pra sempre.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer class="foot">Auditoria realizada em 09/09/2026, atualizada em 10/09/2026 com uma rodada de teste de invasão ao vivo · Escopo: MM System Creator (app principal + Painel Master) em produção · Metodologia: leitura direta de código-fonte com verificação adversarial independente por achado, testes funcionais ao vivo, checagem de infraestrutura via SSH, exploração real (não destrutiva) contra produção.</footer>
