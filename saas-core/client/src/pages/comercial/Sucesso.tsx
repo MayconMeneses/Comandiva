@@ -3,7 +3,7 @@ import { ComercialHeader } from "./ComercialHeader";
 
 export default function Sucesso() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
       <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-6">
         <div className="w-full max-w-md rounded-2xl border border-border bg-paper-raised p-6 text-center shadow-sm">

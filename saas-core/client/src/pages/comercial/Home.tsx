@@ -4,7 +4,7 @@ import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
 
 const PRIMARY_LINK_CLASSES =
-  "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-accent px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover";
+  "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-6 text-sm font-semibold text-white shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110";
 const OUTLINE_LINK_CLASSES =
   "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-paper-raised px-6 text-sm font-semibold text-ink transition-colors hover:bg-paper";
 
@@ -70,7 +70,44 @@ const IconX = (props: SVGProps<SVGSVGElement>) => (
     <path d="M18 6 6 18M6 6l12 12" />
   </Icon>
 );
-
+const IconCoin = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v10M14.5 9.3c0-1-1-1.8-2.5-1.8s-2.5.9-2.5 2 1 1.6 2.5 2 2.5.9 2.5 2-1 2-2.5 2-2.5-.8-2.5-1.8" />
+  </Icon>
+);
+const IconGear = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 13.5a7.4 7.4 0 0 0 0-3l2-1.4-2-3.4-2.3.8a7.3 7.3 0 0 0-2.6-1.5L14 2.5h-4l-.5 2.5a7.3 7.3 0 0 0-2.6 1.5l-2.3-.8-2 3.4 2 1.4a7.4 7.4 0 0 0 0 3l-2 1.4 2 3.4 2.3-.8a7.3 7.3 0 0 0 2.6 1.5l.5 2.5h4l.5-2.5a7.3 7.3 0 0 0 2.6-1.5l2.3.8 2-3.4-2-1.4Z" />
+  </Icon>
+);
+const IconDevices = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <rect x="2.5" y="5" width="14" height="10" rx="1.5" />
+    <path d="M6 18h6" />
+    <rect x="17.5" y="8" width="5" height="10" rx="1" />
+  </Icon>
+);
+const IconWhatsapp = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M7 17.5 3.5 18.5 4.6 15A8 8 0 1 1 7 17.5Z" />
+    <path d="M9 10c0 2.8 2.2 5 5 5 .3-1 .3-1.7 0-2l-1.8-.8-.9 1a5 5 0 0 1-2.5-2.5l1-.9-.8-1.8c-.3-.3-1-.3-2 0Z" />
+  </Icon>
+);
+const IconRemote = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <rect x="3" y="4" width="18" height="12" rx="1.5" />
+    <path d="M8 20h8M12 16v4" />
+    <path d="m9.5 8 2 2-2 2M14.5 12h-1.8" />
+  </Icon>
+);
+const IconVideo = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <rect x="2.5" y="6" width="13" height="12" rx="1.5" />
+    <path d="m15.5 10.5 5.5-3v9l-5.5-3Z" />
+  </Icon>
+);
 const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [
   {
     icon: IconBolt,
@@ -111,6 +148,81 @@ const COMPARISON = [
   { label: "Personalização do cardápio/visual", us: "Total", them: "Quase nenhuma" },
 ];
 
+const ROTINA: { title: string; image: string; description: string }[] = [
+  {
+    title: "Pense no crescimento, não na correria",
+    image: "/assets/hero/rotina-crescimento.jpg",
+    description: "Troque hora apagando incêndio por hora pensando em cardápio novo, horário de pico e como girar mais nos dias fracos.",
+  },
+  {
+    title: "Menos trabalho repetitivo",
+    image: "/assets/hero/rotina-menos-trabalho.jpg",
+    description: "O pedido entra sozinho, já com o valor certo. Ninguém mais precisa copiar comanda à mão nem discutir troco no balcão.",
+  },
+  {
+    title: "Tudo numa tela só",
+    image: "/assets/hero/rotina-tudo-tela.jpg",
+    description: "Cardápio, mesa, entrega e relatório do mês reunidos no mesmo lugar — chega de abrir três sistemas diferentes pra fechar o caixa.",
+  },
+];
+
+const MODULOS: { title: string; description: string; badge?: string }[] = [
+  { title: "Cardápio digital", description: "Mantém prato, foto e preço sempre em dia, sem depender de ninguém pra atualizar." },
+  { title: "Pedidos e entregas", description: "Cada pedido chega pronto pra produção, sem intermediário levando fatia da venda." },
+  { title: "Pagamentos", description: "Pix ou cartão: o Mercado Pago processa tudo e repassa pro seu bolso, sem você mexer em nada." },
+  {
+    title: "Mesas e QR Code",
+    badge: "Profissional e Premium",
+    description: "O cliente chama o garçom, pede rodada extra e fecha a conta pelo celular, sem levantar da mesa.",
+  },
+  {
+    title: "Promoções e eventos",
+    badge: "Profissional e Premium",
+    description: "Monta combos e datas especiais pra girar o movimento nos dias mais fracos da semana.",
+  },
+  {
+    title: "Nota fiscal (NFC-e)",
+    badge: "Premium",
+    description: "Emissão fiscal integrada ao sistema — dispensa um programa à parte só pra essa parte.",
+  },
+];
+
+const RESUMO: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [
+  {
+    icon: IconCoin,
+    title: "Sem limite de faturamento",
+    description: "A mensalidade é fixa — não importa quanto seu restaurante venda, não tem cobrança extra por cima do seu faturamento.",
+  },
+  {
+    icon: IconGear,
+    title: "Sem comissão no delivery",
+    description: "Receba os pedidos direto no seu próprio sistema, sem pagar taxa por venda como nos aplicativos de entrega.",
+  },
+  {
+    icon: IconDevices,
+    title: "Limites claros, sem pegadinha",
+    description: "Cada plano já vem com o número de usuários definido, sem letra miúda: Essencial até 3, Profissional até 8, Premium sem limite de usuários.",
+  },
+];
+
+const SUPORTE: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [
+  {
+    icon: IconWhatsapp,
+    title: "WhatsApp direto comigo",
+    description: "Resposta rápida, sem robô e sem fila de espera.",
+  },
+  {
+    icon: IconRemote,
+    title: "Acesso remoto",
+    description: "Se travar, eu entro no seu painel pra resolver junto com você — sem pedir sua senha.",
+  },
+  {
+    icon: IconVideo,
+    title: "Treinamento ao vivo",
+    description: "Chamada de vídeo ensinando a usar o sistema, junto com a entrega do seu restaurante.",
+  },
+];
+
 const STEPS = [
   { number: "1", title: "Escolha o plano", description: "Compare os recursos e escolha o que faz sentido pro tamanho do seu restaurante." },
   { number: "2", title: "Cadastre seu restaurante", description: "Leva menos de 2 minutos — sem cartão de crédito, sem burocracia." },
@@ -123,7 +235,7 @@ const STEPS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader />
 
       {/* Hero */}
@@ -132,7 +244,27 @@ export default function Home() {
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] opacity-70"
           style={{ background: "radial-gradient(60% 60% at 50% 0%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent)" }}
         />
-        <div className="mx-auto max-w-5xl px-6 py-24 text-center">
+        <div className="relative w-full">
+          <img
+            src="/assets/hero/hero-banner.jpg"
+            alt="Painel do MM System Creator em uso: vendas, pedidos e financeiro do restaurante em tempo real"
+            className="h-auto w-full"
+          />
+          <a
+            href="#diferenciais"
+            aria-label="Conheça o sistema"
+            className="absolute"
+            style={{ left: "3%", top: "63%", width: "24%", height: "12%" }}
+          />
+        </div>
+        <div
+          className="h-20 w-full sm:h-28"
+          style={{
+            background: "linear-gradient(to bottom, #00081a 0%, #1e1b6e 40%, var(--color-accent) 70%, var(--color-paper) 100%)",
+          }}
+        />
+
+        <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised px-3 py-1 text-xs font-semibold text-accent">
             <IconBolt className="h-3.5 w-3.5" />
             Zero comissão por pedido
@@ -154,15 +286,51 @@ export default function Home() {
           </div>
           <p className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-ink-soft">
             <span className="inline-flex items-center gap-1.5">
-              <IconCheck className="h-4 w-4 text-emerald-600" /> 30 dias grátis
+              <IconCheck className="h-4 w-4 text-emerald-400" /> 30 dias grátis
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <IconCheck className="h-4 w-4 text-emerald-600" /> Sem cartão de crédito
+              <IconCheck className="h-4 w-4 text-emerald-400" /> Sem cartão de crédito
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <IconCheck className="h-4 w-4 text-emerald-600" /> Cancele quando quiser
+              <IconCheck className="h-4 w-4 text-emerald-400" /> Cancele quando quiser
             </span>
           </p>
+        </div>
+      </section>
+
+      {/* Rotina */}
+      <section className="mx-auto max-w-5xl px-6 py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Seu tempo vale mais que planilha e comanda de papel</h2>
+          <p className="mt-3 text-ink-soft">Você cuida do restaurante. O sistema cuida da correria.</p>
+        </div>
+        <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          {ROTINA.map(item => (
+            <div key={item.title}>
+              <div className="aspect-[3/2] overflow-hidden rounded-2xl border border-border shadow-lg">
+                <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+              </div>
+              <p className="mt-4 text-base text-ink-soft">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Resumo rápido */}
+      <section className="border-y border-border bg-paper-raised/60">
+        <div className="mx-auto max-w-5xl px-6 py-16">
+          <h2 className="text-center text-2xl font-bold text-ink sm:text-3xl">Por que escolher o MM System Creator?</h2>
+          <div className="mt-12 grid gap-10 sm:grid-cols-3">
+            {RESUMO.map(item => (
+              <div key={item.title} className="text-center">
+                <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                  <item.icon className="h-8 w-8" />
+                </div>
+                <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
+                <p className="mx-auto mt-2 max-w-xs text-sm text-ink-soft">{item.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -202,14 +370,40 @@ export default function Home() {
               <div key={row.label} className="grid grid-cols-3 border-b border-border text-sm last:border-b-0">
                 <div className="px-4 py-4 font-medium text-ink">{row.label}</div>
                 <div className="flex items-center gap-2 px-4 py-4 text-ink">
-                  <IconCheck className="h-4 w-4 shrink-0 text-emerald-600" /> {row.us}
+                  <IconCheck className="h-4 w-4 shrink-0 text-emerald-400" /> {row.us}
                 </div>
                 <div className="flex items-center gap-2 px-4 py-4 text-ink-soft">
-                  <IconX className="h-4 w-4 shrink-0 text-red-500" /> {row.them}
+                  <IconX className="h-4 w-4 shrink-0 text-red-400" /> {row.them}
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Módulos */}
+      <section className="mx-auto max-w-5xl px-6 py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Um sistema completo, sem juntar outros por fora</h2>
+          <p className="mt-3 text-ink-soft">Seis frentes cobertas dentro do mesmo painel — cresce junto com o plano escolhido.</p>
+        </div>
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {MODULOS.map(item => (
+            <div key={item.title} className="rounded-2xl border border-border bg-paper-raised p-6">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-ink">{item.title}</h3>
+                {item.badge && (
+                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">{item.badge}</span>
+                )}
+              </div>
+              <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-10 text-center">
+          <Link href="/comercial/planos" className={PRIMARY_LINK_CLASSES}>
+            Ver planos e recursos completos
+          </Link>
         </div>
       </section>
 
@@ -226,6 +420,25 @@ export default function Home() {
               </span>
               <h3 className="mt-4 font-semibold text-ink">{step.title}</h3>
               <p className="mt-2 text-sm text-ink-soft">{step.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Suporte */}
+      <section className="mx-auto max-w-5xl px-6 py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Suporte que não deixa você na mão</h2>
+          <p className="mt-3 text-ink-soft">Sem central de atendimento genérica — você fala direto com quem construiu o sistema.</p>
+        </div>
+        <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          {SUPORTE.map(item => (
+            <div key={item.title} className="rounded-2xl border border-border bg-paper-raised p-6 text-center">
+              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                <item.icon className="h-6 w-6" />
+              </div>
+              <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
+              <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
             </div>
           ))}
         </div>
@@ -251,7 +464,10 @@ export default function Home() {
 
       {/* CTA final */}
       <section className="mx-auto max-w-5xl px-6 pb-24">
-        <div className="rounded-2xl bg-accent px-8 py-14 text-center text-white">
+        <div
+          className="rounded-2xl px-8 py-14 text-center text-white shadow-xl shadow-[#6146fd]/10"
+          style={{ background: "linear-gradient(135deg, #008cfe, #6146fd)" }}
+        >
           <h2 className="text-2xl font-bold sm:text-3xl">Pronto pra vender sem depender de aplicativo de terceiro?</h2>
           <p className="mx-auto mt-3 max-w-xl text-white/85">30 dias grátis assim que seu sistema estiver pronto — sem cartão de crédito. Cancele quando quiser.</p>
           <div className="mt-8">

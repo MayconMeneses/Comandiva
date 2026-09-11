@@ -11,9 +11,9 @@ import { features, planFeatures, planLimits, plans, type PlanKey } from "../driz
  */
 
 const PLANS: { key: PlanKey; name: string; priceCents: number; position: number }[] = [
-  { key: "essencial", name: "Essencial", priceCents: 14990, position: 1 },
-  { key: "profissional", name: "Profissional", priceCents: 24990, position: 2 },
-  { key: "premium", name: "Premium", priceCents: 29990, position: 3 },
+  { key: "essencial", name: "Essencial", priceCents: 9999, position: 1 },
+  { key: "profissional", name: "Profissional", priceCents: 19999, position: 2 },
+  { key: "premium", name: "Premium", priceCents: 24999, position: 3 },
 ];
 
 const FEATURES: { featureId: string; name: string; category: string; minPlan: PlanKey }[] = [

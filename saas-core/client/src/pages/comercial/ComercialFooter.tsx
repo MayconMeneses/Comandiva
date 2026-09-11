@@ -30,10 +30,10 @@ export function ComercialFooter() {
 
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-ink-soft">
           <span className="inline-flex items-center gap-1.5">
-            <IconLock className="h-4 w-4 text-emerald-600" /> Suas informações ficam protegidas
+            <IconLock className="h-4 w-4 text-emerald-400" /> Suas informações ficam protegidas
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <IconShieldCheck className="h-4 w-4 text-emerald-600" /> Pagamento processado com segurança pelo Mercado Pago
+            <IconShieldCheck className="h-4 w-4 text-emerald-400" /> Pagamento processado com segurança pelo Mercado Pago
           </span>
         </div>
 

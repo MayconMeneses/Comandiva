@@ -19,3 +19,20 @@ body {
   color: var(--color-ink);
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
+
+/* Identidade visual do site comercial público (/comercial/*) — dark navy +
+   azul + roxo, deliberadamente diferente da paleta clara do Painel Master
+   acima. Escopado nessa classe (aplicada só nas páginas de /comercial) pra
+   nunca vazar pro resto do app: os componentes compartilhados (Button,
+   Input, etc.) já usam esses mesmos tokens, então herdam o tema escuro
+   automaticamente sem precisar duplicar nada.  */
+.comercial-dark {
+  color-scheme: dark;
+  --color-ink: #f8fafc;
+  --color-ink-soft: #94a3b8;
+  --color-paper: #080b16;
+  --color-paper-raised: #10172a;
+  --color-border: #1e293b;
+  --color-accent: #4f46e5;
+  --color-accent-hover: #6366f1;
+}

@@ -7,7 +7,7 @@ import { ComercialHeader } from "./ComercialHeader";
 
 const PLAN_LABELS: Record<string, string> = { essencial: "Essencial", profissional: "Profissional", premium: "Premium" };
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
-const IMPLEMENTATION_FEE_CENTS = 75000;
+const IMPLEMENTATION_FEE_CENTS = 15000;
 
 export default function Cadastro() {
   const { planKey } = useParams<{ planKey: string }>();
@@ -41,7 +41,7 @@ export default function Cadastro() {
   const planLabel = PLAN_LABELS[planKey ?? ""] ?? planKey;
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
       <div className="mx-auto max-w-md px-6 py-12">
         <Link href="/comercial/planos" className="text-sm text-ink-soft hover:text-ink">
@@ -59,9 +59,8 @@ export default function Cadastro() {
           <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3 text-sm">
             <p className="font-semibold text-ink">Taxa de implementação: {money(IMPLEMENTATION_FEE_CENTS)}</p>
             <p className="mt-1 text-ink-soft">
-              De <span className="line-through">R$ 1.200,00</span> por {money(IMPLEMENTATION_FEE_CENTS)} — tempo
-              limitado. Cobre a configuração completa do seu sistema. Cobrada agora, ao confirmar o cadastro,
-              via Mercado Pago.
+              Cobre a configuração completa do seu sistema. Cobrada agora, ao confirmar o cadastro, via
+              Mercado Pago.
             </p>
           </div>
 
@@ -111,9 +110,15 @@ export default function Cadastro() {
             </div>
           </div>
 
-          {signup.error ? <p className="mt-3 rounded-lg bg-red-50 p-2.5 text-sm text-red-700">{signup.error.message}</p> : null}
+          {signup.error ? (
+            <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-sm text-red-400">{signup.error.message}</p>
+          ) : null}
 
-          <Button type="submit" disabled={signup.isPending} className="mt-5 w-full">
+          <Button
+            type="submit"
+            disabled={signup.isPending}
+            className="mt-5 w-full !bg-gradient-to-r !from-[#008cfe] !to-[#6146fd] shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:!brightness-110"
+          >
             {signup.isPending ? "Enviando..." : `Pagar ${money(IMPLEMENTATION_FEE_CENTS)} e continuar`}
           </Button>
         </form>

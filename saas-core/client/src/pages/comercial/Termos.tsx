@@ -3,7 +3,7 @@ import { ComercialFooter } from "./ComercialFooter";
 
 export default function Termos() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
       <div className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-2xl font-bold text-ink">Termos de uso</h1>

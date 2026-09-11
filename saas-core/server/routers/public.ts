@@ -8,9 +8,9 @@ import { ENV } from "../_core/env";
 import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
 
-// Taxa de implementação — R$1.200 de tabela, R$750 por tempo limitado (ver
-// client/src/pages/comercial/Planos.tsx pro mesmo valor exibido).
-const IMPLEMENTATION_FEE_CENTS = 75000;
+// Taxa de implementação — ver client/src/pages/comercial/Planos.tsx pro
+// mesmo valor exibido.
+const IMPLEMENTATION_FEE_CENTS = 15000;
 
 /**
  * Único namespace acessível sem token de operador, API key de restaurante ou

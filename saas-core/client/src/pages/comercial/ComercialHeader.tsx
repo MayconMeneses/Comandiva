@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { useEffect } from "react";
 
 const PRIMARY_LINK_CLASSES =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover";
+  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110";
 
 /**
  * Cabeçalho compartilhado das páginas públicas (/comercial/*). A logo real
@@ -17,7 +17,7 @@ export function ComercialHeader({ showNav = true }: { showNav?: boolean }) {
 
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+      <div className="flex w-full items-center justify-between px-6 py-3">
         <Link href="/comercial" className="inline-flex items-center rounded-lg bg-[#1a1a1a] px-3 py-1.5">
           <img src="/mm-logo-full.png" alt="MM System Creator" className="h-7 w-auto sm:h-8" />
         </Link>

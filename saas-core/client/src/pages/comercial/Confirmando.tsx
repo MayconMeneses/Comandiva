@@ -26,7 +26,7 @@ export default function Confirmando() {
   }, [statusQuery.data?.status, setLocation]);
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
       <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-6">
         <div className="w-full max-w-md rounded-2xl border border-border bg-paper-raised p-6 text-center shadow-sm">
@@ -37,7 +37,7 @@ export default function Confirmando() {
             Mercado Pago confirma o pagamento pra gente.
           </p>
           {!Number.isFinite(signupPaymentId) || signupPaymentId <= 0 ? (
-            <p className="mt-3 text-sm text-red-700">Não encontramos a referência do seu pagamento.</p>
+            <p className="mt-3 text-sm text-red-400">Não encontramos a referência do seu pagamento.</p>
           ) : null}
         </div>
       </div>
