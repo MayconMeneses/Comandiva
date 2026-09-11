@@ -14,9 +14,13 @@ import { toast } from "sonner";
 import type { MenuProduct } from "@/lib/menuTypes";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+// Verde/vermelho fortes de propósito (livre vs. ocupada) — pra dar pra
+// reconhecer o status da mesa num relance, mesmo de longe no salão; as
+// outras cores continuam sutis, só pra sinalizar exceção (pagamento
+// pendente, reserva chegando, mesa inativa), não pra competir visualmente.
 const STATUS_TONE: Record<string, string> = {
-  FREE: "border-emerald-300 bg-emerald-50",
-  OCCUPIED: "border-amber-300 bg-amber-50",
+  FREE: "border-emerald-500 bg-emerald-200",
+  OCCUPIED: "border-red-500 bg-red-200",
   AWAITING_PAYMENT: "border-rose-300 bg-rose-50",
   RESERVED: "border-sky-300 bg-sky-50",
   INACTIVE: "border-stone-300 bg-stone-100 opacity-60",

@@ -1,22 +1,65 @@
 import { Button } from "@/components/ui/button";
 import { CartProvider, useCart } from "@/contexts/CartContext";
+import { CategoryProductSections, CategoryTabBar, useCategoryScrollSpy } from "@/components/CategoryScrollMenu";
+import EmptyMenu from "@/components/EmptyMenu";
 import ProductDialog from "@/components/ProductDialog";
 import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
-import { BellRing, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, BellRing, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRoute } from "wouter";
-import type { MenuProduct } from "@/lib/menuTypes";
+import type { MenuCategory, MenuProduct } from "@/lib/menuTypes";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const STATUS_LABEL: Record<string, string> = { PENDING: "Aguardando aceite", ACCEPTED: "Aceito pela cozinha", PREPARING: "Em preparo", READY_FOR_PICKUP: "Pronto — a caminho da mesa", COMPLETED: "Servido", CANCELLED: "Cancelado" };
 
 function Loading() { return <div className="grid min-h-screen place-items-center bg-[#f6f1e8]"><Loader2 className="h-8 w-8 animate-spin text-[#b4472d]" /></div>; }
 
-function TableSessionContent({ token }: { token: string }) {
+/**
+ * Tela inicial ao ler o QR Code da mesa — logo do restaurante + 3 ações
+ * diretas, em vez de já cair direto na busca de produtos. "Chamar garçom" e
+ * "Pedir a conta" agem na hora, sem precisar entrar na tela de pedido.
+ */
+function TableLanding({ token, onOrder }: { token: string; onOrder: () => void }) {
+  const utils = trpc.useUtils();
+  const settings = trpc.catalog.settings.useQuery();
+  const resolve = trpc.table.resolve.useQuery({ token }, { refetchInterval: 12000 });
+  const requestBill = trpc.table.requestBill.useMutation({
+    onSuccess: () => { void utils.table.resolve.invalidate({ token }); toast.success("Conta solicitada. A equipe já foi avisada."); },
+    onError: error => toast.error(error.message),
+  });
+  const callWaiter = trpc.table.callWaiter.useMutation({
+    onSuccess: () => { void utils.table.resolve.invalidate({ token }); toast.success("Garçom chamado! Já estamos indo até a mesa."); },
+    onError: error => toast.error(error.message),
+  });
+
+  if (resolve.isLoading) return <Loading />;
+  if (resolve.error || !resolve.data) {
+    return <div className="grid min-h-screen place-items-center bg-[#f6f1e8] p-6 text-center"><div><UtensilsCrossed className="mx-auto h-9 w-9 text-[#b89e7a]" /><h1 className="mt-4 font-display text-2xl font-bold">Mesa não encontrada</h1><p className="mt-2 max-w-sm text-sm text-muted-foreground">{resolve.error?.message ?? "Confira o QR Code ou peça ajuda à equipe."}</p></div></div>;
+  }
+  const { table, waiterRequested, session } = resolve.data;
+  const billRequested = session.status === "AWAITING_PAYMENT";
+
+  return <div className="grid min-h-screen place-items-center bg-[#f6f1e8] p-6"><div className="w-full max-w-sm text-center">
+    <img src={settings.data?.logoUrl || "/mm-logo-icon.png"} alt="Logotipo do restaurante" className="mx-auto h-16 w-16 object-contain" />
+    <p className="mt-4 text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">{table.sector || "Salão"}</p>
+    <h1 className="mt-1 font-display text-3xl font-bold">{table.label}</h1>
+    <p className="mt-2 text-sm text-muted-foreground">O que você quer fazer?</p>
+    <div className="mt-6 space-y-3">
+      <button type="button" onClick={onOrder} className="flex w-full items-center gap-3 rounded-2xl border border-[#e0d5c5] bg-[#fffdf8] p-4 text-left shadow-[0_8px_22px_rgba(53,34,17,.06)] transition hover:border-[#b4472d] hover:bg-[#fdf1eb]"><img src="/mesa-cardapio-icon.png" alt="" className="h-10 w-10 shrink-0 object-contain" /><span><span className="block text-sm font-bold">Ver cardápio e pedir</span><span className="block text-xs text-muted-foreground">Busque os itens e envie seu pedido pra cozinha</span></span></button>
+      <button type="button" disabled={waiterRequested || callWaiter.isPending} onClick={() => callWaiter.mutate({ token })} className="flex w-full items-center gap-3 rounded-2xl border border-[#e0d5c5] bg-[#fffdf8] p-4 text-left shadow-[0_8px_22px_rgba(53,34,17,.06)] transition hover:border-[#b4472d] hover:bg-[#fdf1eb] disabled:opacity-60"><img src="/mesa-garcom-icon.png" alt="" className="h-10 w-10 shrink-0 object-contain" /><span><span className="block text-sm font-bold">{waiterRequested ? "Garçom já chamado" : callWaiter.isPending ? "Chamando…" : "Chamar garçom"}</span><span className="block text-xs text-muted-foreground">Alguém da equipe vem até a mesa</span></span></button>
+      <button type="button" disabled={billRequested || requestBill.isPending} onClick={() => requestBill.mutate({ token })} className="flex w-full items-center gap-3 rounded-2xl border border-[#e0d5c5] bg-[#fffdf8] p-4 text-left shadow-[0_8px_22px_rgba(53,34,17,.06)] transition hover:border-[#b4472d] hover:bg-[#fdf1eb] disabled:opacity-60"><img src="/mesa-comanda-icon.jpg" alt="" className="h-10 w-10 shrink-0 rounded-lg object-contain" /><span><span className="block text-sm font-bold">{billRequested ? "Conta já solicitada" : requestBill.isPending ? "Chamando…" : "Pedir a conta"}</span><span className="block text-xs text-muted-foreground">Fecha tudo que já foi pedido nessa mesa</span></span></button>
+    </div>
+  </div></div>;
+}
+
+function TableSessionContent({ token, onBack }: { token: string; onBack: () => void }) {
   const utils = trpc.useUtils();
   const resolve = trpc.table.resolve.useQuery({ token }, { refetchInterval: 12000 });
+  const catalog = trpc.catalog.list.useQuery();
+  const categories = (catalog.data ?? []) as MenuCategory[];
+  const scrollSpy = useCategoryScrollSpy(categories);
   const { items, subtotalCents, updateQuantity, removeItem, clearCart } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<MenuProduct | null>(null);
   const [showCart, setShowCart] = useState(false);
@@ -52,13 +95,16 @@ function TableSessionContent({ token }: { token: string }) {
   };
 
   return <div className="min-h-screen bg-[#f6f1e8] pb-28">
-    <header className="border-b border-[#3e3025] bg-[#17120e] text-[#fffaf3]"><div className="page-shell flex min-h-16 items-center justify-between py-3"><div className="flex items-center gap-2 font-display text-xl font-bold"><UtensilsCrossed className="h-5 w-5 text-[#e9c98f]" />{table.label}</div><span className="text-xs text-[#d6c5af]">{table.sector || "Salão"}</span></div></header>
+    <header className="border-b border-[#3e3025] bg-[#17120e] text-[#fffaf3]"><div className="page-shell flex min-h-16 items-center justify-between py-3"><div className="flex items-center gap-3"><button type="button" onClick={onBack} aria-label="Voltar" className="rounded-lg p-1.5 hover:bg-white/10"><ArrowLeft className="h-4 w-4" /></button><div className="flex items-center gap-2 font-display text-xl font-bold"><UtensilsCrossed className="h-5 w-5 text-[#e9c98f]" />{table.label}</div></div><span className="text-xs text-[#d6c5af]">{table.sector || "Salão"}</span></div></header>
     <main className="page-shell max-w-2xl py-7">
       <p className="text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">Peça direto da mesa</p>
       <h1 className="mt-2 font-display text-3xl font-bold">O que vamos pedir?</h1>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">Busque um item, adicione ao pedido e envie. Você pode fazer quantas rodadas quiser — a conta fecha tudo junto no final.</p>
-      <div className="mt-5"><ProductSearch onSelect={setSelectedProduct} /></div>
+      {categories.length ? <div className="mt-4"><CategoryTabBar categories={categories} spy={scrollSpy} /></div> : null}
+      <div className="mt-4"><ProductSearch onSelect={setSelectedProduct} /></div>
       <Button type="button" variant="outline" disabled={waiterRequested || callWaiter.isPending} onClick={() => callWaiter.mutate({ token })} className="mt-3 h-10 w-full rounded-xl border-[#d9c9b4] bg-white sm:w-auto"><BellRing className="mr-2 h-4 w-4" />{waiterRequested ? "Garçom já chamado" : callWaiter.isPending ? "Chamando…" : "Chamar garçom"}</Button>
+
+      <div className="mt-6">{categories.length ? <CategoryProductSections categories={categories} spy={scrollSpy} onSelect={setSelectedProduct} /> : !catalog.isLoading ? <EmptyMenu openingHours={undefined} /> : null}</div>
 
       {orders.length > 0 && <section className="mt-8"><h2 className="font-display text-xl font-bold">Sua comanda</h2><div className="mt-3 space-y-3">{orders.map(order => <div key={order.id} className="rounded-2xl border border-[#e3d6c6] bg-[#fffdf8] p-4"><div className="flex items-center justify-between gap-3"><span className="text-xs font-bold uppercase tracking-[.1em] text-[#b4472d]">{STATUS_LABEL[order.status] ?? order.status}</span><strong className="text-sm">{money(order.totalCents)}</strong></div><p className="mt-2 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p></div>)}</div></section>}
 
@@ -72,8 +118,14 @@ function TableSessionContent({ token }: { token: string }) {
   </div>;
 }
 
+function TableSessionRoot({ token }: { token: string }) {
+  const [stage, setStage] = useState<"landing" | "ordering">("landing");
+  if (stage === "landing") return <TableLanding token={token} onOrder={() => setStage("ordering")} />;
+  return <TableSessionContent token={token} onBack={() => setStage("landing")} />;
+}
+
 export default function TableSession() {
   const [, params] = useRoute<{ token: string }>("/mesa/:token");
   if (!params?.token) return <Loading />;
-  return <CartProvider storageKey={`pubx-table-cart-${params.token}`}><TableSessionContent token={params.token} /></CartProvider>;
+  return <CartProvider storageKey={`pubx-table-cart-${params.token}`}><TableSessionRoot token={params.token} /></CartProvider>;
 }
