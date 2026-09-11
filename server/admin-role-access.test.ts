@@ -21,13 +21,18 @@ const additionalAdminContext = {
 describe("acesso do administrador adicional", () => {
   it("alcança os módulos centrais do painel", async () => {
     const orderResult = Object.assign(Promise.resolve([]), { limit: vi.fn().mockResolvedValue([]) });
-    const query = { orderBy: vi.fn(() => orderResult), where: vi.fn(() => ({ orderBy: vi.fn(() => orderResult) })) };
+    // admin.customers agora também roda uma contagem total em paralelo (bare
+    // `await db.select({...}).from(x)`, sem orderBy/where) — `query` precisa
+    // ser thenable (resolvendo pra 0) além de continuar oferecendo
+    // orderBy/where pros outros endpoints (dashboard/catalog/orders/rotas)
+    // que reaproveitam este mesmo mock.
+    const query = Object.assign(Promise.resolve([{ count: 0 }]), { orderBy: vi.fn(() => orderResult), where: vi.fn(() => ({ orderBy: vi.fn(() => orderResult) })) });
     const select = vi.fn().mockReturnValue({ from: vi.fn(() => query) });
     mocks.getDb.mockResolvedValue({ select });
     const caller = adminRouter.createCaller(additionalAdminContext);
 
     await expect(caller.dashboard()).resolves.toEqual(expect.objectContaining({ count: 0, revenueCents: 0, recentOrders: [], settings: expect.anything() }));
-    await expect(caller.customers({ limit: 10 })).resolves.toEqual([]);
+    await expect(caller.customers({ limit: 10 })).resolves.toEqual({ rows: [], total: 0 });
     await expect(caller.catalog()).resolves.toEqual({ categories: [], products: [], addonGroups: [], addonOptions: [] });
     await expect(caller.orders({ limit: 10 })).resolves.toEqual([]);
     await expect(caller.deliveryRoutes()).resolves.toEqual([]);

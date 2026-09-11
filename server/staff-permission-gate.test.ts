@@ -34,7 +34,12 @@ describe("restaurantProcedureFor — permissão granular de staff", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const rows = [{ id: 1, name: "Cliente" }];
-    mocks.getDb.mockResolvedValue({ select: vi.fn(() => ({ from: vi.fn(() => ({ orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue(rows) })) })) })) });
+    // admin.customers roda lista + contagem total em paralelo (Promise.all) —
+    // dentro de cada chamada, a 1ª select() é sempre a lista (orderBy/limit),
+    // a 2ª é a contagem (array de linha única) — por isso alterna em pares,
+    // já que este describe chama customers() mais de uma vez em alguns testes.
+    let selectCall = 0;
+    mocks.getDb.mockResolvedValue({ select: vi.fn(() => { selectCall++; const isListQuery = selectCall % 2 === 1; return { from: vi.fn(() => (isListQuery ? { orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue(rows) })) } : Promise.resolve([{ count: rows.length }]))) }; }) });
   });
 
   it("staff sem nenhuma permissão extra é rejeitado", async () => {
@@ -52,13 +57,13 @@ describe("restaurantProcedureFor — permissão granular de staff", () => {
   it("staff com a área certa liberada (customers) passa", async () => {
     mocks.getStaffPermissionsByUserId.mockResolvedValue(["customers"]);
     const caller = adminCustomersRouter.createCaller(staffContext(3));
-    await expect(caller.customers({ limit: 10 })).resolves.toEqual([{ id: 1, name: "Cliente" }]);
+    await expect(caller.customers({ limit: 10 })).resolves.toEqual({ rows: [{ id: 1, name: "Cliente" }], total: 1 });
     expect(mocks.getStaffPermissionsByUserId).toHaveBeenCalledWith(3);
   });
 
   it("checa a permissão pelo id de quem chamou, não de uma conta staff qualquer (isolamento entre contas)", async () => {
     mocks.getStaffPermissionsByUserId.mockImplementation(async (userId: number) => (userId === 5 ? ["customers"] : []));
     await expect(adminCustomersRouter.createCaller(staffContext(4)).customers({ limit: 10 })).rejects.toMatchObject({ code: "FORBIDDEN" });
-    await expect(adminCustomersRouter.createCaller(staffContext(5)).customers({ limit: 10 })).resolves.toEqual([{ id: 1, name: "Cliente" }]);
+    await expect(adminCustomersRouter.createCaller(staffContext(5)).customers({ limit: 10 })).resolves.toEqual({ rows: [{ id: 1, name: "Cliente" }], total: 1 });
   });
 });

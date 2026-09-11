@@ -69,12 +69,17 @@ describe("Modo Suporte — leitura e escrita liberadas, exceto credenciais/pagam
 
   it("sessão de suporte alcança leitura curada (admin.tables, admin.customers)", async () => {
     const rows = [{ id: 9, name: "Cliente teste" }];
-    const query = { orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue(rows) })) };
-    mocks.getDb.mockResolvedValue({ select: vi.fn(() => ({ from: vi.fn(() => query) })) });
+    const listQuery = { orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue(rows) })) };
+    // admin.customers agora roda duas consultas em paralelo (lista + contagem
+    // total) — a 1ª chamada de select() (síncrona, antes do Promise.all
+    // resolver) é sempre a lista, a 2ª é a contagem, então um contador simples
+    // decide qual resposta cada uma recebe.
+    let selectCall = 0;
+    mocks.getDb.mockResolvedValue({ select: vi.fn(() => { selectCall++; const call = selectCall; return { from: vi.fn(() => (call === 1 ? listQuery : Promise.resolve([{ count: rows.length }]))) }; }) });
 
     const caller = appRouter.createCaller(supportOnlyContext);
     await expect(caller.admin.tables()).resolves.toEqual([{ id: 1, label: "01" }]);
-    await expect(caller.admin.customers({ limit: 10 })).resolves.toEqual(rows);
+    await expect(caller.admin.customers({ limit: 10 })).resolves.toEqual({ rows, total: rows.length });
   });
 
   it("sem sessão nenhuma (nem admin, nem suporte) é rejeitado nos mesmos endpoints", async () => {
