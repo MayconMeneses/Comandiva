@@ -185,7 +185,13 @@ export async function rotateApiKey(restaurantId: number) {
 export async function setRestaurantStatus(restaurantId: number, status: RestaurantStatus) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  await db.update(restaurants).set({ status, updatedAt: Date.now() }).where(eq(restaurants.id, restaurantId));
+  const now = Date.now();
+  // cancelledAt marca a última vez que virou "cancelled" — usado só pra
+  // ocultar da lista principal do Painel Master 10 dias depois (ver
+  // listRestaurantsForPanel). Reativar (voltar pra active/suspended) limpa
+  // a marca, senão uma reativação e novo cancelamento futuro reaproveitaria
+  // a data antiga e ocultaria cedo demais.
+  await db.update(restaurants).set({ status, cancelledAt: status === "cancelled" ? now : null, updatedAt: now }).where(eq(restaurants.id, restaurantId));
   return { success: true };
 }
 
@@ -218,7 +224,20 @@ export async function updateRestaurantContact(restaurantId: number, input: Updat
 }
 
 /** Lista pro Painel Master — cada restaurante já com plano/status de assinatura, filtrável. */
-export async function listRestaurantsForPanel(filters: { status?: RestaurantStatus; planKey?: PlanKey } = {}) {
+// Assinaturas com pagamento em atraso — junto com restaurants.status ===
+// "suspended", forma o grupo do meio na ordenação (ativos, pagamentos
+// atrasados, cancelados) pedida pelo dono do produto.
+const PAYMENT_TROUBLE_SUBSCRIPTION_STATUSES = new Set(["payment_pending", "past_due", "cancel_at_period_end"]);
+const HIDE_CANCELLED_AFTER_DAYS = 10;
+
+/** Exportada só pra teste. */
+export function restaurantSortPriority(restaurant: { status: RestaurantStatus }, subscription: { status: string }): number {
+  if (restaurant.status === "cancelled") return 2;
+  if (restaurant.status === "suspended" || PAYMENT_TROUBLE_SUBSCRIPTION_STATUSES.has(subscription.status)) return 1;
+  return 0;
+}
+
+export async function listRestaurantsForPanel(filters: { status?: RestaurantStatus; planKey?: PlanKey; includeHidden?: boolean } = {}) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [
@@ -233,7 +252,14 @@ export async function listRestaurantsForPanel(filters: { status?: RestaurantStat
     .innerJoin(plans, eq(subscriptions.planId, plans.id))
     .where(conditions.length ? and(...conditions) : undefined);
 
-  return rows.map(({ restaurant: { apiKeyHash: _apiKeyHash, ...restaurant }, subscription, plan }) => ({ ...restaurant, subscription, plan }));
+  const now = Date.now();
+  const visible = filters.includeHidden
+    ? rows
+    : rows.filter(({ restaurant }) => !(restaurant.status === "cancelled" && restaurant.cancelledAt != null && now - restaurant.cancelledAt > HIDE_CANCELLED_AFTER_DAYS * DAY_MS));
+
+  return visible
+    .map(({ restaurant: { apiKeyHash: _apiKeyHash, ...restaurant }, subscription, plan }) => ({ ...restaurant, subscription, plan }))
+    .sort((a, b) => restaurantSortPriority(a, a.subscription) - restaurantSortPriority(b, b.subscription));
 }
 
 /** Detalhe completo pro Painel Master: Dados + Plano + Pagamentos + últimas ações de auditoria envolvendo este restaurante. */

@@ -45,7 +45,7 @@ export const masterPanelRestaurantsRouter = router({
     }),
 
   list: restaurantsProcedure
-    .input(z.object({ status: z.enum(restaurantStatusValues).optional(), planKey: z.enum(planKeyValues).optional() }).optional())
+    .input(z.object({ status: z.enum(restaurantStatusValues).optional(), planKey: z.enum(planKeyValues).optional(), includeHidden: z.boolean().optional() }).optional())
     .query(({ input }) => listRestaurantsForPanel(input ?? {})),
 
   detail: restaurantsProcedure.input(z.object({ restaurantId: z.number().int().positive() })).query(async ({ input }) => {

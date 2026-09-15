@@ -37,6 +37,13 @@ export const restaurants = mysqlTable(
     // e server/db/subscriptions.ts::startOrChangePlan.
     promoEligible: boolean("promoEligible").notNull().default(false),
     notes: text("notes"),
+    // Quando o status virou "cancelled" pela última vez — null se nunca foi
+    // cancelado, ou se foi reativado depois (ver server/db/restaurants.ts::
+    // setRestaurantStatus). Usado só pra ocultar da lista principal do
+    // Painel Master 10 dias após o cancelamento (nunca apaga o registro —
+    // segue o mesmo padrão de archivedAt em products/orders no app
+    // principal, preservando assinatura/pagamentos/auditoria).
+    cancelledAt: bigint("cancelledAt", { mode: "number", unsigned: true }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
   },

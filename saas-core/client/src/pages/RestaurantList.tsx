@@ -11,13 +11,20 @@ const STATUS_OPTIONS = ["", "active", "suspended", "cancelled"] as const;
 const PLAN_OPTIONS = ["", "essencial", "profissional", "premium"] as const;
 const NEW_PLAN_OPTIONS = ["essencial", "profissional", "premium"] as const;
 
+const CANCELLED_HIDE_DAYS = 10;
+
 export default function RestaurantList() {
   const [status, setStatus] = useState<(typeof STATUS_OPTIONS)[number]>("");
   const [planKey, setPlanKey] = useState<(typeof PLAN_OPTIONS)[number]>("");
+  // Cancelados somem da lista sozinhos 10 dias depois (ver
+  // listRestaurantsForPanel) — nunca apagados, só escondidos por padrão
+  // pra não acumular; esse toggle reexibe pra quem precisar consultar.
+  const [includeHidden, setIncludeHidden] = useState(false);
   const utils = trpc.useUtils();
   const list = trpc.masterPanel.restaurants.list.useQuery({
     status: status || undefined,
     planKey: planKey || undefined,
+    includeHidden,
   });
 
   const [isCreating, setIsCreating] = useState(false);
@@ -64,6 +71,10 @@ export default function RestaurantList() {
             <option value="profissional">Profissional</option>
             <option value="premium">Premium</option>
           </select>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-ink-soft">
+            <input type="checkbox" checked={includeHidden} onChange={event => setIncludeHidden(event.target.checked)} className="h-4 w-4 accent-accent" />
+            Mostrar cancelados ocultos ({CANCELLED_HIDE_DAYS}+ dias)
+          </label>
           {!isCreating ? <Button onClick={() => setIsCreating(true)}>Novo restaurante</Button> : null}
         </div>
       </div>
@@ -176,7 +187,17 @@ export default function RestaurantList() {
                 </td>
                 <td className="px-4 py-3">{row.plan.name}</td>
                 <td className="px-4 py-3"><Badge status={row.subscription.status}>{row.subscription.status}</Badge></td>
-                <td className="px-4 py-3"><Badge status={row.status}>{row.status}</Badge></td>
+                <td className="px-4 py-3">
+                  <Badge status={row.status}>{row.status}</Badge>
+                  {row.status === "cancelled" && row.cancelledAt ? (
+                    <p className="mt-1 text-xs text-ink-soft">
+                      {(() => {
+                        const days = Math.floor((Date.now() - row.cancelledAt) / (24 * 60 * 60 * 1000));
+                        return days >= CANCELLED_HIDE_DAYS ? `Oculto por padrão (cancelado há ${days} dias)` : `Cancelado há ${days} dia${days === 1 ? "" : "s"} · some da lista em ${CANCELLED_HIDE_DAYS - days} dia${CANCELLED_HIDE_DAYS - days === 1 ? "" : "s"}`;
+                      })()}
+                    </p>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3 text-ink-soft">{new Date(row.createdAt).toLocaleDateString("pt-BR")}</td>
                 <td className="px-4 py-3 text-ink-soft">{row.subscription.nextBillingAt ? new Date(row.subscription.nextBillingAt).toLocaleDateString("pt-BR") : "—"}</td>
               </tr>
