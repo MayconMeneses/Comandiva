@@ -23,6 +23,6 @@ export default function CatalogAdmin() {
   const promotionsLocked = snapshot.data?.lockedFeatures.promotions;
   return <>
     {canCatalog ? <><ProductCreateWithImage /><CategoryManager /><CatalogProductAvailability /><AddonManagerFull /></> : null}
-    {canPromotions ? (promotionsLocked ? <LockedFeatureCard title="Promoções e combos" requiredPlanName={promotionsLocked.requiredPlanName} /> : <PromotionManager />) : null}
+    {canPromotions ? (promotionsLocked ? <LockedFeatureCard title="Promoções e combos" requiredPlanName={promotionsLocked.requiredPlanName} featureId="promotions" /> : <PromotionManager />) : null}
   </>;
 }

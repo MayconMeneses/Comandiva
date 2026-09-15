@@ -22,7 +22,7 @@ export default function TablesAdmin() {
   const snapshot = trpc.admin.mySnapshot.useQuery();
   if (snapshot.isLoading) return <Loading />;
   const locked = snapshot.data?.lockedFeatures.tables_qr;
-  if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} />;
+  if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} featureId="tables_qr" />;
   return <div className="space-y-6">
     <Header eyebrow="Salão" title="Mesas" description="Acompanhe as comandas abertas, cadastre mesas e gerencie reservas." />
     <TableMapManager />

@@ -1,3 +1,5 @@
+import { LockedFeatureFullPage } from "@/components/admin/LockedFeature";
+import { Loading } from "@/components/admin/shared";
 import { trpc } from "@/lib/trpc";
 import { STATUS_LABELS } from "@shared/orderDomain";
 import { History } from "lucide-react";
@@ -12,8 +14,13 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function AuditLog() {
-  const query = trpc.admin.recent.useQuery({ limit: 100 });
+  const snapshot = trpc.admin.mySnapshot.useQuery();
+  const locked = snapshot.data?.lockedFeatures.audit;
+  const query = trpc.admin.recent.useQuery({ limit: 100 }, { enabled: !snapshot.isLoading && !locked });
   const entries = query.data ?? [];
+
+  if (snapshot.isLoading) return <Loading />;
+  if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} featureId="audit" />;
 
   return (
     <section>

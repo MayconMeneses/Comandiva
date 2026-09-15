@@ -1,5 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { FeatureLockDot, UpgradeNudgeModal } from "@/components/admin/LockedFeature";
+import { trpc } from "@/lib/trpc";
 import { Download, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -34,6 +36,12 @@ export default function PwaInstallButton() {
   const { user } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  // Query própria (não a de DashboardLayout) porque este componente é
+  // montado fora do layout admin, em toda página inclusive as públicas —
+  // `enabled` evita disparar essa consulta admin-only pro cliente do cardápio.
+  const snapshot = trpc.admin.mySnapshot.useQuery(undefined, { enabled: user?.role === "admin" });
+  const teamAppLocked = snapshot.data?.lockedFeatures.team_app;
 
   useEffect(() => {
     if (isStandalone()) return; // já instalado/rodando como app — nada a fazer
@@ -63,6 +71,11 @@ export default function PwaInstallButton() {
   if (!deferredPrompt || dismissed || user?.role !== "admin") return null;
 
   async function handleInstall() {
+    // "App da equipe" é recurso de plano (Profissional+) — em vez do prompt
+    // nativo do navegador, mostra o convite de upgrade. Nunca há dado nenhum
+    // criado/alterado aqui (instalar é uma ação 100% local do navegador), por
+    // isso não há validação nenhuma no backend pra este gate — só visual.
+    if (teamAppLocked) { setUpgradeModalOpen(true); return; }
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     await deferredPrompt.userChoice;
@@ -81,19 +94,23 @@ export default function PwaInstallButton() {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background px-3 py-2 shadow-lg">
-      <Button size="sm" className="rounded-full" onClick={handleInstall}>
-        <Download />
-        Instalar app
-      </Button>
-      <button
-        type="button"
-        aria-label="Dispensar"
-        onClick={handleDismiss}
-        className="rounded-full p-1 text-muted-foreground hover:bg-accent"
-      >
-        <X className="size-4" />
-      </button>
-    </div>
+    <>
+      <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background px-3 py-2 shadow-lg">
+        <Button size="sm" className="rounded-full" onClick={handleInstall}>
+          <Download />
+          Instalar app
+          {teamAppLocked ? <FeatureLockDot title="Disponível no plano Profissional" onClick={() => setUpgradeModalOpen(true)} /> : null}
+        </Button>
+        <button
+          type="button"
+          aria-label="Dispensar"
+          onClick={handleDismiss}
+          className="rounded-full p-1 text-muted-foreground hover:bg-accent"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
+      <UpgradeNudgeModal open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} info={teamAppLocked ? { featureId: "team_app", requiredPlanKey: teamAppLocked.requiredPlanKey, requiredPlanName: teamAppLocked.requiredPlanName } : null} />
+    </>
   );
 }

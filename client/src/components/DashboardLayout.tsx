@@ -46,11 +46,13 @@ const menuItems: { icon: typeof LayoutDashboard; label: string; path: string; fe
   // Sempre admin-only, nunca liberável por permissão de staff — a tela existe
   // pra dono acompanhar a EQUIPE, não pra equipe se auto-auditar (ver
   // server/routers/admin/audit.ts).
-  { icon: History, label: "Auditoria", path: "/admin/auditoria", adminOnly: true },
+  { icon: History, label: "Auditoria", path: "/admin/auditoria", featureId: "audit", adminOnly: true },
   // Pix/gateways de pagamento ficam de fora do Modo Suporte mesmo com
   // escrita liberada no resto — ver server/_core/trpc.ts::adminOnlyProcedure.
   { icon: Wallet, label: "Conta", path: "/admin/conta", hiddenInSupportMode: true, adminOnly: true },
-  { icon: FileText, label: "Fiscal", path: "/admin/fiscal", featureId: "fiscal", hiddenInSupportMode: true, adminOnly: true },
+  // NFC-e é conformidade tributária, não alavanca de upgrade — sempre
+  // liberado, sem featureId (ver server/routers/admin/fiscal.ts).
+  { icon: FileText, label: "Fiscal", path: "/admin/fiscal", hiddenInSupportMode: true, adminOnly: true },
   { icon: CalendarDays, label: "Eventos", path: "/admin/eventos", featureId: "events", areas: ["events"] },
   { icon: Settings2, label: "Configuração", path: "/admin/configuracao", adminOnly: true },
   { icon: CreditCard, label: "Meu plano", path: "/admin/plano", adminOnly: true },

@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { compressImageFile } from "@/lib/imageCompression";
 import { trpc } from "@/lib/trpc";
+import { FeatureLockDot, UpgradeNudgeModal, type FeatureLockedInfo } from "@/components/admin/LockedFeature";
 import { ChevronDown, ImagePlus, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -28,10 +29,13 @@ const blankForm: EditForm = { categoryId: "", name: "", description: "", imageUr
 export default function CatalogProductAvailability() {
   const utils = trpc.useUtils();
   const catalog = trpc.admin.catalog.useQuery();
+  const snapshot = trpc.admin.mySnapshot.useQuery();
+  const promotionsLocked = snapshot.data?.lockedFeatures.promotions;
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<EditForm>(blankForm);
   const [fileName, setFileName] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [upgradeInfo, setUpgradeInfo] = useState<FeatureLockedInfo | null>(null);
   const [openCategoryIds, setOpenCategoryIds] = useState<Set<number>>(() => new Set());
   const toggleCategory = (categoryId: number) => setOpenCategoryIds(current => {
     const next = new Set(current);
@@ -149,13 +153,38 @@ export default function CatalogProductAvailability() {
               <div><Label>Descrição</Label><Textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} className="mt-1.5 min-h-20 rounded-xl bg-[#fffdfa]" /></div>
               <div><Label>Tempo de preparo (minutos)</Label><Input required type="number" min="1" value={form.preparationMinutes} onChange={event => setForm({ ...form, preparationMinutes: event.target.value })} className="mt-1.5 h-11 rounded-xl bg-[#fffdfa]" /></div>
               <div className="grid gap-3 rounded-2xl border border-[#e5d9ca] bg-[#fffaf4] p-4"><div><Label>URL da imagem</Label><Input value={form.imageUrl} onChange={event => { setForm({ ...form, imageUrl: event.target.value }); setFileName(""); }} placeholder="https://… ou /assets/pubx/…" className="mt-1.5 h-11 rounded-xl bg-white" /></div><div><Label>Ou importar nova imagem</Label><label className="mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#cdae90] bg-white p-3 text-sm font-semibold text-[#724d3c] hover:border-[#b4472d]"><ImagePlus className="h-4 w-4" />{upload.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</> : fileName || "Importar imagem do dispositivo"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={chooseFile} /></label><p className="mt-1.5 text-xs text-[#806a5a]">JPG, PNG, WEBP ou AVIF de até 20 MB.</p></div>{form.imageUrl ? <img src={form.imageUrl} alt="Prévia do produto" className="h-28 w-full rounded-xl object-cover" /> : null}{uploadError || upload.error ? <p className="text-sm text-red-700">{uploadError || upload.error?.message}</p> : null}</div>
-              <div className="grid gap-3 sm:grid-cols-2"><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.available} onChange={event => setForm({ ...form, available: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Exibir no cardápio</label><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.featured} onChange={event => setForm({ ...form, featured: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Destacar produto</label><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input type="checkbox" checked={form.onPromotion} onChange={event => setForm({ ...form, onPromotion: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Em promoção (aparece também na categoria "Promoção", em primeiro lugar)</label></div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.available} onChange={event => setForm({ ...form, available: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Exibir no cardápio</label>
+                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.featured} onChange={event => setForm({ ...form, featured: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Destacar produto</label>
+                <label className="flex items-center gap-2 text-sm font-medium sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={form.onPromotion}
+                    disabled={Boolean(promotionsLocked) && !form.onPromotion}
+                    onChange={event => {
+                      // Ligar o destaque de promoção é o mesmo recurso de
+                      // plano do gerenciador de Promoções — desligar
+                      // continua sempre permitido (nunca trava alguém
+                      // tentando SAIR de um estado antigo).
+                      if (event.target.checked && promotionsLocked) {
+                        setUpgradeInfo({ featureId: "promotions", requiredPlanKey: promotionsLocked.requiredPlanKey, requiredPlanName: promotionsLocked.requiredPlanName });
+                        return;
+                      }
+                      setForm({ ...form, onPromotion: event.target.checked });
+                    }}
+                    className="h-4 w-4 accent-[#b4472d] disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  Em promoção (aparece também na categoria "Promoção", em primeiro lugar)
+                  {promotionsLocked && !form.onPromotion ? <FeatureLockDot title="Recurso do plano Promoções — clique pra ver como liberar" onClick={() => setUpgradeInfo({ featureId: "promotions", requiredPlanKey: promotionsLocked.requiredPlanKey, requiredPlanName: promotionsLocked.requiredPlanName })} /> : null}
+                </label>
+              </div>
             </div>
             {save.error ? <p className="mt-4 text-sm text-red-700">{save.error.message}</p> : null}
             <Button disabled={save.isPending || upload.isPending} className="mt-6 h-11 w-full rounded-xl bg-[#b4472d] hover:bg-[#943722]">{save.isPending ? "Salvando alterações…" : "Salvar alterações"}</Button>
           </form>
         </div>
       ) : null}
+      <UpgradeNudgeModal open={Boolean(upgradeInfo)} onOpenChange={open => { if (!open) setUpgradeInfo(null); }} info={upgradeInfo} />
     </section>
   );
 }

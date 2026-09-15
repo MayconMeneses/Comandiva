@@ -6,7 +6,6 @@ import { AlertTriangle, CheckCircle2, FileKey, Landmark, ShieldCheck } from "luc
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import FiscalTaxCategories from "./FiscalTaxCategories";
-import { LockedFeatureFullPage } from "./LockedFeature";
 import { Header, Loading } from "./shared";
 
 const REGIME_LABELS: Record<string, string> = { SIMPLES_NACIONAL: "Simples Nacional", LUCRO_PRESUMIDO: "Lucro Presumido", LUCRO_REAL: "Lucro Real", MEI: "MEI" };
@@ -19,9 +18,7 @@ function formatCnpj(digits: string) {
 
 export default function FiscalSettings() {
   const utils = trpc.useUtils();
-  const snapshot = trpc.admin.mySnapshot.useQuery();
-  const locked = snapshot.data?.lockedFeatures.fiscal;
-  const query = trpc.admin.fiscalSettings.useQuery(undefined, { enabled: !snapshot.isLoading && !locked });
+  const query = trpc.admin.fiscalSettings.useQuery();
   const settings = query.data;
 
   const [cnpj, setCnpj] = useState("");
@@ -71,8 +68,6 @@ export default function FiscalSettings() {
     reader.readAsDataURL(certFile);
   };
 
-  if (snapshot.isLoading) return <Loading />;
-  if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} />;
   if (query.isLoading) return <Loading />;
   if (query.error || !settings) return <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{query.error?.message ?? "Não foi possível carregar as configurações fiscais."}</p>;
 

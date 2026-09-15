@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { UpgradeNudgeModal } from "@/components/admin/LockedFeature";
 import { trpc } from "@/lib/trpc";
 import { GRANTABLE_STAFF_AREAS, STAFF_AREA_LABELS, type StaffPermissionArea } from "@shared/permissions";
-import { Pencil, Plus, ShieldCheck, Trash2, UserCog, UserRoundCheck, UserRoundX } from "lucide-react";
+import { Lock, Pencil, Plus, ShieldCheck, Trash2, UserCog, UserRoundCheck, UserRoundX } from "lucide-react";
 import React, { FormEvent, useState } from "react";
 
 type AccountRole = "admin" | "staff";
@@ -21,6 +22,9 @@ export default function AdminAccessManager({ collapsed = false }: { collapsed?: 
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AccountRole>("admin");
   const [permissions, setPermissions] = useState<StaffPermissionArea[]>([]);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const snapshot = trpc.admin.mySnapshot.useQuery(undefined, { enabled: open });
+  const advancedTeamLocked = snapshot.data?.lockedFeatures.advanced_team;
   const accounts = trpc.team.list.useQuery(undefined, { enabled: open });
   const create = trpc.team.create.useMutation({ onSuccess: () => { resetForm(); void accounts.refetch(); } });
   const update = trpc.team.update.useMutation({ onSuccess: () => { resetForm(); void accounts.refetch(); } });
@@ -37,7 +41,12 @@ export default function AdminAccessManager({ collapsed = false }: { collapsed?: 
   }
 
   function toggleArea(area: StaffPermissionArea) {
-    setPermissions(current => current.includes(area) ? current.filter(item => item !== area) : [...current, area]);
+    const alreadyGranted = permissions.includes(area);
+    // Tirar uma área que já estava concedida sempre é permitido, mesmo sem o
+    // plano — só ADICIONAR uma nova restrição é que depende de advanced_team
+    // (mesma regra aplicada no backend, ver server/routers/team.ts).
+    if (advancedTeamLocked && !alreadyGranted) { setUpgradeModalOpen(true); return; }
+    setPermissions(current => alreadyGranted ? current.filter(item => item !== area) : [...current, area]);
   }
 
   function submit(event: FormEvent) {
@@ -66,14 +75,27 @@ export default function AdminAccessManager({ collapsed = false }: { collapsed?: 
           {!editing ? <div><Label htmlFor="admin-access-role">Tipo de acesso</Label><select id="admin-access-role" value={role} onChange={event => setRole(event.target.value as AccountRole)} className="mt-2 h-10 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#b4472d]"><option value="admin">Administrador — acesso completo</option><option value="staff">Operação — somente pedidos</option></select></div> : <div className="flex items-end"><div className="rounded-xl border border-[#e6d8c7] bg-white px-3 py-2 text-xs text-muted-foreground">Permissão atual: <strong className="text-[#5b4639]">{roleLabel[editing.role]}</strong></div></div>}
           {(editing ? editing.role === "staff" : role === "staff") ? (
             <div className="sm:col-span-2 rounded-xl border border-[#e6d8c7] bg-white p-3">
-              <p className="text-xs font-semibold text-[#5b4639]">Áreas extras liberadas (além de pedidos e mesas)</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-[#5b4639]">Áreas extras liberadas (além de pedidos e mesas)</p>
+                {advancedTeamLocked ? (
+                  <button type="button" onClick={() => setUpgradeModalOpen(true)} className="flex items-center gap-1 text-[10px] font-semibold text-[#b4472d]">
+                    <Lock className="h-3 w-3" />Disponível no {advancedTeamLocked.requiredPlanName ?? "plano superior"}
+                  </button>
+                ) : null}
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {GRANTABLE_STAFF_AREAS.map(area => (
-                  <label key={area} className="flex items-center gap-2 text-sm text-[#5b4639]">
-                    <input type="checkbox" checked={permissions.includes(area)} onChange={() => toggleArea(area)} className="h-4 w-4 rounded border-input accent-[#b4472d]" />
-                    {STAFF_AREA_LABELS[area]}
-                  </label>
-                ))}
+                {GRANTABLE_STAFF_AREAS.map(area => {
+                  const areaLocked = Boolean(advancedTeamLocked) && !permissions.includes(area);
+                  return (
+                    <label key={area} className={`flex items-center gap-2 text-sm text-[#5b4639] ${areaLocked ? "opacity-60" : ""}`}>
+                      {/* Nunca `disabled` de propósito — clicar numa área nova bloqueada
+                          precisa disparar toggleArea (que abre o convite de upgrade em
+                          vez de marcar), não ficar simplesmente inerte pro usuário. */}
+                      <input type="checkbox" checked={permissions.includes(area)} onChange={() => toggleArea(area)} className="h-4 w-4 rounded border-input accent-[#b4472d]" />
+                      {STAFF_AREA_LABELS[area]}
+                    </label>
+                  );
+                })}
               </div>
             </div>
           ) : null}
@@ -86,5 +108,6 @@ export default function AdminAccessManager({ collapsed = false }: { collapsed?: 
         </section>
       </DialogContent>
     </Dialog>
+    <UpgradeNudgeModal open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} info={advancedTeamLocked ? { featureId: "advanced_team", requiredPlanKey: advancedTeamLocked.requiredPlanKey, requiredPlanName: advancedTeamLocked.requiredPlanName } : null} />
   </>;
 }

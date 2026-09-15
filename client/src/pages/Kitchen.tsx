@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import TeamLoginCard from "@/components/TeamLoginCard";
+import { LockedFeatureFullPage } from "@/components/admin/LockedFeature";
 import { trpc } from "@/lib/trpc";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { ArrowLeft, ChevronRight, Clock3, Loader2, LogOut, MessageSquareWarning, ShoppingBag } from "lucide-react";
@@ -57,19 +58,23 @@ export default function Kitchen() {
   const { user, loading, logout } = useAuth();
   const canOperate = user?.role === "admin" || user?.role === "staff";
   const settings = trpc.catalog.settings.useQuery();
-  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { enabled: canOperate, refetchInterval: 10000 });
+  const licenseSnapshot = trpc.admin.mySnapshot.useQuery(undefined, { enabled: canOperate });
+  const locked = licenseSnapshot.data?.lockedFeatures.kitchen;
+  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { enabled: canOperate && !locked, refetchInterval: 10000 });
   if (loading) return <Loading />;
   if (!canOperate) return <TeamLogin />;
-  if (snapshot.isLoading) return <Loading />;
-  const queue = ((snapshot.data?.orders ?? []) as KitchenOrder[]).filter(order => order.status === "ACCEPTED" || order.status === "PREPARING").sort((a, b) => a.createdAt - b.createdAt);
+  if (licenseSnapshot.isLoading) return <Loading />;
+  const queue = locked ? [] : ((snapshot.data?.orders ?? []) as KitchenOrder[]).filter(order => order.status === "ACCEPTED" || order.status === "PREPARING").sort((a, b) => a.createdAt - b.createdAt);
 
   return <div className="min-h-screen bg-[#f6f1e8]">
     <header className="border-b border-[#3e3025] bg-[#17120e] text-[#fffaf3]"><div className="page-shell flex min-h-16 flex-wrap items-center justify-between gap-3 py-3"><button onClick={() => setLocation("/")} className="flex items-center gap-2 font-display text-xl font-bold"><img src={settings.data?.logoUrl || "/mm-logo-icon.png"} alt="Logotipo MM System Creator" className="h-9 w-9 shrink-0 object-contain" />Cozinha</button><div className="flex items-center gap-2"><span className="hidden text-xs text-[#d6c5af] sm:block">Operador: {user?.name}</span><Button variant="outline" onClick={() => setLocation("/painel-pedidos")} className="h-9 rounded-lg border-[#665442] bg-transparent text-xs text-[#fffaf3] hover:bg-[#30241d] hover:text-white">Painel de pedidos</Button><Button variant="outline" onClick={logout} className="h-9 rounded-lg border-[#665442] bg-transparent px-3 text-xs text-[#fffaf3] hover:bg-[#30241d] hover:text-white"><LogOut className="h-3.5 w-3.5" /><span className="sr-only">Sair</span></Button></div></div></header>
     <main className="page-shell py-8 sm:py-10">
-      <div className="mb-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">Fila da cozinha</p><h1 className="mt-2 font-display text-4xl font-bold">Em ordem de chegada</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Pedidos já aceitos, do mais antigo pro mais novo — siga a numeração pra manter a fila justa.</p></div>
-      {snapshot.error ? <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"><p className="font-semibold">Não foi possível carregar a fila.</p><p className="mt-1">{snapshot.error.message}</p></div>
-        : queue.length ? <div className="space-y-4">{queue.map((order, index) => <QueueCard key={order.id} order={order} position={index + 1} />)}</div>
-        : <div className="rounded-3xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-12 text-center"><ShoppingBag className="mx-auto h-9 w-9 text-[#b89e7a]" /><h2 className="mt-4 font-display text-2xl font-bold">Nenhum pedido na fila agora.</h2><p className="mt-2 text-sm text-muted-foreground">Assim que um pedido for aceito, ele aparece aqui.</p></div>}
+      {locked ? <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} featureId="kitchen" /> : <>
+        <div className="mb-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">Fila da cozinha</p><h1 className="mt-2 font-display text-4xl font-bold">Em ordem de chegada</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Pedidos já aceitos, do mais antigo pro mais novo — siga a numeração pra manter a fila justa.</p></div>
+        {snapshot.error ? <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"><p className="font-semibold">Não foi possível carregar a fila.</p><p className="mt-1">{snapshot.error.message}</p></div>
+          : queue.length ? <div className="space-y-4">{queue.map((order, index) => <QueueCard key={order.id} order={order} position={index + 1} />)}</div>
+          : <div className="rounded-3xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-12 text-center"><ShoppingBag className="mx-auto h-9 w-9 text-[#b89e7a]" /><h2 className="mt-4 font-display text-2xl font-bold">Nenhum pedido na fila agora.</h2><p className="mt-2 text-sm text-muted-foreground">Assim que um pedido for aceito, ele aparece aqui.</p></div>}
+      </>}
     </main>
   </div>;
 }

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FEATURE_CATALOG } from "@/lib/featureCatalog";
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, Lock, Loader2, ReceiptText, RefreshCw, Sparkles, XCircle } from "lucide-react";
 import { useState } from "react";
@@ -10,13 +11,6 @@ import { toast } from "sonner";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const dateLabel = (ms: number) => new Date(ms).toLocaleDateString("pt-BR");
-
-const FEATURE_LABELS: Record<string, { name: string; description: string }> = {
-  tables_qr: { name: "Mesas / QR Code", description: "Cliente pede pela própria mesa escaneando um QR Code." },
-  call_waiter: { name: "Chamar garçom", description: "Botão de chamar a equipe direto da mesa." },
-  request_bill: { name: "Solicitar conta", description: "Cliente pede a conta pela própria mesa." },
-  extra_rounds: { name: "Rodadas extras", description: "Lançar novos pedidos numa comanda de mesa já aberta." },
-};
 
 const LIMIT_LABELS: Record<string, string> = { users: "Contas de equipe", tables: "Mesas" };
 
@@ -73,7 +67,7 @@ export default function PlanAdmin() {
   if (snapshot.error || !snapshot.data) return <p className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">Não foi possível carregar os dados do plano.</p>;
 
   const data = snapshot.data;
-  const allFeatureIds = Object.keys(FEATURE_LABELS);
+  const allFeatureIds = Object.keys(FEATURE_CATALOG);
   const lockedIds = new Set(Object.keys(data.lockedFeatures));
   const currentPlanEntry = plans.data?.find(candidate => candidate.key === data.planKey);
   const currentPosition = currentPlanEntry?.position ?? 0;
@@ -145,24 +139,33 @@ export default function PlanAdmin() {
         <h2 className="font-display text-xl font-bold">Recursos</h2>
         <div className="mt-4 divide-y divide-[#eee4d8]">
           {allFeatureIds.map(featureId => {
-            const label = FEATURE_LABELS[featureId]!;
+            const label = FEATURE_CATALOG[featureId]!;
             const locked = lockedIds.has(featureId);
             const requiredPlanName = data.lockedFeatures[featureId]?.requiredPlanName;
             return (
-              <div key={featureId} className="flex items-start justify-between gap-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold">{label.name}</p>
-                  <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{label.description}</p>
+              <div key={featureId} className="py-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold">{label.name}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{label.description}</p>
+                  </div>
+                  {locked ? (
+                    <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#f3e2d8] px-3 py-1 text-xs font-semibold text-[#b4472d]">
+                      <Lock className="h-3.5 w-3.5" />{requiredPlanName ?? "Plano superior"}
+                    </span>
+                  ) : (
+                    <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />Liberado
+                    </span>
+                  )}
                 </div>
-                {locked ? (
-                  <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#f3e2d8] px-3 py-1 text-xs font-semibold text-[#b4472d]">
-                    <Lock className="h-3.5 w-3.5" />{requiredPlanName ?? "Plano superior"}
-                  </span>
-                ) : (
-                  <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    <CheckCircle2 className="h-3.5 w-3.5" />Liberado
-                  </span>
-                )}
+                {locked && label.benefits.length ? (
+                  <ul className="mt-2 space-y-1 pl-1">
+                    {label.benefits.map(benefit => (
+                      <li key={benefit} className="text-xs leading-5 text-[#8a5c3f]">· {benefit}</li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             );
           })}

@@ -52,7 +52,7 @@ export default function EventManager() {
   };
 
   if (snapshot.isLoading) return <Loading />;
-  if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} />;
+  if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} featureId="events" />;
 
   return (
     <>
