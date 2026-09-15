@@ -151,17 +151,17 @@ const COMPARISON = [
 const ROTINA: { title: string; image: string; description: string }[] = [
   {
     title: "Pense no crescimento, não na correria",
-    image: "/assets/hero/rotina-crescimento.jpg",
+    image: "/assets/hero/rotina-crescimento-v2.jpg",
     description: "Troque hora apagando incêndio por hora pensando em cardápio novo, horário de pico e como girar mais nos dias fracos.",
   },
   {
     title: "Menos trabalho repetitivo",
-    image: "/assets/hero/rotina-menos-trabalho.jpg",
+    image: "/assets/hero/rotina-menos-trabalho-v2.jpg",
     description: "O pedido entra sozinho, já com o valor certo. Ninguém mais precisa copiar comanda à mão nem discutir troco no balcão.",
   },
   {
     title: "Tudo numa tela só",
-    image: "/assets/hero/rotina-tudo-tela.jpg",
+    image: "/assets/hero/rotina-tudo-tela-v2.jpg",
     description: "Cardápio, mesa, entrega e relatório do mês reunidos no mesmo lugar — chega de abrir três sistemas diferentes pra fechar o caixa.",
   },
 ];
@@ -182,8 +182,7 @@ const MODULOS: { title: string; description: string; badge?: string }[] = [
   },
   {
     title: "Nota fiscal (NFC-e)",
-    badge: "Premium",
-    description: "Emissão fiscal integrada ao sistema — dispensa um programa à parte só pra essa parte.",
+    description: "Emissão fiscal integrada ao sistema, disponível em todos os planos — dispensa um programa à parte só pra essa parte.",
   },
 ];
 
@@ -201,7 +200,7 @@ const RESUMO: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: stri
   {
     icon: IconDevices,
     title: "Limites claros, sem pegadinha",
-    description: "Cada plano já vem com o número de usuários definido, sem letra miúda: Essencial até 3, Profissional até 8, Premium sem limite de usuários.",
+    description: "Cada plano já vem com o número de usuários definido, sem letra miúda: Entrada até 3, Profissional até 8, Premium sem limite de usuários.",
   },
 ];
 

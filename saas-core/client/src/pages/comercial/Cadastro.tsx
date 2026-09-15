@@ -5,7 +5,7 @@ import { FormEvent, useState } from "react";
 import { Link, useParams } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
 
-const PLAN_LABELS: Record<string, string> = { essencial: "Essencial", profissional: "Profissional", premium: "Premium" };
+const PLAN_LABELS: Record<string, string> = { essencial: "Entrada", profissional: "Profissional", premium: "Premium" };
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const IMPLEMENTATION_FEE_CENTS = 15000;
 

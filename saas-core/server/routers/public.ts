@@ -26,9 +26,14 @@ export const publicRouter = router({
   plans: publicProcedure.query(async () => {
     const [allPlans, allFeatures] = await Promise.all([listPlansWithFeaturesAndLimits(), listAllFeatures()]);
     const featureNameById = new Map(allFeatures.map(feature => [feature.featureId, feature.name]));
-    return allPlans
-      .filter(plan => plan.active)
-      .map(plan => ({ ...plan, featureNames: plan.features.map(featureId => featureNameById.get(featureId) ?? featureId) }));
+    const activePlans = allPlans.filter(plan => plan.active);
+    return {
+      plans: activePlans.map(plan => ({ ...plan, featureNames: plan.features.map(featureId => featureNameById.get(featureId) ?? featureId) })),
+      // Catálogo completo, na mesma ordem de seed-plans.ts — a página
+      // comercial usa isto pra montar a tabela comparativa completa
+      // (✅/🔒 por recurso x plano), não só a lista do que cada plano tem.
+      allFeatures: allFeatures.map(feature => ({ featureId: feature.featureId, name: feature.name })),
+    };
   }),
 
   signup: publicProcedure

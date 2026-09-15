@@ -9,6 +9,33 @@ const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 const BASE_INCLUDES = ["Cardápio digital", "Pedidos online", "Pagamento por Pix e cartão"];
 const IMPLEMENTATION_FEE_CENTS = 15000;
 
+const TAGLINES: Record<string, string> = {
+  essencial: "Quero receber pedidos e ter meu próprio canal de vendas.",
+  profissional: "Quero organizar meu restaurante, cozinha e salão.",
+  premium: "Quero tudo do MM System Creator, sem limitações e com gestão avançada.",
+};
+
+// Mesmo texto usado em client/src/lib/featureCatalog.ts (painel admin) —
+// duplicado de propósito aqui: são dois apps/builds separados (saas-core vs.
+// o app principal), não faz sentido importar um do outro só por isto.
+const FEATURE_DESCRIPTIONS: Record<string, string> = {
+  tables_qr: "Cliente pede pela própria mesa escaneando um QR Code.",
+  call_waiter: "Botão de chamar a equipe direto da mesa.",
+  request_bill: "Cliente pede a conta pela própria mesa.",
+  extra_rounds: "Lançar novos pedidos numa comanda de mesa já aberta.",
+  commands: "Abrir/fechar comanda de mesa, dividir a conta por pessoa ou forma de pagamento.",
+  reservations: "Cadastrar reservas de mesa com aviso de horário próximo.",
+  promotions: "Criar promoções e combos com preço promocional no cardápio.",
+  kitchen: "Tela de fila da cozinha e o kanban de pedidos.",
+  team_app: "Instalar o painel no celular/tablet da equipe pra acesso rápido.",
+  reports_complete: "Faturamento por dia/hora/forma de pagamento, produtos e categorias mais vendidos.",
+  events: "Divulgar eventos com imagem grande direto no cardápio.",
+  reports_advanced: "Clientes novos x recorrentes, produtos em alta/queda, exportação.",
+  advanced_team: "Permissões granulares por área para contas da equipe.",
+  audit: "Histórico completo de ações da equipe sobre os pedidos.",
+  fiscal: "Emissão de nota fiscal (NFC-e) direto do sistema.",
+};
+
 function Icon({ children, ...props }: { children: ReactNode } & SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -36,6 +63,8 @@ const IconCheck = (props: SVGProps<SVGSVGElement>) => (
 
 export default function Planos() {
   const plansQuery = trpc.public.plans.useQuery();
+  const plans = plansQuery.data?.plans;
+  const allFeatures = plansQuery.data?.allFeatures ?? [];
 
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
@@ -97,8 +126,8 @@ export default function Planos() {
           )}
 
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
-            {plansQuery.data?.map((plan, index) => {
-              const highlighted = index === 1 && (plansQuery.data?.length ?? 0) > 1;
+            {plans?.map((plan, index) => {
+              const highlighted = index === 1 && (plans?.length ?? 0) > 1;
               const maintenanceIncluded = plan.key !== "essencial";
               return (
                 <div key={plan.id} className="relative">
@@ -123,10 +152,16 @@ export default function Planos() {
                         Mais escolhido
                       </span>
                     )}
+                    {plan.key === "premium" && (
+                      <span className="absolute -top-3 left-6 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-white">
+                        Tudo incluído
+                      </span>
+                    )}
                     <span className="w-fit rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
                       30 dias grátis
                     </span>
                     <h2 className="mt-3 text-xl font-semibold text-ink">{plan.name}</h2>
+                    <p className="mt-1 text-sm text-ink-soft">{TAGLINES[plan.key]}</p>
                     <div className="mt-3">
                       <span className="text-3xl font-bold text-ink">{money(plan.priceCents)}</span>
                       <span className="text-ink-soft">/mês</span>
@@ -172,6 +207,65 @@ export default function Planos() {
               );
             })}
           </div>
+
+          {plans && plans.length > 0 && (
+            <div className="mx-auto mt-14 max-w-4xl text-left">
+              <h2 className="text-center text-2xl font-bold text-ink">Compare tudo que o MM System Creator oferece</h2>
+              <p className="mx-auto mt-2 max-w-xl text-center text-sm text-ink-soft">
+                Todo plano mostra o sistema inteiro — o que muda é o que já vem liberado. O que ainda não está no
+                seu plano continua visível, só marcado como bloqueado.
+              </p>
+              <div className="mt-8 overflow-x-auto rounded-2xl border border-border bg-paper-raised/90 shadow-sm backdrop-blur">
+                <table className="w-full min-w-[560px] border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="p-4 text-left font-semibold text-ink-soft">Recurso</th>
+                      {plans.map(plan => (
+                        <th key={plan.id} className="p-4 text-center font-semibold text-ink">
+                          {plan.name}
+                          {plan.key === "premium" && <span className="mt-1 block text-xs font-medium text-accent">👑 Tudo incluído</span>}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {BASE_INCLUDES.map(item => (
+                      <tr key={item} className="border-b border-border/60 last:border-0">
+                        <td className="p-4 text-ink-soft">{item}</td>
+                        {plans.map(plan => (
+                          <td key={plan.id} className="p-4 text-center">
+                            <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    {allFeatures.map(feature => (
+                      <tr key={feature.featureId} className="border-b border-border/60 last:border-0">
+                        <td className="p-4">
+                          <span className="text-ink-soft">{feature.name}</span>
+                          {FEATURE_DESCRIPTIONS[feature.featureId] && (
+                            <span className="mt-0.5 block text-xs text-ink-soft/70">{FEATURE_DESCRIPTIONS[feature.featureId]}</span>
+                          )}
+                        </td>
+                        {plans.map(plan => {
+                          const included = plan.features.includes(feature.featureId);
+                          return (
+                            <td key={plan.id} className="p-4 text-center">
+                              {included ? (
+                                <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
+                              ) : (
+                                <IconLock className="mx-auto h-4 w-4 text-ink-soft/50" />
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
             <p className="text-sm font-semibold text-ink">

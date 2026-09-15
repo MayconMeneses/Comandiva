@@ -11,26 +11,37 @@ import { features, planFeatures, planLimits, plans, type PlanKey } from "../driz
  */
 
 const PLANS: { key: PlanKey; name: string; priceCents: number; position: number }[] = [
-  { key: "essencial", name: "Essencial", priceCents: 9999, position: 1 },
+  { key: "essencial", name: "Entrada", priceCents: 9999, position: 1 },
   { key: "profissional", name: "Profissional", priceCents: 19999, position: 2 },
   { key: "premium", name: "Premium", priceCents: 24999, position: 3 },
 ];
 
+// Reestruturação 2026-09-11 (pedido do dono): NFC-e deixou de ser
+// diferencial de plano — passa a valer pros três, a diferenciação comercial
+// agora é só por capacidade/operação/gestão. Cozinha, comandas, reservas,
+// app da equipe e relatórios completos entraram no Profissional; gestão
+// avançada de equipe e auditoria entraram no Premium junto de eventos e
+// relatórios avançados (que já eram Premium).
 const FEATURES: { featureId: string; name: string; category: string; minPlan: PlanKey }[] = [
+  { featureId: "kitchen", name: "Cozinha / Kanban de pedidos", category: "operacao", minPlan: "profissional" },
   { featureId: "tables_qr", name: "Mesas / QR Code", category: "mesas", minPlan: "profissional" },
   { featureId: "call_waiter", name: "Chamar garçom", category: "mesas", minPlan: "profissional" },
   { featureId: "request_bill", name: "Solicitar conta", category: "mesas", minPlan: "profissional" },
   { featureId: "extra_rounds", name: "Rodadas extras", category: "mesas", minPlan: "profissional" },
-  // Promoções: ferramenta de crescimento/marketing — natural do plano em
-  // que o dono já está pensando em mesas/salão, junto com o resto do
-  // cluster "operação mais madura" (ver pedido do dono, 2026-09-10).
+  { featureId: "commands", name: "Comandas e divisão de conta", category: "mesas", minPlan: "profissional" },
+  { featureId: "reservations", name: "Reservas", category: "mesas", minPlan: "profissional" },
+  { featureId: "team_app", name: "App da equipe (celular/tablet)", category: "operacao", minPlan: "profissional" },
   { featureId: "promotions", name: "Promoções e combos", category: "marketing", minPlan: "profissional" },
-  // Eventos e Fiscal ficam reservados pro topo: eventos é uma ferramenta de
-  // marketing mais avançada (divulgação), fiscal é conformidade tributária
-  // de verdade (CNPJ, certificado digital, NFC-e) — ambos fazem sentido
-  // como diferenciais do plano mais completo, não como parte do básico.
+  { featureId: "reports_complete", name: "Relatórios completos", category: "relatorios", minPlan: "profissional" },
+  // Eventos, relatórios avançados, gestão avançada de equipe e auditoria
+  // ficam reservados pro topo — diferenciais do plano mais completo.
   { featureId: "events", name: "Eventos", category: "marketing", minPlan: "premium" },
-  { featureId: "fiscal", name: "Nota fiscal (NFC-e)", category: "fiscal", minPlan: "premium" },
+  { featureId: "reports_advanced", name: "Relatórios avançados", category: "relatorios", minPlan: "premium" },
+  { featureId: "advanced_team", name: "Gestão avançada da equipe", category: "equipe", minPlan: "premium" },
+  { featureId: "audit", name: "Auditoria", category: "seguranca", minPlan: "premium" },
+  // Fiscal (NFC-e) agora é base — disponível em todos os planos, inclusive
+  // o de entrada.
+  { featureId: "fiscal", name: "Nota fiscal (NFC-e)", category: "fiscal", minPlan: "essencial" },
 ];
 
 const LIMITS: Record<PlanKey, Record<"users" | "tables", number | null>> = {
