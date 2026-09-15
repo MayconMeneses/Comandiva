@@ -12,9 +12,16 @@ const mocks = vi.hoisted(() => ({
   ],
 }));
 
+// Mutável entre testes — simula o snapshot de plano/licença que
+// AdminAccessManager consulta pra saber quais recursos estão bloqueados.
+let mockLockedFeatures: Record<string, { requiredPlanKey: string; requiredPlanName: string }> = {};
+
 vi.mock("../client/src/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({}),
+    admin: {
+      mySnapshot: { useQuery: () => ({ data: { lockedFeatures: mockLockedFeatures }, isLoading: false }) },
+    },
     team: {
       list: { useQuery: () => ({ data: mocks.accounts, isLoading: false, error: null, refetch: vi.fn() }) },
       create: { useMutation: () => ({ isPending: false, error: null, mutate: mocks.create }) },
@@ -63,5 +70,19 @@ describe("gerenciador de acessos administrativos", () => {
     fireEvent.click(screen.getByRole("button", { name: "Gerenciar acessos administrativos" }));
     expect(screen.getByRole("button", { name: "Pausar acesso de ADM principal" })).toHaveProperty("disabled", true);
     expect(screen.getByRole("button", { name: "Remover acesso de ADM principal" })).toHaveProperty("disabled", true);
+  });
+
+  it("com advanced_team bloqueado, marcar uma área nova não atualiza o estado — abre o convite de upgrade em vez disso", () => {
+    mockLockedFeatures = { advanced_team: { requiredPlanKey: "premium", requiredPlanName: "Premium" } };
+    render(createElement(AdminAccessManager));
+    fireEvent.click(screen.getByRole("button", { name: "Gerenciar acessos administrativos" }));
+    fireEvent.change(screen.getByLabelText("Tipo de acesso"), { target: { value: "staff" } });
+    const catalogCheckbox = screen.getByLabelText("Cardápio") as HTMLInputElement;
+    expect(catalogCheckbox.checked).toBe(false);
+    fireEvent.click(catalogCheckbox);
+    // Continua desmarcada — o clique abriu o convite de upgrade em vez de marcar a área.
+    expect(catalogCheckbox.checked).toBe(false);
+    expect(screen.getByText("Recurso do plano Premium")).toBeTruthy();
+    mockLockedFeatures = {};
   });
 });

@@ -13,6 +13,7 @@ export * from "./db/deliveryRoutes";
 export * from "./db/catalog";
 export * from "./db/customers";
 export * from "./db/orders";
+export * from "./db/reports";
 export * from "./db/tables";
 export * from "./db/tableSessions";
 export * from "./db/tableServiceRequests";

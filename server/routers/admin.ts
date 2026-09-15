@@ -16,6 +16,7 @@ import { adminOperationsRouter } from "./admin/operations";
 import { adminOrdersRouter } from "./admin/orders";
 import { adminPaymentGatewaysRouter } from "./admin/paymentGateways";
 import { adminPromotionsRouter } from "./admin/promotions";
+import { adminReportsRouter } from "./admin/reports";
 import { adminSettingsRouter } from "./admin/settings";
 import { adminTablesRouter } from "./admin/tables";
 
@@ -26,6 +27,7 @@ export const adminRouter = mergeRouters(
   adminOperationsRouter,
   adminCatalogRouter,
   adminPromotionsRouter,
+  adminReportsRouter,
   adminDeliveryRoutesRouter,
   adminSettingsRouter,
   adminPaymentGatewaysRouter,

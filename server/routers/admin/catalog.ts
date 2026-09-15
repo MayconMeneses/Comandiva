@@ -3,7 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { addonGroups, addonOptions, categories, products } from "../../../drizzle/schema";
 import { getDb } from "../../db";
-import { restaurantProcedureFor, router } from "../../_core/trpc";
+import { assertFeatureAvailable, restaurantProcedureFor, router } from "../../_core/trpc";
 import { assertRealImageMatchesDeclaredType, storagePut } from "../../storage";
 import { optionalId, sortOrder } from "./shared";
 
@@ -58,9 +58,20 @@ export const adminCatalogRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
     const now = Date.now();
     if (input.id) {
+      // Destacar produto em "Promoção" é o mesmo recurso de plano de
+      // Promoções/combos (ver PromotionManager, já travado por
+      // requireFeature("promotions") em admin/promotions.ts) — só barra
+      // LIGAR o destaque num produto que ainda não tinha; um produto já
+      // marcado antes de um downgrade continua salvando normalmente nos
+      // outros campos (nunca quebra edição por causa de um dado antigo).
+      if (input.onPromotion) {
+        const [current] = await db.select({ onPromotion: products.onPromotion }).from(products).where(eq(products.id, input.id)).limit(1);
+        if (!current?.onPromotion) await assertFeatureAvailable("promotions");
+      }
       await db.update(products).set({ categoryId: input.categoryId, name: input.name, description: input.description || null, imageUrl: input.imageUrl || null, priceCents: input.priceCents, preparationMinutes: input.preparationMinutes, available: input.available, featured: input.featured, onPromotion: input.onPromotion, sortOrder: input.sortOrder, updatedAt: now }).where(eq(products.id, input.id));
       return { id: input.id };
     }
+    if (input.onPromotion) await assertFeatureAvailable("promotions");
     const result = await db.insert(products).values({ categoryId: input.categoryId, name: input.name, description: input.description || null, imageUrl: input.imageUrl || null, priceCents: input.priceCents, preparationMinutes: input.preparationMinutes, available: input.available, featured: input.featured, onPromotion: input.onPromotion, sortOrder: input.sortOrder, createdAt: now, updatedAt: now });
     return { id: Number(result[0].insertId) };
   }),

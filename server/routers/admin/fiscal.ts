@@ -13,7 +13,7 @@ import {
   saveFiscalCscToken,
   saveFiscalTaxCategory,
 } from "../../db";
-import { adminOnlyProcedure, requireFeature, router } from "../../_core/trpc";
+import { adminOnlyProcedure, router } from "../../_core/trpc";
 import { optionalId } from "./shared";
 
 const cnpjSchema = z.string().transform(value => value.replace(/\D/g, "")).refine(isValidCnpjChecksum, "CNPJ inválido — confira os números digitados.");
@@ -22,9 +22,12 @@ const cnpjSchema = z.string().transform(value => value.replace(/\D/g, "")).refin
 // — CNPJ, regime tributário e o certificado digital ficam fora do Modo
 // Suporte e de qualquer permissão de staff, mesmo raciocínio de
 // paymentGateways.ts: assumir a identidade fiscal do restaurante é tão
-// sensível quanto assumir o Pix dele. Também agora um recurso de plano (ver
-// pedido do dono, 2026-09-10) — mesmo padrão de admin/promotions.ts.
-const fiscalProcedure = adminOnlyProcedure.use(requireFeature("fiscal"));
+// sensível quanto assumir o Pix dele. NFC-e é conformidade tributária, não
+// diferencial comercial — nunca deve ser usada como alavanca de upgrade (ver
+// reestruturação de planos, 2026-09-11), por isso NÃO tem requireFeature:
+// fica sempre liberada, independente do plano ou de qualquer sincronização
+// com o saas-core.
+const fiscalProcedure = adminOnlyProcedure;
 
 export const adminFiscalRouter = router({
   fiscalSettings: fiscalProcedure.query(() => getFiscalSettings()),

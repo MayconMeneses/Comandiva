@@ -1,13 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const";
-import { authenticateRestaurantAccount, createRestaurantAccessAccount, deleteRestaurantAccessAccount, listRestaurantAccessAccounts, setRestaurantAccessAccountActive, updateRestaurantAccessAccount } from "../db";
+import { authenticateRestaurantAccount, createRestaurantAccessAccount, deleteRestaurantAccessAccount, getStoredStaffPermissions, listRestaurantAccessAccounts, setRestaurantAccessAccountActive, updateRestaurantAccessAccount } from "../db";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { assertWithinPlanLimit, assertWithinPlanLimitAndInsert } from "../_core/planLimits";
 import { GRANTABLE_STAFF_AREAS } from "../_core/permissions";
 import { checkRateLimit, clearRateLimit } from "../_core/rateLimit";
 import { sdk } from "../_core/sdk";
-import { adminOnlyProcedure, publicProcedure, router } from "../_core/trpc";
+import { adminOnlyProcedure, assertFeatureAvailable, publicProcedure, router } from "../_core/trpc";
 
 const usernameSchema = z.string().trim().toLowerCase().min(3, "Use ao menos 3 caracteres.").max(64).regex(/^[a-z0-9._-]+$/, "Use apenas letras, números, ponto, hífen ou sublinhado.");
 const passwordSchema = z.string().min(8, "A senha deve ter pelo menos 8 caracteres.").max(128);
@@ -37,9 +37,27 @@ export const teamRouter = router({
   // bloqueada (ver [[project_saas_whitelabel_transformation]]).
   list: adminOnlyProcedure.query(() => listRestaurantAccessAccounts()),
   create: adminOnlyProcedure.input(z.object({ name: z.string().trim().min(2).max(120), username: usernameSchema, password: passwordSchema, role: z.enum(["staff", "admin"]).default("staff"), permissions: permissionsSchema })).mutation(async ({ input }) => {
+    // Escolher áreas específicas (em vez de deixar a conta staff só com o
+    // básico de pedidos/mesas) é recurso de plano (Premium) desde a
+    // reestruturação de planos, 2026-09-11 — checagem condicional ao input,
+    // não no procedure inteiro, porque criar staff sem nenhuma área extra
+    // continua liberado em qualquer plano.
+    if (input.permissions && input.permissions.length > 0) await assertFeatureAvailable("advanced_team");
     return assertWithinPlanLimitAndInsert("users", tx => createRestaurantAccessAccount(input, tx));
   }),
-  update: adminOnlyProcedure.input(z.object({ accountId: z.number().int().positive(), name: z.string().trim().min(2).max(120), password: passwordSchema.optional(), permissions: permissionsSchema })).mutation(({ input }) => updateRestaurantAccessAccount(input)),
+  update: adminOnlyProcedure.input(z.object({ accountId: z.number().int().positive(), name: z.string().trim().min(2).max(120), password: passwordSchema.optional(), permissions: permissionsSchema })).mutation(async ({ input }) => {
+    // Mesmo gate do create acima, mas só trava se a restrição estiver
+    // MUDANDO de verdade (comparado ao que já está salvo) — editar nome/senha
+    // de uma conta já restrita, sem tocar nas áreas, nunca deve travar, senão
+    // quebraríamos contas configuradas antes desta regra existir (regra de
+    // não quebrar configuração existente).
+    if (input.permissions && input.permissions.length > 0) {
+      const current = await getStoredStaffPermissions(input.accountId);
+      const changed = current.length !== input.permissions.length || !input.permissions.every(area => current.includes(area));
+      if (changed) await assertFeatureAvailable("advanced_team");
+    }
+    return updateRestaurantAccessAccount(input);
+  }),
   setActive: adminOnlyProcedure.input(z.object({ accountId: z.number().int().positive(), active: z.boolean() })).mutation(async ({ input, ctx }) => {
     if (input.active) await assertWithinPlanLimit("users"); // reativar conta pausada também conta contra o limite do plano
     return setRestaurantAccessAccountActive(input.accountId, input.active, ctx.user.id);

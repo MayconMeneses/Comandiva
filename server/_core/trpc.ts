@@ -8,7 +8,7 @@ import { ENV } from "./env";
 import { getLicenseSnapshot, type FeatureId } from "./license";
 import type { StaffPermissionArea } from "./permissions";
 
-type FeatureLockedInfo = { featureId: FeatureId; requiredPlanKey: string | null; requiredPlanName: string | null };
+export type FeatureLockedInfo = { featureId: FeatureId; requiredPlanKey: string | null; requiredPlanName: string | null };
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -160,23 +160,34 @@ export function restaurantProcedureFor(area: StaffPermissionArea) {
  * `featureLocked` (via errorFormatter acima) pro frontend distinguir "sem
  * permissão" de "bloqueado por plano" e oferecer upgrade em vez de só negar.
  */
+/**
+ * Mesma checagem de `requireFeature`, mas como função simples em vez de
+ * middleware — usada quando o gate por plano é CONDICIONAL ao conteúdo do
+ * input (ex.: só travar a criação de staff quando o input pede permissão
+ * granular), não em todo o procedure. Lança o mesmo formato de erro
+ * (`featureLocked`) pro frontend tratar igual em qualquer um dos dois casos.
+ */
+export async function assertFeatureAvailable(featureId: FeatureId) {
+  const snapshot = await getLicenseSnapshot();
+  if (!snapshot.features.includes(featureId)) {
+    const required = snapshot.lockedFeatures[featureId];
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `Este recurso não está disponível no plano ${snapshot.planKey}.`,
+      cause: {
+        featureLocked: {
+          featureId,
+          requiredPlanKey: required?.requiredPlanKey ?? null,
+          requiredPlanName: required?.requiredPlanName ?? null,
+        } satisfies FeatureLockedInfo,
+      },
+    });
+  }
+}
+
 export function requireFeature(featureId: FeatureId) {
   return t.middleware(async ({ next }) => {
-    const snapshot = await getLicenseSnapshot();
-    if (!snapshot.features.includes(featureId)) {
-      const required = snapshot.lockedFeatures[featureId];
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: `Este recurso não está disponível no plano ${snapshot.planKey}.`,
-        cause: {
-          featureLocked: {
-            featureId,
-            requiredPlanKey: required?.requiredPlanKey ?? null,
-            requiredPlanName: required?.requiredPlanName ?? null,
-          } satisfies FeatureLockedInfo,
-        },
-      });
-    }
+    await assertFeatureAvailable(featureId);
     return next();
   });
 }

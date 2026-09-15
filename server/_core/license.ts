@@ -8,9 +8,16 @@ export const FEATURE_IDS = [
   "call_waiter",
   "request_bill",
   "extra_rounds",
+  "commands",
+  "reservations",
   "promotions",
   "events",
-  "fiscal",
+  "kitchen",
+  "team_app",
+  "audit",
+  "reports_complete",
+  "reports_advanced",
+  "advanced_team",
 ] as const;
 export type FeatureId = (typeof FEATURE_IDS)[number];
 

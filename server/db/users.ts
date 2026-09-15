@@ -139,6 +139,12 @@ export async function listRestaurantStaffAccounts() {
   return listRestaurantAccessAccounts();
 }
 
+/** Permissões já gravadas de uma conta — usado pelo router pra distinguir "editando sem mudar a restrição" (sempre liberado) de "adicionando/mudando uma restrição granular nova" (recurso de plano). */
+export async function getStoredStaffPermissions(accountId: number): Promise<StaffPermissionArea[]> {
+  const { credential } = await getRestaurantAccessAccount(accountId);
+  return parseStaffPermissions(credential.permissions);
+}
+
 async function getRestaurantAccessAccount(accountId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
