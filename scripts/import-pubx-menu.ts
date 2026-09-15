@@ -53,7 +53,7 @@ async function run() {
   if (!db) throw new Error("Banco de dados indisponível");
   const burgersId = await findCategoryId("Hambúrgueres");
   const pizzasId = await findCategoryId("Pizzas");
-  await db.update(restaurantSettings).set({ storeName: "Pub X", shortDescription: "Hambúrgueres, pizzas e petiscos para aproveitar a noite.", updatedAt: now });
+  await db.update(restaurantSettings).set({ storeName: "MM System Creator", shortDescription: "Hambúrgueres, pizzas e petiscos para aproveitar a noite.", updatedAt: now });
 
   const burgers: MenuProduct[] = [
     { name: "X-Burguer", description: "Pão, carne artesanal 120g e queijo.", priceCents: 1200, imageUrl: burgerImage, featured: true },
@@ -87,7 +87,7 @@ async function run() {
     const id = await upsertProduct(pizzasId, { name, description, priceCents: medium, imageUrl: pizzaImage, featured: index < 2 }, index + 1);
     await ensurePizzaSizes(id, medium, large, family);
   }
-  console.info("Cardápio oficial do Pub X importado com sucesso.");
+  console.info("Cardápio oficial do MM System Creator importado com sucesso.");
 }
 
 run().catch(error => { console.error(error); process.exitCode = 1; });

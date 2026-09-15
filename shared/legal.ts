@@ -15,7 +15,7 @@ export const CURRENT_TERMS_VERSION = "2026-09-06";
  * 11 anos, não 5, porque o Ajuste SINIEF nº 2/2025 (CONFAZ, vigente desde
  * 01/05/2025, adotado pelo Ceará como todo estado do convênio ICMS) elevou a
  * guarda do XML de NF-e/NFC-e de 60 para 132 meses; o piso do CTN (art. 173 /
- * art. 150 §4º) continua em 5 anos, mas como o Pub X vincula o pedido ao
+ * art. 150 §4º) continua em 5 anos, mas como o MM System Creator vincula o pedido ao
  * documento fiscal (ver Termos de Uso, seção 3), vale o prazo mais longo dos
  * dois. Revisar se a IN SEFAZ-CE nº 87/2025 ou o contador definirem outro
  * número quando a emissão de NFC-e for implementada de fato.

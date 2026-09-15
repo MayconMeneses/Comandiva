@@ -1,4 +1,4 @@
-// Script de importação do cardápio real do Pub X (Croatá/CE).
+// Script de importação do cardápio real do MM System Creator (Croatá/CE).
 // Lê os dados abaixo (extraídos das fotos do cardápio enviadas) e cadastra
 // categorias, produtos, grupos de complemento (tamanhos/porções/adicionais)
 // e promoções vinculadas. É seguro rodar mais de uma vez: itens que já
@@ -43,7 +43,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
     {
       "key": "hamb_trad",
       "name": "Hambúrguer Tradicional",
-      "description": "Os clássicos do Pub X, pão + 120g de carne artesanal.",
+      "description": "Os clássicos do MM System Creator, pão + 120g de carne artesanal.",
       "sortOrder": 10,
       "aliases": [
         "Hambúrgueres Tradicionais"
@@ -2791,7 +2791,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
       "linkTo": null
     },
     {
-      "title": "Happy Hour do Pub X",
+      "title": "Happy Hour do MM System Creator",
       "description": "Petiscos porção inteira e bebidas com preço especial.",
       "badge": "HAPPY HOUR",
       "priceLabel": "A partir de R$ 9,00",

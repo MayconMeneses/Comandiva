@@ -19,7 +19,7 @@ try {
   if (!String(error?.name || error).includes("BucketAlreadyOwnedByYou")) throw error;
 }
 
-const payload = Buffer.from("Pub X independent S3 smoke test", "utf8");
+const payload = Buffer.from("MM System Creator independent S3 smoke test", "utf8");
 const stored = await storagePut("smoke/independent-storage.txt", payload, "text/plain");
 if (!stored.url.startsWith(process.env.S3_PUBLIC_BASE_URL)) throw new Error(`Unexpected public URL: ${stored.url}`);
 

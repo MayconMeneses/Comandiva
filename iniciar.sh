@@ -82,7 +82,7 @@ docker compose -f docker-compose.independent.yml up -d --build
 
 echo ""
 echo "============================================================"
-echo " Pronto! O Pub X está subindo."
+echo " Pronto! O MM System Creator está subindo."
 echo " Acesse em alguns segundos: http://localhost:3000"
 echo ""
 echo " Para acompanhar os logs em tempo real:"

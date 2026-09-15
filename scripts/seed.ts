@@ -78,7 +78,7 @@ async function seed() {
   }
 
   await db.insert(restaurantSettings).values({
-    storeName: "Pub X",
+    storeName: "MM System Creator",
     shortDescription: "Hambúrgueres artesanais, pizzas e porções para aproveitar o melhor da noite.",
     phone: "85999999999",
     address: "Rua do Mercado, 120 — Centro",

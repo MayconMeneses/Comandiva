@@ -1,11 +1,11 @@
-# Pub X — Sistema de pedidos (contexto do projeto)
+# MM System Creator — Sistema de pedidos (contexto do projeto)
 
 Este arquivo é lido automaticamente pelo Claude Code no início de cada sessão nesta pasta.
 Serve para não precisar reexplicar o histórico do projeto a cada conversa nova.
 
 ## O que é
 
-Sistema completo de pedidos online para o restaurante **Pub X** (Croatá/CE), rodando de forma
+Sistema completo de pedidos online para o restaurante **MM System Creator** (Croatá/CE), rodando de forma
 independente (sem depender de nenhuma plataforma no-code). Cliente faz pedido pelo site público,
 equipe gerencia tudo pelo painel administrativo.
 
@@ -51,8 +51,8 @@ Serviço central separado dentro deste mesmo repositório (pasta `saas-core/`), 
 (Express + tRPC + Drizzle + MySQL), próprio banco e próprio Docker Compose
 (`saas-core/docker-compose.saas-core.yml`, containers `saas-core-app-1`/`saas-core-db-1`).
 **Nunca guarda dado operacional de restaurante nenhum** (pedidos, cardápio, clientes) — só
-planos/assinaturas/cobrança e o cadastro dos restaurantes-cliente. Cada restaurante (Pub X,
-SistemaSW, futuros clientes) continua com seu próprio deployment Docker isolado, exatamente como
+planos/assinaturas/cobrança e o cadastro dos restaurantes-cliente. Cada restaurante (MM System
+Creator, futuros clientes) continua com seu próprio deployment Docker isolado, exatamente como
 hoje; o app principal consulta o `saas-core` via `server/_core/license.ts` (sync em background,
 cache local com fail-open se o `saas-core` cair) e recursos pagos são bloqueados de fato no
 backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no frontend).
@@ -102,15 +102,6 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
   - Chaves de gateway de pagamento (`apiKey`, `secretKey`) nunca voltam pro navegador — só um
     booleano indicando se já foram configuradas. Editar sem preencher de novo mantém o valor salvo.
   - Cabeçalhos de segurança básicos (`X-Frame-Options`, `X-Content-Type-Options` etc.) no Express.
-- **Cópia neutra "Sistema SW"**: existe em `../SistemaSW` (pasta irmã desta), refeita em 2026-09-04
-  a partir desta pasta com tudo que existia até aquela data (balcão, alertas por Telegram,
-  promoções, etc.). Marca, cookie de sessão, bucket S3, banco, docker-compose e logo (SVG/PNG)
-  trocados para "Sistema SW"/"sistemasw"; itens de cardápio que citavam "PUB-X" viraram "Especial
-  da Casa"; fotos de produto trocadas por imagens genéricas de estoque. Pendências conhecidas antes
-  de mostrar a um cliente real: a maioria dos nomes de prato (hambúrgueres autorais como "Vamos
-  fugir", "Natasha" etc.) ainda é o cardápio real do Pub X, e alguns textos ainda citam "Croatá/CE".
-  Se pedir pra continuar/atualizar essa cópia, ela precisa ser refeita a partir da pasta principal
-  atual (não editar `SistemaSW` isoladamente, ela fica desatualizada).
 
 ## Como rodar localmente (o usuário já sabe fazer isso, é referência)
 
@@ -138,7 +129,7 @@ docker compose -f docker-compose.saas-core.yml logs app --tail=60   # ver logs
   (`/mnt/c/Users/maico/OneDrive/Área de Trabalho/Nova pasta/Pubx` no WSL).
 - Planeja hospedar em VPS (Hostinger, plano KVM, datacenter São Paulo). A revenda pra outros
   restaurantes já saiu do "avaliando" e está construída: camada `saas-core/` (ver seção própria
-  acima) e a cópia neutra "SistemaSW" pra clientes que não devem ver a marca Pub X.
+  acima).
 - Prefere respostas diretas com o próximo passo prático; já passou por bastante troubleshooting de
   Docker/WSL/BIOS nesta jornada.
 

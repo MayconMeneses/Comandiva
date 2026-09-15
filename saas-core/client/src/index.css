@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Paleta neutra própria do Painel Master — deliberadamente distinta da
-   identidade visual do Pub X (client/index principal), pra nunca confundir
+   identidade visual do MM System Creator (client/index principal), pra nunca confundir
    visualmente "estou no painel de UM restaurante" com "estou vendo TODOS os
    restaurantes". */
 @theme {

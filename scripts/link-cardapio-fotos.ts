@@ -1,6 +1,6 @@
 // Liga as fotos reais do cardápio (colocadas em assets/pubx/cardapio-fotos/,
 // nomeadas pelo prato que retratam) aos produtos correspondentes no banco,
-// substituindo fotos de banco de imagens/genéricas por fotos reais do Pub X e
+// substituindo fotos de banco de imagens/genéricas por fotos reais do MM System Creator e
 // preenchendo produtos que ainda não tinham nenhuma imagem. Sobe cada arquivo
 // pro mesmo storage (MinIO) que o upload manual do Admin usa, só que em lote.
 //
