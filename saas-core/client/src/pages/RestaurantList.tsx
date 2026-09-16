@@ -184,6 +184,7 @@ export default function RestaurantList() {
                 <td className="px-4 py-3">
                   <Link href={`/restaurantes/${row.id}`} className="font-medium text-accent hover:underline">{row.name}</Link>
                   {row.contactEmail ? <p className="text-xs text-ink-soft">{row.contactEmail}</p> : null}
+                  {!row.deploymentUrl ? <p className="mt-1 text-xs font-medium text-amber-700">⚠ sem deployment configurado</p> : null}
                 </td>
                 <td className="px-4 py-3">{row.plan.name}</td>
                 <td className="px-4 py-3"><Badge status={row.subscription.status}>{row.subscription.status}</Badge></td>

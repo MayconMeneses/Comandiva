@@ -79,6 +79,11 @@ export const restaurantSettings = mysqlTable("restaurant_settings", {
   dinnerEndTime: varchar("dinnerEndTime", { length: 5 }),
   promotionCategoryImageUrl: varchar("promotionCategoryImageUrl", { length: 500 }),
   aboutText: text("aboutText"),
+  // Tema de cor da marca (site público + admin) — chave de shared/colorThemes.ts,
+  // validada no router (não FK/enum de banco pra não exigir migration toda vez
+  // que um tema novo for adicionado ao catálogo). "classico" é sempre o valor
+  // que reproduz a aparência original (pré-seletor de tema).
+  colorTheme: varchar("colorTheme", { length: 20 }).notNull().default("classico"),
   createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
   updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
 });

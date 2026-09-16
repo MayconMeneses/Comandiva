@@ -59,7 +59,7 @@ export default function DataRights() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f1e8]">
+    <div className="min-h-screen bg-background">
       <header className="border-b bg-[#fffdf8]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/politica-de-privacidade")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Política de Privacidade</button>
@@ -69,7 +69,7 @@ export default function DataRights() {
       </header>
 
       <main className="page-shell max-w-2xl py-10">
-        <p className="text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">LGPD — autoatendimento</p>
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">LGPD — autoatendimento</p>
         <h1 className="mt-2 font-display text-4xl font-bold">Seus dados, na sua mão.</h1>
         <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Confirme que o telefone é seu com um código de verificação e veja, baixe ou apague os dados que temos sobre você.</p>
 
@@ -81,7 +81,7 @@ export default function DataRights() {
               {phoneError && <p role="alert" className="mt-2 text-sm font-medium text-[#a43720]">{phoneError}</p>}
               {requestCode.error && <p className="mt-2 text-sm font-medium text-[#a43720]">{requestCode.error.message}</p>}
             </div>
-            <Button disabled={requestCode.isPending} className="h-10 self-end rounded-xl bg-[#b4472d] hover:bg-[#943722]"><KeyRound className="mr-2 h-4 w-4" />{requestCode.isPending ? "Enviando…" : "Enviar código"}</Button>
+            <Button disabled={requestCode.isPending} className="h-10 self-end rounded-xl bg-primary hover:bg-primary-hover"><KeyRound className="mr-2 h-4 w-4" />{requestCode.isPending ? "Enviando…" : "Enviar código"}</Button>
           </form>
         )}
 
@@ -95,9 +95,9 @@ export default function DataRights() {
                 <Input id="dr-code" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="mt-2 h-10 rounded-xl bg-[#fffdfa] tracking-[0.3em]" />
                 {verifyCode.error && <p role="alert" className="mt-2 text-sm font-medium text-[#a43720]">{verifyCode.error.message}</p>}
               </div>
-              <Button disabled={code.length !== 6 || verifyCode.isPending} className="h-10 self-end rounded-xl bg-[#b4472d] hover:bg-[#943722]">{verifyCode.isPending ? "Confirmando…" : "Confirmar código"}</Button>
+              <Button disabled={code.length !== 6 || verifyCode.isPending} className="h-10 self-end rounded-xl bg-primary hover:bg-primary-hover">{verifyCode.isPending ? "Confirmando…" : "Confirmar código"}</Button>
             </form>
-            <button type="button" onClick={() => setStep("phone")} className="mt-3 text-xs font-semibold text-[#b4472d] hover:underline">Usar outro telefone</button>
+            <button type="button" onClick={() => setStep("phone")} className="mt-3 text-xs font-semibold text-primary hover:underline">Usar outro telefone</button>
           </div>
         )}
 
@@ -159,7 +159,7 @@ export default function DataRights() {
             <CheckCircle2 className="h-10 w-10 text-emerald-600" />
             <h2 className="font-display text-2xl font-bold">Dados removidos</h2>
             <p className="max-w-sm text-sm leading-6 text-muted-foreground">Seu nome, telefone e endereço foram anonimizados. Obrigado por usar o MM System Creator.</p>
-            <Button onClick={() => setLocation("/")} className="mt-2 h-10 rounded-xl bg-[#b4472d] hover:bg-[#943722]">Voltar ao cardápio</Button>
+            <Button onClick={() => setLocation("/")} className="mt-2 h-10 rounded-xl bg-primary hover:bg-primary-hover">Voltar ao cardápio</Button>
           </div>
         )}
       </main>

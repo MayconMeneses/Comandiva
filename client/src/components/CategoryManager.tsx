@@ -33,7 +33,7 @@ function LunchDinnerHours() {
   };
   return (
     <section className="mb-8 rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-5">
-      <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Cardápio por horário</p>
+      <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Cardápio por horário</p>
       <h3 className="mt-1 font-display text-xl font-bold">Janelas de almoço e janta</h3>
       <p className="mt-1 text-sm text-muted-foreground">Usadas por categorias marcadas como "Só no almoço", "Só na janta" ou "Almoço e janta". Deixe em branco para não restringir por horário.</p>
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -53,7 +53,7 @@ function LunchDinnerHours() {
             <Input type="time" value={form.dinnerEndTime} onChange={event => setForm({ ...form, dinnerEndTime: event.target.value })} className="h-10 rounded-lg bg-white" />
           </div>
         </div>
-        <Button disabled={update.isPending} className="h-10 w-fit rounded-xl bg-[#b4472d] px-5 hover:bg-[#943722] sm:col-span-2">{update.isPending ? "Salvando…" : "Salvar horários"}</Button>
+        <Button disabled={update.isPending} className="h-10 w-fit rounded-xl bg-primary px-5 hover:bg-primary-hover sm:col-span-2">{update.isPending ? "Salvando…" : "Salvar horários"}</Button>
       </form>
     </section>
   );
@@ -105,11 +105,11 @@ export default function CategoryManager() {
     <section className="mt-10 border-t border-[#ddcfbd] pt-10">
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Organização</p>
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Organização</p>
           <h2 className="mt-2 font-display text-3xl font-bold">Categorias</h2>
           <p className="mt-1 text-sm text-muted-foreground">Crie, edite ou apague categorias do cardápio. Uma categoria com produtos não pode ser apagada.</p>
         </div>
-        <Button onClick={beginCreate} className="shrink-0 rounded-xl bg-[#b4472d] hover:bg-[#943722]"><Plus className="mr-1.5 h-4 w-4" />Nova categoria</Button>
+        <Button onClick={beginCreate} className="shrink-0 rounded-xl bg-primary hover:bg-primary-hover"><Plus className="mr-1.5 h-4 w-4" />Nova categoria</Button>
       </div>
 
       <LunchDinnerHours />
@@ -143,7 +143,7 @@ export default function CategoryManager() {
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/45 p-4">
           <form onSubmit={submit} className="my-6 w-full max-w-md rounded-3xl bg-[#fffdf8] p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
-              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#b4472d]">{editing ? "Editar" : "Nova"}</p><h2 className="mt-1 font-display text-2xl font-bold">{editing ? editing.name : "Nova categoria"}</h2></div>
+              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">{editing ? "Editar" : "Nova"}</p><h2 className="mt-1 font-display text-2xl font-bold">{editing ? editing.name : "Nova categoria"}</h2></div>
               <Button type="button" variant="ghost" onClick={close} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button>
             </div>
             <div className="mt-5 space-y-4">
@@ -157,7 +157,7 @@ export default function CategoryManager() {
                     <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handleImageFile(event.target.files?.[0])} className="h-10 rounded-xl bg-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" />
                     {uploadImage.isPending && <p className="mt-1 text-xs text-muted-foreground">Enviando imagem…</p>}
                     {uploadImage.error && <p className="mt-1 text-xs text-red-700">{uploadImage.error.message}</p>}
-                    {form.imageUrl && <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="mt-1 text-xs font-semibold text-[#b4472d] hover:underline">Remover e usar ícone padrão</button>}
+                    {form.imageUrl && <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="mt-1 text-xs font-semibold text-primary hover:underline">Remover e usar ícone padrão</button>}
                   </div>
                 </div>
               </div>
@@ -168,10 +168,10 @@ export default function CategoryManager() {
                 </select>
                 {form.timeAvailability !== "ALWAYS" && <p className="mt-1.5 text-xs text-muted-foreground">Usa as janelas de almoço/janta configuradas acima. Se ficarem em branco, a categoria não é restringida.</p>}
               </div>
-              <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.active} onChange={event => setForm({ ...form, active: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Categoria ativa (visível no cardápio)</label>
+              <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.active} onChange={event => setForm({ ...form, active: event.target.checked })} className="h-4 w-4 accent-primary" />Categoria ativa (visível no cardápio)</label>
             </div>
             {save.error ? <p className="mt-4 text-sm text-red-700">{save.error.message}</p> : null}
-            <Button disabled={save.isPending || uploadImage.isPending} className="mt-6 h-11 w-full rounded-xl bg-[#b4472d] hover:bg-[#943722]">{save.isPending ? "Salvando…" : "Salvar categoria"}</Button>
+            <Button disabled={save.isPending || uploadImage.isPending} className="mt-6 h-11 w-full rounded-xl bg-primary hover:bg-primary-hover">{save.isPending ? "Salvando…" : "Salvar categoria"}</Button>
           </form>
         </div>
       ) : null}

@@ -65,13 +65,15 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
   mayconprogramacao1@gmail.com — senha é a que estiver salva nessa variável nesse arquivo). Sem MFA
   (recusado de propósito, ver memória). Páginas: `Dashboard`, `Restaurantes` (lista + detalhe: plano,
   status, `deploymentUrl`, botão "Entrar em modo suporte"), `Planos`, `Auditoria`.
-- **Modo Suporte** — a partir do detalhe de um restaurante no Painel Master, abre uma sessão
-  *somente leitura* (dashboard, pedidos, clientes, cardápio, mesas) direto no deployment real daquele
-  restaurante, sem precisar da senha do restaurante: token de handoff de uso único, sessão local
-  separada (cookie/JWT próprios, nunca a sessão real de admin/staff), banner fixo laranja "Modo
-  Suporte ativo" sempre visível enquanto ativo, e toda entrada/saída fica gravada em
-  `platform_audit_log`. Nenhuma escrita é possível nessa sessão, nem por engano — a árvore de
-  componentes de `/suporte` não importa nenhum hook de mutation.
+- **Modo Suporte** — a partir do detalhe de um restaurante no Painel Master, abre uma sessão com
+  acesso completo de leitura E escrita (dashboard, pedidos, cardápio, mesas etc.) direto no
+  deployment real daquele restaurante, sem precisar da senha dele: token de handoff de uso único,
+  sessão local separada (cookie/JWT próprios, nunca a sessão real de admin/staff), banner fixo
+  laranja "Modo Suporte ativo" sempre visível enquanto ativo. Fica de fora mesmo em Modo Suporte
+  (bloqueado por `adminOnlyProcedure`, que nunca aceita `ctx.supportSession`): Pix/gateways de
+  pagamento, gestão de outras contas admin/staff, configuração fiscal e billing/assinatura — ver
+  `server/_core/trpc.ts`. Toda entrada e toda mutation feita durante a sessão ficam gravadas em
+  `platform_audit_log` (auditoria pós-fato, não bloqueio prévio).
 - Planos atuais: Essencial (R$149,90), Profissional (R$249,90), Premium (R$299,90). Cobrança de
   assinatura via Mercado Pago (mesma processadora já usada pros pedidos dos clientes finais).
 
@@ -102,6 +104,13 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
   - Chaves de gateway de pagamento (`apiKey`, `secretKey`) nunca voltam pro navegador — só um
     booleano indicando se já foram configuradas. Editar sem preencher de novo mantém o valor salvo.
   - Cabeçalhos de segurança básicos (`X-Frame-Options`, `X-Content-Type-Options` etc.) no Express.
+- **`docker compose up --build` pode ficar muito lento (10-20min+) ou parecer travado** quando a
+  máquina já tem muitos containers/dev servers rodando ao mesmo tempo (visto em sessão de
+  2026-09-15/16: builds concorrentes disputando o builder do Docker Desktop, e o passo `chown -R
+  /app` — sozinho, sobre `node_modules` — ficou parado por 8+ minutos sob carga pesada). Não é bug
+  do Dockerfile: o mesmo build, sem concorrência e com a máquina mais livre, completa em ~3-4min.
+  Se um build parecer travado, primeiro feche dev servers/containers não essenciais (ou reinicie o
+  Docker Desktop) antes de investigar o Dockerfile.
 
 ## Como rodar localmente (o usuário já sabe fazer isso, é referência)
 

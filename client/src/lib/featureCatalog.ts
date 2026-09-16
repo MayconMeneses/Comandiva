@@ -59,4 +59,9 @@ export const FEATURE_CATALOG: Record<string, FeatureCatalogEntry> = {
     description: "Histórico completo de ações da equipe sobre os pedidos.",
     benefits: ["Veja quem fez o quê e quando em cada pedido", "Registro que nunca é editado ou apagado"],
   },
+  custom_theme: {
+    name: "Tema de cor personalizado",
+    description: "Escolha a cor de marca do cardápio público e do painel administrativo, entre 7 opções.",
+    benefits: ["7 paletas prontas, testadas pra boa leitura", "Aplica no site público e no admin ao mesmo tempo", "Troque quando quiser, sem custo extra"],
+  },
 };

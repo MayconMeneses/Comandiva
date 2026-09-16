@@ -20,7 +20,7 @@
 - [x] Escrever e executar testes automatizados para validações, cálculo de pedido e fluxos críticos da API.
 - [x] Verificar a interface em desktop e celular, corrigir falhas e validar a compilação final.
 - [x] Documentar a arquitetura, as escolhas técnicas, as permissões de acesso e os próximos passos para integrar uma impressora local ou um provedor oficial de SMS/WhatsApp.
-- [x] Extrair e validar os produtos, preços, disponibilidade e referências visuais do arquivo PubX fornecido.
+- [x] Extrair e validar os produtos, preços, disponibilidade e referências visuais do arquivo MM System Creator fornecido.
 - [x] Substituir o cardápio inicial pelos dados oficiais e aplicar a paleta/identidade visual presente no material recebido.
 - [x] Transcrever e validar integralmente todos os produtos, preços e categorias legíveis das imagens fornecidas.
 - [x] Conciliar o banco de dados com o cardápio oficial, revisando itens remanescentes do cardápio inicial que não constem no material.
@@ -29,17 +29,17 @@
 - [x] Executar build de produção e revisar visualmente o painel administrativo em desktop e celular.
 - [x] Aplicar a identidade visual de forma explícita e uniforme nos principais componentes públicos e administrativos.
 - [x] Cobrir em testes os caminhos bem-sucedidos de criação de pedido, atualização de status e confirmação da fila de impressão.
-- [x] Aplicar a marca do Pub X explicitamente nas telas de acesso administrativo, comprovante e estados principais restantes.
+- [x] Aplicar a marca do MM System Creator explicitamente nas telas de acesso administrativo, comprovante e estados principais restantes.
 - [x] Cobrir em teste os caminhos bem-sucedidos de criação, mudança de status e confirmação da fila de impressão.
-- [x] Aplicar logotipo e identidade Pub X diretamente no comprovante imprimível e revisar estados principais.
+- [x] Aplicar logotipo e identidade MM System Creator diretamente no comprovante imprimível e revisar estados principais.
 - [x] Tratar erro e permitir nova tentativa na tela de relatórios por período.
 - [x] Reduzir e padronizar o tamanho das imagens nos cartões do cardápio público.
 - [x] Reorganizar o cardápio em categorias claras: hambúrgueres, hambúrgueres artesanais, pizzas, pizzas especiais, pizzas doces, espetinhos, petiscos e refrigerantes.
 - [x] Criar uma área de promoções no cardápio público e uma estrutura administrativa para controlar sua exibição.
 - [x] Ocultar categorias sem produtos da vitrine pública e manter refrigerantes pronto para preenchimento pelo painel.
 - [x] Reduzir novamente os cartões de produto e organizar cada categoria como um trilho lateral navegável, evitando uma página extensa.
-- [x] Analisar a referência de navegação indicada pelo usuário e adaptar seus princípios de experiência ao cardápio do Pub X, sem reutilizar marca ou conteúdo.
-- [x] Extrair novamente dos arquivos do Pub X os pratos executivos e de almoço com dados confirmados.
+- [x] Analisar a referência de navegação indicada pelo usuário e adaptar seus princípios de experiência ao cardápio do MM System Creator, sem reutilizar marca ou conteúdo.
+- [x] Extrair novamente dos arquivos do MM System Creator os pratos executivos e de almoço com dados confirmados.
 - [x] Cadastrar a categoria e os itens oficiais de almoço executivo com preço confirmado no cardápio.
 - [x] Criar destaque de descoberta para almoço executivo na vitrine pública.
 - [x] Confirmar preços e composições das refeições para duas a três pessoas antes de habilitá-las para pedido.
@@ -107,11 +107,11 @@
 - [x] Testar que um administrador adicional autenticado consegue acessar visão geral, clientes, catálogo, pedidos e rotas.
 - [x] Adicionar teste de interface para reativar uma conta pausada.
 - [x] Adicionar descrição acessível ao modal de gestão de acessos e eliminar os warnings da suíte.
-- [x] Substituir a imagem atual ao lado do nome Pub X pelo logotipo enviado no cabeçalho público e administrativo.
+- [x] Substituir a imagem atual ao lado do nome MM System Creator pelo logotipo enviado no cabeçalho público e administrativo.
 - [x] Validar o enquadramento do novo logotipo em desktop e celular e publicar a alteração.
 - [x] Salvar um novo checkpoint/publicação após a troca do logotipo.
 - [x] Conferir e cobrir qualquer cabeçalho restante que ainda use a imagem antiga.
-- [x] Adicionar seletor claro/escuro abaixo da marca Pub X na tela inicial.
+- [x] Adicionar seletor claro/escuro abaixo da marca MM System Creator na tela inicial.
 - [x] Persistir a preferência de tema no navegador e respeitar a escolha na vitrine pública.
 - [x] Validar contraste, acessibilidade, responsividade e funcionamento do seletor de tema.
 - [x] Adicionar teste de interação real para alternar Claro/Escuro e verificar a persistência em localStorage.
@@ -123,7 +123,7 @@
 - [x] Executar uma validação móvel simulada no navegador com viewport lógica de 390px, mantendo os asserts de persistência e contraste documentados.
 - [x] Comparar por assert móvel simulado as cores computadas do fundo e do título no tema escuro.
 - [x] Rerodar e registrar a evidência móvel completa com persistência, classe dark, botão ativo e contraste.
-- [x] Reconfirmar e reforçar a presença do seletor Claro/Escuro abaixo da marca Pub X na tela inicial.
+- [x] Reconfirmar e reforçar a presença do seletor Claro/Escuro abaixo da marca MM System Creator na tela inicial.
 - [x] Revalidar a interação, a persistência e a publicação do seletor de tema.
 - [x] Salvar um novo checkpoint/publicação após a implementação do seletor de tema claro/escuro.
 - [x] Validar a versão publicada após o checkpoint para confirmar que o seletor aparece e funciona no ambiente entregue.

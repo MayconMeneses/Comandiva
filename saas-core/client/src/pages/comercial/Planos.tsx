@@ -29,6 +29,7 @@ const FEATURE_DESCRIPTIONS: Record<string, string> = {
   kitchen: "Tela de fila da cozinha e o kanban de pedidos.",
   team_app: "Instalar o painel no celular/tablet da equipe pra acesso rápido.",
   reports_complete: "Faturamento por dia/hora/forma de pagamento, produtos e categorias mais vendidos.",
+  custom_theme: "Escolha a cor de marca do cardápio público e do painel, entre 7 opções.",
   events: "Divulgar eventos com imagem grande direto no cardápio.",
   reports_advanced: "Clientes novos x recorrentes, produtos em alta/queda, exportação.",
   advanced_team: "Permissões granulares por área para contas da equipe.",

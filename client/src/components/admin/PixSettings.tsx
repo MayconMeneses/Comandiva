@@ -23,7 +23,7 @@ export default function PixSettings({ settings }: { settings: { isAcceptingOrder
     update.mutate({ isAcceptingOrders: settings.isAcceptingOrders, deliveryFeeCents: settings.deliveryFeeCents, minimumOrderCents: settings.minimumOrderCents, estimatedDeliveryMin: settings.estimatedDeliveryMin, estimatedDeliveryMax: settings.estimatedDeliveryMax, openingHours: settings.openingHours ?? "", logoUrl: settings.logoUrl ?? "", pixKey: form.pixKey, pixQrCodeUrl: form.pixQrCodeUrl });
   };
   return <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
-    <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Recebimento</p>
+    <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Recebimento</p>
     <h2 className="mt-1 font-display text-2xl font-bold">Pix</h2>
     <p className="mt-1 text-sm text-muted-foreground">Preencha a chave e/ou envie o QR Code para exibir na tela de pagamento quando o cliente escolher Pix.</p>
     <form onSubmit={submit} className="mt-5 space-y-4">
@@ -37,12 +37,12 @@ export default function PixSettings({ settings }: { settings: { isAcceptingOrder
             {uploadPixQr.isPending && <p className="mt-1 text-xs text-muted-foreground">Enviando imagem…</p>}
             {fileError && <p className="mt-1 text-xs text-red-700">{fileError}</p>}
             {uploadPixQr.error && <p className="mt-1 text-xs text-red-700">{uploadPixQr.error.message}</p>}
-            {form.pixQrCodeUrl && <button type="button" onClick={() => setForm({ ...form, pixQrCodeUrl: "" })} className="mt-1 text-xs font-semibold text-[#b4472d] hover:underline">Remover QR Code</button>}
+            {form.pixQrCodeUrl && <button type="button" onClick={() => setForm({ ...form, pixQrCodeUrl: "" })} className="mt-1 text-xs font-semibold text-primary hover:underline">Remover QR Code</button>}
           </div>
         </div>
       </div>
       {update.error && <p className="text-sm text-red-700">{update.error.message}</p>}
-      <Button disabled={update.isPending || uploadPixQr.isPending} className="h-11 rounded-xl bg-[#b4472d] hover:bg-[#943722]">{update.isPending ? "Salvando…" : update.isSuccess ? "Salvo!" : "Salvar Pix"}</Button>
+      <Button disabled={update.isPending || uploadPixQr.isPending} className="h-11 rounded-xl bg-primary hover:bg-primary-hover">{update.isPending ? "Salvando…" : update.isSuccess ? "Salvo!" : "Salvar Pix"}</Button>
     </form>
   </section>;
 }

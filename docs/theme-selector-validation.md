@@ -1,6 +1,6 @@
 # Validação do seletor de tema
 
-O seletor **Tema do site** foi colocado imediatamente abaixo da marca Pub X no cabeçalho da tela inicial. Ele oferece os botões **Claro** e **Escuro**, com estado ativo visível, `aria-pressed` para acessibilidade e ícones de sol e lua.
+O seletor **Tema do site** foi colocado imediatamente abaixo da marca MM System Creator no cabeçalho da tela inicial. Ele oferece os botões **Claro** e **Escuro**, com estado ativo visível, `aria-pressed` para acessibilidade e ícones de sol e lua.
 
 A preferência é persistida pelo `ThemeProvider` em `localStorage` e a vitrine usa as classes `theme-light` e `theme-dark` para adaptar o fundo, cardápio, seção de atendimento, carrinho e diálogos.
 
@@ -18,4 +18,4 @@ Como o navegador sandbox não permite alterar a viewport real por `resizeTo`, fo
 
 Assert final em viewport lógica de 390×844: fundo computado `[18, 14, 12]`, texto do título `[255, 250, 243]`, razão de contraste `18.49` e `contrastReady: true`. No mesmo assert, `storedTheme: "dark"`, `darkClass: true` e `darkPressed: "true"`. A checagem confirma contraste superior ao mínimo WCAG AA para texto normal no cenário móvel simulado.
 
-Na segunda revisão visual da tentativa, o seletor **Tema do site** apareceu abaixo do logotipo e do nome Pub X tanto em 1280×720 quanto em 390×844. Os botões Claro e Escuro permaneceram legíveis e o controle não ocupou o espaço do botão da sacola.
+Na segunda revisão visual da tentativa, o seletor **Tema do site** apareceu abaixo do logotipo e do nome MM System Creator tanto em 1280×720 quanto em 390×844. Os botões Claro e Escuro permaneceram legíveis e o controle não ocupou o espaço do botão da sacola.

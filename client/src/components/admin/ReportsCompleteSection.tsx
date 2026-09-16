@@ -48,7 +48,7 @@ export default function ReportsCompleteSection({ range, customDate }: Period) {
   return (
     <div className="mt-6 space-y-6">
       <div className="flex items-center gap-3">
-        <PackageSearch className="h-5 w-5 text-[#b4472d]" />
+        <PackageSearch className="h-5 w-5 text-primary" />
         <div>
           <h2 className="font-display text-2xl font-bold">Relatório completo</h2>
           <p className="text-sm text-muted-foreground">Quanto vendi e o que está vendendo.</p>

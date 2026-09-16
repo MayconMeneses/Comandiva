@@ -49,7 +49,7 @@ function ProductPicker({ products, categories, selectedIds, onToggle }: { produc
   return <div>
     <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar produto do cardápio…" className="h-10 rounded-xl pl-9" /></div>
     <div className="mt-2 max-h-60 space-y-1 overflow-y-auto rounded-xl border border-[#e4d8c8] bg-white p-1.5">
-      {filtered.length ? filtered.map(product => { const checked = selectedIds.includes(product.id); return <label key={product.id} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-left ${checked ? "bg-[#fdf1eb] ring-1 ring-[#b4472d]" : "hover:bg-[#f6ede0]"}`}><input type="checkbox" checked={checked} onChange={() => onToggle(product.id)} className="h-4 w-4 accent-[#b4472d]" /><span className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-[#eee1d2]"><SmartImage src={product.imageUrl} alt="" className="h-full w-full object-cover" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{product.name}</span><span className="block text-xs text-muted-foreground">{categoryName(product.categoryId)}</span></span><span className="shrink-0 text-sm font-semibold text-[#b4472d]">{money(product.priceCents)}</span></label>; }) : <p className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhum produto encontrado.</p>}
+      {filtered.length ? filtered.map(product => { const checked = selectedIds.includes(product.id); return <label key={product.id} className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-left ${checked ? "bg-[#fdf1eb] ring-1 ring-primary" : "hover:bg-[#f6ede0]"}`}><input type="checkbox" checked={checked} onChange={() => onToggle(product.id)} className="h-4 w-4 accent-primary" /><span className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-[#eee1d2]"><SmartImage src={product.imageUrl} alt="" className="h-full w-full object-cover" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{product.name}</span><span className="block text-xs text-muted-foreground">{categoryName(product.categoryId)}</span></span><span className="shrink-0 text-sm font-semibold text-primary">{money(product.priceCents)}</span></label>; }) : <p className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhum produto encontrado.</p>}
     </div>
     <p className="mt-1.5 text-xs text-muted-foreground">{selectedIds.length === 0 ? "Escolha ao menos um produto." : selectedIds.length === 1 ? "1 produto escolhido." : `${selectedIds.length} produtos escolhidos (combo).`}</p>
   </div>;
@@ -103,9 +103,9 @@ export default function PromotionManager() {
   };
 
   return <section className="mt-10 border-t border-[#ddcfbd] pt-10">
-    <button type="button" onClick={() => setSectionOpen(current => !current)} aria-expanded={sectionOpen} className="flex w-full items-center justify-between gap-4 rounded-2xl py-1 text-left transition-colors hover:bg-[#f6ede0]/40"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Vitrine</p><h2 className="mt-2 font-display text-3xl font-bold">Promoções</h2></div><ChevronDown className={`h-6 w-6 shrink-0 text-[#8a5c3f] transition-transform duration-300 ${sectionOpen ? "rotate-180" : ""}`} /></button>
+    <button type="button" onClick={() => setSectionOpen(current => !current)} aria-expanded={sectionOpen} className="flex w-full items-center justify-between gap-4 rounded-2xl py-1 text-left transition-colors hover:bg-[#f6ede0]/40"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Vitrine</p><h2 className="mt-2 font-display text-3xl font-bold">Promoções</h2></div><ChevronDown className={`h-6 w-6 shrink-0 text-[#8a5c3f] transition-transform duration-300 ${sectionOpen ? "rotate-180" : ""}`} /></button>
     <div className={`grid transition-all duration-300 ease-in-out ${sectionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}><div className="overflow-hidden"><div className="pt-5">
-      <div className="mb-5 flex items-end justify-between gap-4"><p className="max-w-xl text-sm text-muted-foreground">Promoções sempre usam produtos reais do cardápio — escolha um só produto ou vários (combo). A imagem e o preço normal vêm automaticamente do produto.</p><Button onClick={beginCreate} className="shrink-0 rounded-xl bg-[#b4472d] hover:bg-[#943722]"><Plus className="mr-1.5 h-4 w-4" />Nova promoção</Button></div>
+      <div className="mb-5 flex items-end justify-between gap-4"><p className="max-w-xl text-sm text-muted-foreground">Promoções sempre usam produtos reais do cardápio — escolha um só produto ou vários (combo). A imagem e o preço normal vêm automaticamente do produto.</p><Button onClick={beginCreate} className="shrink-0 rounded-xl bg-primary hover:bg-primary-hover"><Plus className="mr-1.5 h-4 w-4" />Nova promoção</Button></div>
       <div className="grid gap-3 md:grid-cols-2">
         {promotions.map(promotion => { const normalTotal = promotion.products.reduce((sum, product) => sum + product.priceCents, 0); const discount = promotion.promoPriceCents != null && normalTotal > 0 ? Math.round((1 - promotion.promoPriceCents / normalTotal) * 100) : null; const cover = promotion.products[0]?.imageUrl; return <article key={promotion.id} className="overflow-hidden rounded-2xl border border-[#e4d8c8] bg-[#fffdf8]">
           <div className="flex gap-3 p-4">
@@ -115,7 +115,7 @@ export default function PromotionManager() {
               <p className="mt-0.5 truncate text-xs text-muted-foreground">{promotion.products.map(product => product.name).join(" + ") || "Nenhum produto vinculado"}</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
                 {normalTotal > 0 && <span className="text-muted-foreground line-through">{money(normalTotal)}</span>}
-                {promotion.promoPriceCents != null && <strong className="text-[#b4472d]">{money(promotion.promoPriceCents)}</strong>}
+                {promotion.promoPriceCents != null && <strong className="text-primary">{money(promotion.promoPriceCents)}</strong>}
                 {discount !== null && discount > 0 && <span className="text-xs font-semibold text-emerald-700">-{discount}%</span>}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{[promotion.validDays, promotion.objective ? OBJECTIVE_LABELS[promotion.objective] : null].filter(Boolean).join(" · ") || "Sem validade/objetivo definidos"}</p>
@@ -130,7 +130,7 @@ export default function PromotionManager() {
       </div>
     </div></div></div>
     {(editing || creating) ? <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/45 p-4"><form onSubmit={submit} className="my-6 w-full max-w-lg rounded-3xl bg-[#fffdf8] p-6 shadow-2xl">
-      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#b4472d]">{editing ? "Editar" : "Nova"}</p><h2 className="mt-1 font-display text-2xl font-bold">Promoção</h2></div><Button type="button" variant="ghost" onClick={close} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button></div>
+      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">{editing ? "Editar" : "Nova"}</p><h2 className="mt-1 font-display text-2xl font-bold">Promoção</h2></div><Button type="button" variant="ghost" onClick={close} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button></div>
       <div className="mt-5 space-y-4">
         <Input required autoFocus value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} placeholder="Título da promoção" className="h-10 rounded-xl" />
         <Textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} placeholder="Descrição e condições" className="min-h-20 rounded-xl" />
@@ -146,8 +146,8 @@ export default function PromotionManager() {
               return <div key={group.id} className="mt-2 rounded-lg bg-white/70 p-2.5">
                 <p className="text-xs font-medium">{group.name}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-1.5 text-xs"><input type="radio" name={`addon-${productId}-${group.id}`} checked={current.mode === "CUSTOMER_CHOICE"} onChange={() => setAddonDefault(productId, group.id, { mode: "CUSTOMER_CHOICE", defaultOptionId: null })} className="accent-[#b4472d]" />Cliente escolhe ao adicionar</label>
-                  <label className="flex items-center gap-1.5 text-xs"><input type="radio" name={`addon-${productId}-${group.id}`} checked={current.mode === "ADMIN_DEFAULT"} onChange={() => setAddonDefault(productId, group.id, { mode: "ADMIN_DEFAULT", defaultOptionId: current.defaultOptionId ?? group.options[0]?.id ?? null })} className="accent-[#b4472d]" />Sempre usar:</label>
+                  <label className="flex items-center gap-1.5 text-xs"><input type="radio" name={`addon-${productId}-${group.id}`} checked={current.mode === "CUSTOMER_CHOICE"} onChange={() => setAddonDefault(productId, group.id, { mode: "CUSTOMER_CHOICE", defaultOptionId: null })} className="accent-primary" />Cliente escolhe ao adicionar</label>
+                  <label className="flex items-center gap-1.5 text-xs"><input type="radio" name={`addon-${productId}-${group.id}`} checked={current.mode === "ADMIN_DEFAULT"} onChange={() => setAddonDefault(productId, group.id, { mode: "ADMIN_DEFAULT", defaultOptionId: current.defaultOptionId ?? group.options[0]?.id ?? null })} className="accent-primary" />Sempre usar:</label>
                   {current.mode === "ADMIN_DEFAULT" && <select value={current.defaultOptionId ?? ""} onChange={event => setAddonDefault(productId, group.id, { mode: "ADMIN_DEFAULT", defaultOptionId: Number(event.target.value) })} className="h-8 rounded-lg border bg-white px-2 text-xs">{group.options.filter(option => option.available).map(option => <option key={option.id} value={option.id}>{option.name}{option.priceCents ? ` (+${money(option.priceCents)})` : ""}</option>)}</select>}
                 </div>
               </div>;
@@ -157,10 +157,10 @@ export default function PromotionManager() {
         <div><Label>Preço promocional (R$, opcional)</Label><Input value={form.promoPriceCents} onChange={event => setForm({ ...form, promoPriceCents: event.target.value })} inputMode="decimal" placeholder="Ex.: 29,90" className="mt-1.5 h-10 rounded-xl" />{discountPct !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">-{discountPct}% em relação ao preço normal ({money(normalTotalCents)})</p>}</div>
         <Input value={form.validDays} onChange={event => setForm({ ...form, validDays: event.target.value })} placeholder="Validade, ex.: Ter–Qui" className="h-10 rounded-xl" />
         <select value={form.objective} onChange={event => setForm({ ...form, objective: event.target.value as PromotionObjective | "" })} className="h-10 w-full rounded-xl border bg-white px-3 text-sm"><option value="">Objetivo (opcional)</option>{Object.entries(OBJECTIVE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.active} onChange={event => setForm({ ...form, active: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Exibir agora no cardápio</label>
+        <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.active} onChange={event => setForm({ ...form, active: event.target.checked })} className="h-4 w-4 accent-primary" />Exibir agora no cardápio</label>
       </div>
       {save.error ? <p className="mt-4 text-sm text-red-700">{save.error.message}</p> : null}
-      <Button disabled={save.isPending} className="mt-6 h-11 w-full rounded-xl bg-[#b4472d] hover:bg-[#943722]">{save.isPending ? "Salvando…" : "Salvar promoção"}</Button>
+      <Button disabled={save.isPending} className="mt-6 h-11 w-full rounded-xl bg-primary hover:bg-primary-hover">{save.isPending ? "Salvando…" : "Salvar promoção"}</Button>
     </form></div> : null}
   </section>;
 }

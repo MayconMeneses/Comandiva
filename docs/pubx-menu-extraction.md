@@ -1,4 +1,4 @@
-# Extração do material recebido — Pub X
+# Extração do material recebido — MM System Creator
 
 ## Identidade visual observada
 

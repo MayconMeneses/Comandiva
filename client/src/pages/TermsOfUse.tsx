@@ -5,7 +5,7 @@ import { CURRENT_TERMS_VERSION } from "@shared/legal";
 export default function TermsOfUse() {
   const [, setLocation] = useLocation();
   return (
-    <div className="min-h-screen bg-[#f6f1e8]">
+    <div className="min-h-screen bg-background">
       <header className="border-b bg-[#fffdf8]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
@@ -14,14 +14,14 @@ export default function TermsOfUse() {
         </div>
       </header>
       <main className="page-shell max-w-3xl py-10">
-        <p className="text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">Documento legal</p>
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">Documento legal</p>
         <h1 className="mt-2 font-display text-4xl font-bold">Termos de Uso</h1>
         <p className="mt-2 text-sm text-muted-foreground">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
 
         <div className="prose prose-sm mt-8 max-w-none space-y-6 text-[#3a2f25]">
           <section>
             <h2 className="font-display text-xl font-bold">1. Aceitação</h2>
-            <p>Ao fazer um pedido pelo site do MM System Creator, você concorda com estes Termos de Uso e com a nossa <a href="/politica-de-privacidade" className="font-semibold text-[#b4472d] underline">Política de Privacidade</a>.</p>
+            <p>Ao fazer um pedido pelo site do MM System Creator, você concorda com estes Termos de Uso e com a nossa <a href="/politica-de-privacidade" className="font-semibold text-primary underline">Política de Privacidade</a>.</p>
           </section>
 
           <section>

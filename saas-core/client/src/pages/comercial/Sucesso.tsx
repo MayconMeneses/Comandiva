@@ -1,7 +1,10 @@
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
 
 export default function Sucesso() {
+  const search = useSearch();
+  const restaurantId = new URLSearchParams(search).get("ref");
+
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
@@ -17,6 +20,19 @@ export default function Sucesso() {
             Assim que tudo estiver pronto, seu teste grátis de <strong>30 dias</strong> começa a valer —
             sem cartão de crédito.
           </p>
+
+          {restaurantId && (
+            <>
+              <p className="mt-5 text-sm text-ink-soft">Quer adiantar? Já pode mandar seu cardápio agora.</p>
+              <Link
+                href={`/comercial/cadastro/cardapio?ref=${restaurantId}`}
+                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110"
+              >
+                Enviar cardápio agora
+              </Link>
+            </>
+          )}
+
           <Link href="/comercial" className="mt-6 inline-block text-sm font-medium text-accent hover:underline">
             Voltar para a página inicial
           </Link>

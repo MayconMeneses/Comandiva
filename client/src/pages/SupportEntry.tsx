@@ -26,7 +26,7 @@ export default function SupportEntry() {
 
   if (error) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#f6f1e8] p-6 text-center">
+      <div className="grid min-h-screen place-items-center bg-background p-6 text-center">
         <div>
           <h1 className="font-display text-2xl font-bold">Link de suporte inválido</h1>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">{error}</p>
@@ -36,8 +36,8 @@ export default function SupportEntry() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-[#f6f1e8]">
-      <Loader2 className="h-8 w-8 animate-spin text-[#b4472d]" />
+    <div className="grid min-h-screen place-items-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
 }

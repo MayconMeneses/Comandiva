@@ -15,6 +15,8 @@ import {
 import { assignPlan, getSubscriptionForRestaurant, listSubscriptionEventsForRestaurant, updateSubscriptionStatus } from "../../db/subscriptions";
 import { recordPlatformAuditLog } from "../../db/auditLog";
 import { platformAdminProcedureFor, router } from "../../_core/trpc";
+import { assertSafeDeploymentUrl } from "../../_core/urlSafety";
+import { triggerRemoteLicenseSync } from "../../_core/remoteLicenseSync";
 
 const restaurantsProcedure = platformAdminProcedureFor("restaurantes");
 
@@ -103,6 +105,13 @@ export const masterPanelRestaurantsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const before = await getRestaurantById(input.restaurantId);
       if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
+      if (input.deploymentUrl) {
+        try {
+          assertSafeDeploymentUrl(input.deploymentUrl);
+        } catch (error) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "URL de deployment inválida." });
+        }
+      }
       await setRestaurantDeploymentUrl(input.restaurantId, input.deploymentUrl);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,
@@ -193,6 +202,32 @@ export const masterPanelRestaurantsRouter = router({
         action: "restaurant.api_key_rotated",
         entityType: "restaurant",
         entityId: input.restaurantId,
+        ip: ctx.req.ip,
+      });
+      return result;
+    }),
+
+  // Antecipa a sincronização de plano/features do deployment real deste
+  // restaurante (em vez de esperar o polling periódico dele) — principalmente
+  // útil logo depois de assignPlan/rotateApiKey. Não é o único jeito de
+  // sincronizar (o próprio deployment já faz isso sozinho a cada alguns
+  // minutos) — só encurta a espera. Falha de rede não é erro fatal, é
+  // reportada como resultado (o restaurante pode estar com deployment fora
+  // do ar, o que é informação útil por si só).
+  forceSyncRemote: restaurantsProcedure
+    .input(z.object({ restaurantId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const restaurant = await getRestaurantById(input.restaurantId);
+      if (!restaurant) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
+      if (!restaurant.deploymentUrl) throw new TRPCError({ code: "BAD_REQUEST", message: "Este restaurante ainda não tem uma URL de deployment configurada." });
+      const result = await triggerRemoteLicenseSync(restaurant.deploymentUrl);
+      await recordPlatformAuditLog({
+        actorAdminId: ctx.platformAdmin.id,
+        actorLabel: ctx.platformAdmin.email,
+        action: "restaurant.force_sync_triggered",
+        entityType: "restaurant",
+        entityId: input.restaurantId,
+        after: result,
         ip: ctx.req.ip,
       });
       return result;

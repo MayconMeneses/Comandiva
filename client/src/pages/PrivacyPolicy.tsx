@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
   const settings = trpc.catalog.settings.useQuery();
   const dataRequestHref = whatsAppHref(settings.data?.phone, "Olá! Quero solicitar acesso, correção ou exclusão dos meus dados pessoais no MM System Creator, conforme a LGPD.");
   return (
-    <div className="min-h-screen bg-[#f6f1e8]">
+    <div className="min-h-screen bg-background">
       <header className="border-b bg-[#fffdf8]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
         </div>
       </header>
       <main className="page-shell max-w-3xl py-10">
-        <p className="text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">Documento legal</p>
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">Documento legal</p>
         <h1 className="mt-2 font-display text-4xl font-bold">Política de Privacidade</h1>
         <p className="mt-2 text-sm text-muted-foreground">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
 
@@ -64,7 +64,7 @@ export default function PrivacyPolicy() {
             <h2 className="font-display text-xl font-bold">6. Seus direitos</h2>
             <p>Nos termos da LGPD, você pode solicitar a qualquer momento: confirmação de que tratamos seus dados, acesso aos dados, correção de dados incompletos ou desatualizados, e eliminação dos dados tratados com seu consentimento, dentro dos limites do que a lei exige que guardemos (como registros fiscais). Você pode fazer isso sozinho, confirmando seu telefone por código de verificação, ou falar direto com a gente pelo WhatsApp informado no rodapé do site.</p>
             <div className="mt-3 flex flex-wrap gap-3">
-              <a href="/meus-dados" className="inline-flex items-center gap-2 rounded-xl bg-[#b4472d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#943722] no-underline">
+              <a href="/meus-dados" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover no-underline">
                 Ver, baixar ou apagar meus dados
               </a>
               {dataRequestHref && (

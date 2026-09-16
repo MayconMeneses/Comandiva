@@ -52,11 +52,11 @@ export default function PaymentGatewayManager() {
     <section className="mt-10 border-t border-[#ddcfbd] pt-10">
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Pagamento</p>
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Pagamento</p>
           <h2 className="mt-2 font-display text-3xl font-bold">Pagamento online (cartão)</h2>
           <p className="mt-1 text-sm text-muted-foreground">Cadastre as credenciais de uma ou mais processadoras. Só a marcada como "Ativa" é usada no checkout. Hoje a cobrança automática funciona para <strong>Mercado Pago</strong> — as demais ficam salvas, prontas para ativar quando você conectar.</p>
         </div>
-        <Button onClick={beginCreate} className="shrink-0 rounded-xl bg-[#b4472d] hover:bg-[#943722]"><Plus className="mr-1.5 h-4 w-4" />Novo gateway</Button>
+        <Button onClick={beginCreate} className="shrink-0 rounded-xl bg-primary hover:bg-primary-hover"><Plus className="mr-1.5 h-4 w-4" />Novo gateway</Button>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -74,7 +74,7 @@ export default function PaymentGatewayManager() {
             </div>
             <div className="mt-3 flex items-center justify-between gap-2">
               <label className="flex items-center gap-2 text-xs font-medium">
-                <input type="checkbox" checked={gateway.active} onChange={event => setActive.mutate({ id: gateway.id, active: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />
+                <input type="checkbox" checked={gateway.active} onChange={event => setActive.mutate({ id: gateway.id, active: event.target.checked })} className="h-4 w-4 accent-primary" />
                 Usar no checkout
               </label>
               <div className="flex gap-2">
@@ -91,7 +91,7 @@ export default function PaymentGatewayManager() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
           <form onSubmit={submit} className="w-full max-w-md rounded-3xl bg-[#fffdf8] p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
-              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#b4472d]">{editing ? "Editar" : "Novo"}</p><h2 className="mt-1 font-display text-2xl font-bold">Gateway de pagamento</h2></div>
+              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">{editing ? "Editar" : "Novo"}</p><h2 className="mt-1 font-display text-2xl font-bold">Gateway de pagamento</h2></div>
               <Button type="button" variant="ghost" onClick={close} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button>
             </div>
             <div className="mt-5 space-y-4">
@@ -108,7 +108,7 @@ export default function PaymentGatewayManager() {
               <div><Label>Observações (opcional)</Label><Input value={form.extra} onChange={event => setForm({ ...form, extra: event.target.value })} className="mt-1.5 h-11 rounded-xl bg-white" /></div>
             </div>
             {save.error ? <p className="mt-4 text-sm text-red-700">{save.error.message}</p> : null}
-            <Button disabled={save.isPending} className="mt-6 h-11 w-full rounded-xl bg-[#b4472d] hover:bg-[#943722]">{save.isPending ? "Salvando…" : "Salvar gateway"}</Button>
+            <Button disabled={save.isPending} className="mt-6 h-11 w-full rounded-xl bg-primary hover:bg-primary-hover">{save.isPending ? "Salvando…" : "Salvar gateway"}</Button>
           </form>
         </div>
       ) : null}

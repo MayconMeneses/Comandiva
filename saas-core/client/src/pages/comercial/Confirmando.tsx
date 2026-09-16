@@ -21,9 +21,10 @@ export default function Confirmando() {
 
   useEffect(() => {
     if (statusQuery.data?.status === "restaurant_created") {
-      setLocation("/comercial/cadastro/sucesso");
+      const restaurantId = statusQuery.data.restaurantId;
+      setLocation(restaurantId ? `/comercial/cadastro/sucesso?ref=${restaurantId}` : "/comercial/cadastro/sucesso");
     }
-  }, [statusQuery.data?.status, setLocation]);
+  }, [statusQuery.data?.status, statusQuery.data?.restaurantId, setLocation]);
 
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">

@@ -1,4 +1,4 @@
-# Manifesto de assets do Pub X
+# Manifesto de assets do MM System Creator
 
 ## Arquivos incluídos na exportação
 
@@ -6,7 +6,7 @@ Os arquivos abaixo foram recuperados do armazenamento de trabalho do projeto e s
 
 | Arquivo | Uso/observação |
 |---|---|
-| `pub-x/pubx-logo-reference.png` | Logotipo de referência enviado para a marca Pub X. |
+| `pub-x/pubx-logo-reference.png` | Logotipo de referência enviado para a marca MM System Creator. |
 | `pubx/pubx-header-logo.jpg` | Logotipo de cabeçalho recuperado do armazenamento de assets do ambiente. |
 | `pub-x/hero-burger-pizza.jpeg` | Imagem de destaque da vitrine. |
 | `pub-x/burger-fries.jpeg` | Referência visual de hambúrguer e acompanhamento. |

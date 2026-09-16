@@ -14,7 +14,7 @@ function BenefitsPreview({ featureId }: { featureId?: string }) {
     <ul className="mt-4 space-y-1.5 text-left">
       {benefits.map(benefit => (
         <li key={benefit} className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-          <span className="mt-0.5 text-[#b4472d]">✓</span>{benefit}
+          <span className="mt-0.5 text-primary">✓</span>{benefit}
         </li>
       ))}
     </ul>
@@ -36,7 +36,7 @@ export function FeatureLockDot({ title, onClick }: { title?: string; onClick?: (
     <button
       type="button"
       onClick={event => { event.stopPropagation(); onClick?.(); }}
-      className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[#b4472d] transition-colors hover:bg-[#f3e2d8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b4472d]"
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-primary transition-colors hover:bg-[#f3e2d8] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       aria-label={title ?? "Recurso bloqueado pelo plano atual — clique para ver como liberar"}
     >
       <Lock className="h-3.5 w-3.5" />
@@ -50,7 +50,7 @@ export function LockedFeatureFullPage({ requiredPlanName, featureId }: { require
   return (
     <div className="grid min-h-[60vh] place-items-center rounded-3xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-10 text-center">
       <div className="mx-auto max-w-sm">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f3e2d8] text-[#b4472d]">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f3e2d8] text-primary">
           <Lock className="h-6 w-6" />
         </div>
         <h2 className="mt-5 font-display text-2xl font-bold">Recurso não disponível no seu plano</h2>
@@ -58,7 +58,7 @@ export function LockedFeatureFullPage({ requiredPlanName, featureId }: { require
           {requiredPlanName ? <>Esta área faz parte do plano <strong>{requiredPlanName}</strong>.</> : "Esta área não está disponível no seu plano atual."}
         </p>
         <BenefitsPreview featureId={featureId} />
-        <Button onClick={() => setLocation("/admin/plano")} className="mt-5 rounded-xl bg-[#b4472d] hover:bg-[#943722]">
+        <Button onClick={() => setLocation("/admin/plano")} className="mt-5 rounded-xl bg-primary hover:bg-primary-hover">
           <Sparkles className="mr-1.5 h-4 w-4" />Fazer upgrade
         </Button>
       </div>
@@ -72,7 +72,7 @@ export function LockedFeatureCard({ title, requiredPlanName, featureId }: { titl
   return (
     <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-8 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
       <div className="flex items-start gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3e2d8] text-[#b4472d]">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3e2d8] text-primary">
           <Lock className="h-5 w-5" />
         </div>
         <div>
@@ -83,7 +83,7 @@ export function LockedFeatureCard({ title, requiredPlanName, featureId }: { titl
           <BenefitsPreview featureId={featureId} />
         </div>
       </div>
-      <Button onClick={() => setLocation("/admin/plano")} className="shrink-0 rounded-xl bg-[#b4472d] hover:bg-[#943722]">
+      <Button onClick={() => setLocation("/admin/plano")} className="shrink-0 rounded-xl bg-primary hover:bg-primary-hover">
         <Sparkles className="mr-1.5 h-4 w-4" />Fazer upgrade
       </Button>
     </div>
@@ -97,7 +97,7 @@ export function UpgradeNudgeModal({ open, onOpenChange, info }: { open: boolean;
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-2xl bg-[#fffdf8]">
         <DialogHeader>
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f3e2d8] text-[#b4472d]">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f3e2d8] text-primary">
             <Lock className="h-5 w-5" />
           </div>
           <DialogTitle className="mt-3 font-display text-2xl">Recurso do plano {info?.requiredPlanName ?? "superior"}</DialogTitle>
@@ -108,7 +108,7 @@ export function UpgradeNudgeModal({ open, onOpenChange, info }: { open: boolean;
         </DialogHeader>
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl">Agora não</Button>
-          <Button onClick={() => { onOpenChange(false); setLocation("/admin/plano"); }} className="rounded-xl bg-[#b4472d] hover:bg-[#943722]">
+          <Button onClick={() => { onOpenChange(false); setLocation("/admin/plano"); }} className="rounded-xl bg-primary hover:bg-primary-hover">
             <Sparkles className="mr-1.5 h-4 w-4" />Ver planos
           </Button>
         </div>

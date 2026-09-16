@@ -6,6 +6,7 @@ import { getPlanByKey } from "./plans";
 import { getSubscriptionForRestaurant, listBillingPaymentsForSubscription } from "./subscriptions";
 import { listPlatformAuditLog } from "./auditLog";
 import { sendEmailAsync } from "../_core/emailService";
+import { buildRestaurantDeliveredMessage, sendTelegramMessageAsync } from "../_core/telegramService";
 import { ENV } from "../_core/env";
 
 // O teste grátis só começa a contar quando a equipe marca o restaurante como
@@ -142,6 +143,8 @@ export async function markRestaurantDelivered(restaurantId: number, actor: strin
       actionUrl: restaurant.deploymentUrl || ENV.commercialSiteUrl,
     });
   }
+
+  sendTelegramMessageAsync(buildRestaurantDeliveredMessage({ restaurantId, restaurantName: restaurant.name, trialEndsAt: currentPeriodEnd }));
 
   return { success: true as const, trialEndsAt: currentPeriodEnd };
 }

@@ -6,6 +6,7 @@ import { getSubscriptionForRestaurant } from "./subscriptions";
 import { getPlanByKey } from "./plans";
 import { recordPlatformAuditLog } from "./auditLog";
 import { sendEmailAsync } from "../_core/emailService";
+import { buildNewPaidSignupMessage, sendTelegramMessageAsync } from "../_core/telegramService";
 import { ENV } from "../_core/env";
 
 /** Cria a linha ANTES de existir preferência no Mercado Pago — o id gerado aqui vira o external_reference da preferência. */
@@ -111,6 +112,22 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
     paymentDate: now,
     actionUrl: `${ENV.commercialSiteUrl}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
   });
+
+  // Mesmo raciocínio fogo-e-esquece do e-mail acima — só que pro dono da
+  // plataforma, não pro cliente, pra ele saber na hora que entrou um cliente
+  // pago novo (a equipe ainda organiza cardápio/config na mão nesta etapa).
+  sendTelegramMessageAsync(
+    buildNewPaidSignupMessage({
+      restaurantId: result.restaurantId,
+      restaurantName: payload.name,
+      planName: plan?.name ?? payload.planKey,
+      contactName: payload.contactName,
+      contactEmail: payload.contactEmail,
+      contactPhone: payload.contactPhone,
+      amountCents: row.amountCents,
+      apiKey: result.apiKey,
+    }),
+  );
 
   return { found: true as const, alreadyProcessed: false as const, restaurantId: result.restaurantId };
 }

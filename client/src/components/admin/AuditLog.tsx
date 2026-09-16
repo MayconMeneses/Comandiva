@@ -26,11 +26,11 @@ export default function AuditLog() {
     <section>
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Rastreabilidade</p>
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Rastreabilidade</p>
           <h2 className="mt-2 font-display text-3xl font-bold">Auditoria</h2>
           <p className="mt-1 text-sm text-muted-foreground">As últimas {entries.length || 100} ações registradas sobre pedidos — quem fez, o quê e quando. Este registro nunca é editado ou apagado, nem pelo sistema.</p>
         </div>
-        <History className="h-8 w-8 shrink-0 text-[#b4472d]" />
+        <History className="h-8 w-8 shrink-0 text-primary" />
       </div>
 
       {query.isLoading ? (

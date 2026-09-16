@@ -38,4 +38,13 @@ export const ENV = {
   // requisição (ex.: webhook, sem `returnOrigin` do cliente pra reaproveitar
   // como em server/routers/public.ts::signup).
   commercialSiteUrl: (process.env.COMMERCIAL_SITE_URL ?? "").replace(/\/+$/, ""),
+  // Assistente de manutenção só-leitura (tela Manutenção do Painel Master,
+  // ver server/_core/maintenanceAssistant.ts) — em branco = recurso desligado,
+  // a tela mostra que precisa ser configurado em vez de travar.
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+  // Notificações operacionais pro dono (novo cliente pago, restaurante
+  // entregue) via Telegram — ver server/_core/telegramService.ts. Em branco =
+  // desligado, só loga (nunca derruba o fluxo que disparou a notificação).
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
+  telegramChatId: process.env.TELEGRAM_CHAT_ID ?? "",
 };

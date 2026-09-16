@@ -98,32 +98,32 @@ export default function FiscalSettings() {
 
       <div className="space-y-8">
         <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
-          <div className="flex items-center gap-2"><Landmark className="h-5 w-5 text-[#b4472d]" /><h2 className="font-display text-xl font-bold">Dados cadastrais</h2></div>
+          <div className="flex items-center gap-2"><Landmark className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Dados cadastrais</h2></div>
           <form onSubmit={submitCadastral} onFocus={startCadastral} className="mt-4 grid gap-4 sm:grid-cols-2">
             <div><Label>CNPJ</Label><Input value={cnpj} onChange={event => setCnpj(formatCnpj(event.target.value))} placeholder="00.000.000/0000-00" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
             <div><Label>Inscrição Estadual</Label><Input value={inscricaoEstadual} onChange={event => setInscricaoEstadual(event.target.value)} placeholder="Número da IE no Ceará" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
             <div>
               <Label>Regime tributário</Label>
-              <select value={regimeTributario} onChange={event => setRegimeTributario(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#b4472d]">
+              <select value={regimeTributario} onChange={event => setRegimeTributario(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <option value="">Selecione (confirme com seu contador)</option>
                 {Object.entries(REGIME_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
             <div>
               <Label>Ambiente</Label>
-              <select value={environment} onChange={event => setEnvironment(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#b4472d]">
+              <select value={environment} onChange={event => setEnvironment(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 {Object.entries(ENVIRONMENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
             <div><Label>Série da NFC-e</Label><Input type="number" min={1} value={nfceSeries} onChange={event => setNfceSeries(Number(event.target.value) || 1)} className="mt-1.5 h-10 rounded-xl bg-white" /></div>
             <div><Label>Próximo número</Label><Input type="number" min={1} value={nfceNextNumber} onChange={event => setNfceNextNumber(Number(event.target.value) || 1)} className="mt-1.5 h-10 rounded-xl bg-white" /><p className="mt-1 text-xs text-muted-foreground">Só altere se estiver migrando de outro sistema — pular ou repetir número gerado gera problema na SEFAZ.</p></div>
             {saveCadastral.error && <p className="sm:col-span-2 text-sm text-red-700">{saveCadastral.error.message}</p>}
-            <Button disabled={saveCadastral.isPending} className="sm:col-span-2 h-10 rounded-xl bg-[#b4472d] hover:bg-[#943722]">{saveCadastral.isPending ? "Salvando…" : "Salvar dados cadastrais"}</Button>
+            <Button disabled={saveCadastral.isPending} className="sm:col-span-2 h-10 rounded-xl bg-primary hover:bg-primary-hover">{saveCadastral.isPending ? "Salvando…" : "Salvar dados cadastrais"}</Button>
           </form>
         </section>
 
         <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
-          <div className="flex items-center gap-2"><FileKey className="h-5 w-5 text-[#b4472d]" /><h2 className="font-display text-xl font-bold">Certificado digital A1</h2></div>
+          <div className="flex items-center gap-2"><FileKey className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Certificado digital A1</h2></div>
           <p className="mt-1 text-sm text-muted-foreground">Arquivo .pfx/.p12 emitido no CNPJ do restaurante por uma autoridade certificadora (ICP-Brasil). Fica criptografado no banco — nunca volta pra tela depois de salvo.</p>
           {settings.hasCertificate && (
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs font-semibold text-emerald-900">
@@ -134,12 +134,12 @@ export default function FiscalSettings() {
             <div><Label>Arquivo (.pfx ou .p12)</Label><Input type="file" accept=".pfx,.p12" onChange={event => setCertFile(event.target.files?.[0] ?? null)} className="mt-1.5 h-10 rounded-xl bg-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" /></div>
             <div><Label>Senha do certificado</Label><Input type="password" value={certPassword} onChange={event => setCertPassword(event.target.value)} placeholder={settings.hasCertificate ? "Deixe em branco para manter o atual" : "Senha do arquivo"} className="mt-1.5 h-10 rounded-xl bg-white" /></div>
             {uploadCert.error && <p className="sm:col-span-2 text-sm text-red-700">{uploadCert.error.message}</p>}
-            <Button disabled={uploadCert.isPending} className="sm:col-span-2 h-10 rounded-xl bg-[#b4472d] hover:bg-[#943722]">{uploadCert.isPending ? "Enviando…" : "Salvar certificado"}</Button>
+            <Button disabled={uploadCert.isPending} className="sm:col-span-2 h-10 rounded-xl bg-primary hover:bg-primary-hover">{uploadCert.isPending ? "Enviando…" : "Salvar certificado"}</Button>
           </form>
         </section>
 
         <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
-          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-[#b4472d]" /><h2 className="font-display text-xl font-bold">Token CSC</h2></div>
+          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Token CSC</h2></div>
           <p className="mt-1 text-sm text-muted-foreground">Código de Segurança do Contribuinte, gerado no portal da SEFAZ-CE — usado para montar o QR Code do cupom (DANFE NFC-e).</p>
           {settings.hasCscToken && (
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs font-semibold text-emerald-900">
@@ -150,7 +150,7 @@ export default function FiscalSettings() {
             <div><Label>ID do CSC</Label><Input value={cscId} onChange={event => setCscId(event.target.value)} placeholder="Ex.: 000001" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
             <div><Label>Token CSC</Label><Input type="password" value={cscToken} onChange={event => setCscToken(event.target.value)} placeholder={settings.hasCscToken ? "Deixe em branco para manter o atual" : "Token gerado no portal da SEFAZ"} className="mt-1.5 h-10 rounded-xl bg-white" /></div>
             {saveCsc.error && <p className="sm:col-span-2 text-sm text-red-700">{saveCsc.error.message}</p>}
-            <Button disabled={saveCsc.isPending} className="sm:col-span-2 h-10 rounded-xl bg-[#b4472d] hover:bg-[#943722]">{saveCsc.isPending ? "Salvando…" : "Salvar token CSC"}</Button>
+            <Button disabled={saveCsc.isPending} className="sm:col-span-2 h-10 rounded-xl bg-primary hover:bg-primary-hover">{saveCsc.isPending ? "Salvando…" : "Salvar token CSC"}</Button>
           </form>
         </section>
 

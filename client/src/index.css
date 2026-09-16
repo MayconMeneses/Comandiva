@@ -12,6 +12,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-hover-light: var(--primary-hover-light);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -35,7 +37,15 @@
   --card-foreground: #231d18;
   --popover: #fffdf8;
   --popover-foreground: #231d18;
-  --primary: #a46d4d;
+  /* Cor de marca (botões de ação, links, foco) — historicamente hardcoded
+     como #b4472d/#943722(hover) por toda a base (client/*.tsx), migrado pra
+     token em 2026-09 pra viabilizar o seletor de tema por restaurante (ver
+     shared/colorThemes.ts). Valores do tema "classico" abaixo são
+     EXATAMENTE os hex antigos, de propósito — nenhum restaurante existente
+     muda de aparência até escolher outro tema. */
+  --primary: #b4472d;
+  --primary-hover: #943722;
+  --primary-hover-light: #cf5b40;
   --primary-foreground: #fffaf4;
   --secondary: #ece3d6;
   --secondary-foreground: #30251d;
@@ -46,7 +56,7 @@
   --destructive: #b42318;
   --border: #ded3c4;
   --input: #ded3c4;
-  --ring: #a46d4d;
+  --ring: var(--primary);
   --sidebar: #17120e;
   --sidebar-foreground: #f9f2e7;
   --sidebar-primary: #e9c98f;
@@ -170,13 +180,13 @@ button:disabled { cursor: not-allowed; }
 .pubx-theme-option:active { transform: scale(.97); }
 .pubx-theme-option[data-active="true"] { background: #e9c98f; color: #2a1a10; }
 
-.pubx-storefront.theme-light { background: #f6f1e8; color: #231d18; }
+.pubx-storefront.theme-light { background: var(--background); color: var(--foreground); }
 .pubx-storefront.theme-dark { background: #120e0c; color: #fffaf3; }
 .pubx-storefront.theme-dark .pubx-theme-switcher { color: #e7d9c5; }
 .pubx-storefront.theme-dark .pubx-theme-option[data-active="false"] { color: #f6ecdf; }
 .pubx-storefront.theme-dark .pubx-theme-option[data-active="false"]:hover { background: rgba(233, 201, 143, .16); }
 
-.pubx-storefront.theme-dark #cardapio > div:nth-child(2) button:not([class*="bg-[#b4472d]"]) { background: #30221a !important; color: #fffaf3; border-color: #6c4e3e !important; }
+.pubx-storefront.theme-dark #cardapio > div:nth-child(2) button:not([class*="bg-primary"]) { background: #30221a !important; color: #fffaf3; border-color: #6c4e3e !important; }
 .pubx-storefront.theme-dark #cardapio > section { background: #261b15 !important; }
 .pubx-storefront.theme-dark #cardapio > section .menu-card { background: #34251c !important; color: #fffaf3; box-shadow: 0 8px 22px rgba(0, 0, 0, .25); }
 .pubx-storefront.theme-dark #cardapio > section .border\-\[\#d9c9b4\] { border-color: #6c4e3e !important; }

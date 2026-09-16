@@ -26,7 +26,7 @@ export default function RevenueTrendChart() {
   return <div className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="font-display text-2xl font-bold">Movimento</h2>
-      <div className="flex gap-2">{(["week", "month", "year"] as const).map(value => <button key={value} type="button" onClick={() => setGranularity(value)} className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${granularity === value ? "bg-[#b4472d] text-white" : "border border-[#d8c7b0] bg-white text-[#4a3d30] hover:border-[#bd8a7c]"}`}>{GRANULARITY_LABEL[value]}</button>)}</div>
+      <div className="flex gap-2">{(["week", "month", "year"] as const).map(value => <button key={value} type="button" onClick={() => setGranularity(value)} className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${granularity === value ? "bg-primary text-white" : "border border-[#d8c7b0] bg-white text-[#4a3d30] hover:border-[#bd8a7c]"}`}>{GRANULARITY_LABEL[value]}</button>)}</div>
     </div>
 
     {trend.isLoading && <div className="mt-6 h-48 animate-pulse rounded-xl bg-[#f1e9dc]" />}
@@ -36,7 +36,7 @@ export default function RevenueTrendChart() {
       <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-2">
         <div><p className="text-xs text-muted-foreground">Faturamento no período</p><p className="mt-1 font-display text-3xl font-bold">{money(data.currentTotalCents)}</p></div>
         <div><p className="text-xs text-muted-foreground">Pedidos concluídos</p><p className="mt-1 font-display text-2xl font-bold">{data.currentOrderCount}</p></div>
-        {peak && peak.revenueCents > 0 && <div><p className="text-xs text-muted-foreground">{PEAK_LABEL[granularity]}</p><p className="mt-1 text-lg font-bold text-[#b4472d]">{peak.label} · {money(peak.revenueCents)}</p></div>}
+        {peak && peak.revenueCents > 0 && <div><p className="text-xs text-muted-foreground">{PEAK_LABEL[granularity]}</p><p className="mt-1 text-lg font-bold text-primary">{peak.label} · {money(peak.revenueCents)}</p></div>}
         {data.changePct !== null && <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${data.changePct >= 0 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
           {data.changePct >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
           {data.changePct >= 0 ? "+" : ""}{data.changePct.toFixed(1)}% vs. {PREVIOUS_LABEL[granularity]}
@@ -52,7 +52,7 @@ export default function RevenueTrendChart() {
             const isLast = index === data.series.length - 1;
             const isPeak = bucket.revenueCents > 0 && bucket === peak;
             return <g key={`${bucket.label}-${index}`}>
-              <rect x={x} y={BASELINE_Y - height} width={Math.max(1, barWidth)} height={height} rx={2} fill={isLast ? "#b4472d" : isPeak ? "#e9a94f" : "#d99a7f"}>
+              <rect x={x} y={BASELINE_Y - height} width={Math.max(1, barWidth)} height={height} rx={2} className={isLast ? "fill-primary" : undefined} fill={isLast ? undefined : isPeak ? "#e9a94f" : "#d99a7f"}>
                 <title>{`${bucket.label}: ${money(bucket.revenueCents)} · ${bucket.orderCount} pedido(s)`}</title>
               </rect>
               {index % labelEvery === 0 && <text x={x + barWidth / 2} y={CHART_HEIGHT - 6} fontSize={10} textAnchor="middle" fill="#8a7a68">{bucket.label}</text>}

@@ -7,6 +7,7 @@ import { masterPanelAuditLogRouter } from "./auditLog";
 import { masterPanelSupportRouter } from "./support";
 import { masterPanelBillingRouter } from "./billing";
 import { masterPanelTeamRouter } from "./team";
+import { masterPanelMaintenanceRouter } from "./maintenance";
 
 export const masterPanelRouter = router({
   auth: masterPanelAuthRouter,
@@ -17,4 +18,5 @@ export const masterPanelRouter = router({
   support: masterPanelSupportRouter,
   billing: masterPanelBillingRouter,
   team: masterPanelTeamRouter,
+  maintenance: masterPanelMaintenanceRouter,
 });

@@ -33,7 +33,7 @@ function TableQrDialog({ table, onClose }: { table: { id: number; label: string;
   return <Dialog open onOpenChange={value => { if (!value) onClose(); }}><DialogContent className="rounded-2xl bg-[#fffdf8] sm:max-w-sm">
     <DialogHeader><DialogTitle className="font-display text-2xl">QR Code — {table.label}</DialogTitle><p className="text-sm text-muted-foreground">Imprima e cole na mesa. O cliente escaneia e pede direto por ela.</p></DialogHeader>
     <div className="mt-4 grid place-items-center gap-3">
-      {dataUrl ? <img src={dataUrl} alt={`QR Code da ${table.label}`} className="h-64 w-64 rounded-xl border border-[#e4d8c8] bg-white p-2" /> : <div className="grid h-64 w-64 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-[#b4472d]" /></div>}
+      {dataUrl ? <img src={dataUrl} alt={`QR Code da ${table.label}`} className="h-64 w-64 rounded-xl border border-[#e4d8c8] bg-white p-2" /> : <div className="grid h-64 w-64 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
       <code className="w-full truncate rounded-lg bg-[#f3ece1] px-2 py-1.5 text-center text-xs">{url}</code>
       <div className="flex gap-2"><Button variant="outline" onClick={() => window.print()} className="h-9 rounded-lg text-xs">Imprimir</Button><Button variant="outline" disabled={regenerate.isPending} onClick={() => { if (window.confirm("Gerar um novo código para esta mesa? O QR Code impresso atual deixará de funcionar.")) regenerate.mutate({ id: table.id }); }} className="h-9 rounded-lg text-xs"><RefreshCw className="mr-1.5 h-3.5 w-3.5" />{regenerate.isPending ? "Gerando…" : "Gerar novo código"}</Button></div>
     </div>
@@ -49,7 +49,7 @@ function NewTableForm() {
     <div><Label className="text-xs">Nome da mesa</Label><Input required value={label} onChange={event => setLabel(event.target.value)} placeholder="Ex.: Mesa 12" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
     <div><Label className="text-xs">Setor</Label><Input value={sector} onChange={event => setSector(event.target.value)} placeholder="Ex.: Varanda" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
     <div><Label className="text-xs">Lugares</Label><Input type="number" min={1} value={capacity} onChange={event => setCapacity(event.target.value)} className="mt-1.5 h-10 rounded-xl bg-white" /></div>
-    <Button disabled={create.isPending} className="mt-auto h-10 rounded-xl bg-[#b4472d] hover:bg-[#943722]"><Plus className="mr-1.5 h-4 w-4" />{create.isPending ? "Criando…" : "Adicionar mesa"}</Button>
+    <Button disabled={create.isPending} className="mt-auto h-10 rounded-xl bg-primary hover:bg-primary-hover"><Plus className="mr-1.5 h-4 w-4" />{create.isPending ? "Criando…" : "Adicionar mesa"}</Button>
   </form>;
 }
 

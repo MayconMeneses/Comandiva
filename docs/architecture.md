@@ -1,4 +1,4 @@
-# Arquitetura do Sistema de Pedidos — Pub X
+# Arquitetura do Sistema de Pedidos — MM System Creator
 
 O sistema foi implementado como uma aplicação web full-stack com frontend React, backend TypeScript e banco de dados relacional. As interfaces pública e administrativa compartilham os mesmos contratos tipados, porém usam permissões distintas: o cardápio e o checkout são públicos, enquanto a operação do restaurante requer autenticação e perfil administrativo.
 
@@ -8,7 +8,7 @@ O sistema foi implementado como uma aplicação web full-stack com frontend Reac
 | Painel administrativo | Operação de pedidos, cardápio, clientes, relatórios e configurações | Rotas protegidas por perfil `admin` |
 | Regras de negócio | Precificação, validação, transições de status e geração de comprovante | Procedimentos TypeScript com Zod |
 | Persistência | Dados de cardápio, clientes, endereços, pedidos, pagamentos e auditoria | Drizzle ORM e banco relacional |
-| Recursos visuais | Logo e paleta do Pub X, além de imagens de apoio do cardápio | Arquivos publicados no armazenamento do projeto |
+| Recursos visuais | Logo e paleta do MM System Creator, além de imagens de apoio do cardápio | Arquivos publicados no armazenamento do projeto |
 
 ## Modelo operacional
 

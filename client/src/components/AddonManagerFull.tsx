@@ -58,7 +58,7 @@ export default function AddonManager() {
     <section className="mt-10 border-t border-[#ddcfbd] pt-10">
       <button type="button" onClick={() => setSectionOpen(current => !current)} aria-expanded={sectionOpen} className="flex w-full items-center justify-between gap-4 rounded-2xl py-1 text-left transition-colors hover:bg-[#f6ede0]/40">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Personalização</p>
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Personalização</p>
           <h2 className="mt-2 font-display text-3xl font-bold">Complementos</h2>
         </div>
         <ChevronDown className={`h-6 w-6 shrink-0 text-[#8a5c3f] transition-transform duration-300 ${sectionOpen ? "rotate-180" : ""}`} />
@@ -68,7 +68,7 @@ export default function AddonManager() {
           <div className="pt-5">
             <div className="mb-5 flex items-end justify-between gap-4">
               <p className="text-sm text-muted-foreground">Grupos de escolha (ex.: ponto da carne, tamanho) e suas opções, por produto.</p>
-              <Button onClick={beginCreateGroup} className="shrink-0 rounded-xl bg-[#b4472d] hover:bg-[#943722]"><Plus className="mr-1.5 h-4 w-4" />Novo grupo</Button>
+              <Button onClick={beginCreateGroup} className="shrink-0 rounded-xl bg-primary hover:bg-primary-hover"><Plus className="mr-1.5 h-4 w-4" />Novo grupo</Button>
             </div>
 
             <div className="grid gap-3 xl:grid-cols-2">
@@ -90,7 +90,7 @@ export default function AddonManager() {
                   <button type="button" onClick={() => { if (window.confirm(`Apagar a opção "${option.name}"?`)) deleteOption.mutate({ optionId: option.id }); }} className="rounded-full p-1 text-red-700 hover:bg-red-100" aria-label={`Apagar ${option.name}`}><Trash2 className="h-3 w-3" /></button>
                 </span>
               ))}
-              <button type="button" onClick={() => beginCreateOption(group.id)} className="rounded-full border border-dashed border-[#cdae90] px-2.5 py-1 text-xs font-semibold text-[#8a5c3f] hover:border-[#b4472d] hover:text-[#b4472d]">+ opção</button>
+              <button type="button" onClick={() => beginCreateOption(group.id)} className="rounded-full border border-dashed border-[#cdae90] px-2.5 py-1 text-xs font-semibold text-[#8a5c3f] hover:border-primary hover:text-primary">+ opção</button>
             </div>
 
             <div className="mt-3 flex justify-end gap-2 border-t border-[#eee5d9] pt-3">
@@ -109,17 +109,17 @@ export default function AddonManager() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
           <form onSubmit={submitGroup} className="w-full max-w-md rounded-3xl bg-[#fffdf8] p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
-              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#b4472d]">{editingGroup ? "Editar" : "Novo"}</p><h2 className="mt-1 font-display text-2xl font-bold">{editingGroup ? editingGroup.name : "Novo grupo"}</h2></div>
+              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">{editingGroup ? "Editar" : "Novo"}</p><h2 className="mt-1 font-display text-2xl font-bold">{editingGroup ? editingGroup.name : "Novo grupo"}</h2></div>
               <Button type="button" variant="ghost" onClick={() => { setEditingGroup(null); setCreatingGroup(false); }} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button>
             </div>
             <div className="mt-5 space-y-4">
               <div><Label>Produto</Label><select required value={groupForm.productId} onChange={event => setGroupForm({ ...groupForm, productId: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-input bg-white px-3 text-sm"><option value="">Selecione</option>{products.map(product => <option key={product.id} value={product.id}>{product.name}</option>)}</select></div>
               <div><Label>Nome do grupo</Label><Input required autoFocus value={groupForm.name} onChange={event => setGroupForm({ ...groupForm, name: event.target.value })} placeholder="Ex.: Ponto da carne" className="mt-1.5 h-11 rounded-xl bg-white" /></div>
               <div className="grid grid-cols-2 gap-3"><div><Label>Mínimo de escolhas</Label><Input required type="number" min="0" value={groupForm.min} onChange={event => setGroupForm({ ...groupForm, min: event.target.value })} className="mt-1.5 h-11 rounded-xl bg-white" /></div><div><Label>Máximo de escolhas</Label><Input required type="number" min="1" value={groupForm.max} onChange={event => setGroupForm({ ...groupForm, max: event.target.value })} className="mt-1.5 h-11 rounded-xl bg-white" /></div></div>
-              <div className="flex gap-5"><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={groupForm.required} onChange={event => setGroupForm({ ...groupForm, required: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Obrigatório</label><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={groupForm.active} onChange={event => setGroupForm({ ...groupForm, active: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Ativo</label></div>
+              <div className="flex gap-5"><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={groupForm.required} onChange={event => setGroupForm({ ...groupForm, required: event.target.checked })} className="h-4 w-4 accent-primary" />Obrigatório</label><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={groupForm.active} onChange={event => setGroupForm({ ...groupForm, active: event.target.checked })} className="h-4 w-4 accent-primary" />Ativo</label></div>
             </div>
             {saveGroup.error ? <p className="mt-4 text-sm text-red-700">{saveGroup.error.message}</p> : null}
-            <Button disabled={saveGroup.isPending} className="mt-6 h-11 w-full rounded-xl bg-[#b4472d] hover:bg-[#943722]">{saveGroup.isPending ? "Salvando…" : "Salvar grupo"}</Button>
+            <Button disabled={saveGroup.isPending} className="mt-6 h-11 w-full rounded-xl bg-primary hover:bg-primary-hover">{saveGroup.isPending ? "Salvando…" : "Salvar grupo"}</Button>
           </form>
         </div>
       ) : null}
@@ -128,16 +128,16 @@ export default function AddonManager() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
           <form onSubmit={submitOption} className="w-full max-w-sm rounded-3xl bg-[#fffdf8] p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
-              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#b4472d]">{editingOption ? "Editar" : "Nova"}</p><h2 className="mt-1 font-display text-2xl font-bold">{editingOption ? editingOption.name : "Nova opção"}</h2></div>
+              <div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">{editingOption ? "Editar" : "Nova"}</p><h2 className="mt-1 font-display text-2xl font-bold">{editingOption ? editingOption.name : "Nova opção"}</h2></div>
               <Button type="button" variant="ghost" onClick={() => { setEditingOption(null); setCreatingOption(null); }} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button>
             </div>
             <div className="mt-5 space-y-4">
               <div><Label>Nome da opção</Label><Input required autoFocus value={optionForm.name} onChange={event => setOptionForm({ ...optionForm, name: event.target.value })} placeholder="Ex.: Ao ponto" className="mt-1.5 h-11 rounded-xl bg-white" /></div>
               <div><Label>Valor adicional (R$)</Label><Input required inputMode="decimal" value={optionForm.price} onChange={event => setOptionForm({ ...optionForm, price: event.target.value })} placeholder="0,00" className="mt-1.5 h-11 rounded-xl bg-white" /></div>
-              <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={optionForm.available} onChange={event => setOptionForm({ ...optionForm, available: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Disponível</label>
+              <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={optionForm.available} onChange={event => setOptionForm({ ...optionForm, available: event.target.checked })} className="h-4 w-4 accent-primary" />Disponível</label>
             </div>
             {saveOption.error ? <p className="mt-4 text-sm text-red-700">{saveOption.error.message}</p> : null}
-            <Button disabled={saveOption.isPending} className="mt-6 h-11 w-full rounded-xl bg-[#b4472d] hover:bg-[#943722]">{saveOption.isPending ? "Salvando…" : "Salvar opção"}</Button>
+            <Button disabled={saveOption.isPending} className="mt-6 h-11 w-full rounded-xl bg-primary hover:bg-primary-hover">{saveOption.isPending ? "Salvando…" : "Salvar opção"}</Button>
           </form>
         </div>
       ) : null}

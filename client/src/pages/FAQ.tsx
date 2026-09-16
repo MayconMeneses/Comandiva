@@ -16,7 +16,7 @@ export default function FAQ() {
   const paymentMethods = ["Pix", "Dinheiro", "Cartão na entrega ou retirada", ...(onlineCard.data?.available ? ["Cartão online (pago antes, pelo site)"] : [])];
 
   return (
-    <div className="min-h-screen bg-[#f6f1e8]">
+    <div className="min-h-screen bg-background">
       <header className="border-b bg-[#fffdf8]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
@@ -25,7 +25,7 @@ export default function FAQ() {
         </div>
       </header>
       <main className="page-shell max-w-3xl py-10">
-        <p className="text-xs font-bold uppercase tracking-[.18em] text-[#b4472d]">Ajuda</p>
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">Ajuda</p>
         <h1 className="mt-2 font-display text-4xl font-bold">Perguntas frequentes</h1>
         <p className="mt-2 text-sm text-muted-foreground">Tudo o que você precisa saber antes de pedir.</p>
 
@@ -61,7 +61,7 @@ export default function FAQ() {
 
           <section className="rounded-2xl bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(53,34,17,.06)]">
             <h2 className="font-display text-xl font-bold">Posso acompanhar meu pedido?</h2>
-            <p className="mt-2 text-sm leading-6 text-[#4a3d30]">Sim. Depois de finalizar, acesse <button onClick={() => setLocation("/acompanhar")} className="font-semibold text-[#b4472d] underline underline-offset-2">Acompanhar pedido</button> e informe o mesmo telefone usado no checkout para ver o status em tempo real, do aceite até a entrega ou retirada.</p>
+            <p className="mt-2 text-sm leading-6 text-[#4a3d30]">Sim. Depois de finalizar, acesse <button onClick={() => setLocation("/acompanhar")} className="font-semibold text-primary underline underline-offset-2">Acompanhar pedido</button> e informe o mesmo telefone usado no checkout para ver o status em tempo real, do aceite até a entrega ou retirada.</p>
           </section>
 
           <section className="rounded-2xl bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(53,34,17,.06)]">

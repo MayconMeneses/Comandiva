@@ -260,6 +260,13 @@
       "when": 1789120006592,
       "tag": "0036_slow_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "5",
+      "when": 1789586883660,
+      "tag": "0037_kind_blue_blade",
+      "breakpoints": true
     }
   ]
 }

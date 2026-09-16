@@ -63,6 +63,7 @@ export default function RestaurantDetail() {
     onSuccess: data => { setRotatedApiKey(data.apiKey); setCopiedRotatedKey(false); setPendingRotateKey(false); },
   });
   const markDelivered = trpc.masterPanel.restaurants.markDelivered.useMutation({ onSuccess: () => { invalidate(); setPendingMarkDelivered(false); } });
+  const forceSyncRemote = trpc.masterPanel.restaurants.forceSyncRemote.useMutation();
   const startSupport = trpc.masterPanel.support.start.useMutation({
     onSuccess: data => { window.open(data.entryUrl, "_blank", "noopener,noreferrer"); setPendingSupportEntry(false); },
   });
@@ -297,6 +298,30 @@ export default function RestaurantDetail() {
                 </Button>
               ))}
             </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-paper p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Sincronização com o deployment</p>
+            <p className="mt-1 text-xs text-ink-soft">
+              O deployment deste restaurante sincroniza plano/features sozinho a cada poucos minutos — uma troca de
+              plano ou rotação de API key acima já vale automaticamente, sem precisar disto. Use só se quiser aplicar
+              agora, sem esperar.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-2"
+              disabled={!restaurant.deploymentUrl || forceSyncRemote.isPending}
+              onClick={() => forceSyncRemote.mutate({ restaurantId })}
+            >
+              {forceSyncRemote.isPending ? "Sincronizando…" : "Forçar sincronização agora"}
+            </Button>
+            {!restaurant.deploymentUrl ? <p className="mt-2 text-xs text-ink-soft">Configure a URL de deployment (acima) pra habilitar.</p> : null}
+            {forceSyncRemote.data ? (
+              <p className={`mt-2 text-xs ${forceSyncRemote.data.triggered ? "text-emerald-700" : "text-red-700"}`}>
+                {forceSyncRemote.data.triggered ? "Sincronizado com sucesso." : forceSyncRemote.data.error}
+              </p>
+            ) : null}
+            {forceSyncRemote.error ? <p className="mt-2 text-xs text-red-700">{forceSyncRemote.error.message}</p> : null}
           </div>
 
           <div className="rounded-lg border border-border bg-paper p-3">

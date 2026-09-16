@@ -64,7 +64,7 @@ export default function FiscalTaxCategories() {
 
   return (
     <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
-      <div className="flex items-center gap-2"><Tags className="h-5 w-5 text-[#b4472d]" /><h2 className="font-display text-xl font-bold">Categorias fiscais</h2></div>
+      <div className="flex items-center gap-2"><Tags className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Categorias fiscais</h2></div>
       <p className="mt-1 text-sm text-muted-foreground">Agrupe o cardápio por tratamento tributário (ex.: "Alimentação preparada", "Bebidas"). Preencha CST/CSOSN e alíquota só com os números que o contador confirmar — nenhum valor aqui foi calculado ou sugerido pelo sistema.</p>
 
       {query.data && query.data.productsWithoutCategory > 0 && (
@@ -110,7 +110,7 @@ export default function FiscalTaxCategories() {
           <div><Label>Alíquota COFINS (%)</Label><Input value={form.cofinsRate} onChange={event => setForm({ ...form, cofinsRate: event.target.value })} placeholder="Opcional" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
           <div className="sm:col-span-2"><Label>Notas (opcional)</Label><Textarea value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} placeholder="Ex.: confirmado com o contador em 10/2026" className="mt-1.5 min-h-16 rounded-xl bg-white" /></div>
           {save.error && <p className="sm:col-span-2 text-sm text-red-700">{save.error.message}</p>}
-          <Button disabled={save.isPending} className="sm:col-span-2 h-10 rounded-xl bg-[#b4472d] hover:bg-[#943722]"><Percent className="mr-1.5 h-4 w-4" />{save.isPending ? "Salvando…" : "Salvar categoria"}</Button>
+          <Button disabled={save.isPending} className="sm:col-span-2 h-10 rounded-xl bg-primary hover:bg-primary-hover"><Percent className="mr-1.5 h-4 w-4" />{save.isPending ? "Salvando…" : "Salvar categoria"}</Button>
         </form>
       )}
 
@@ -125,7 +125,7 @@ export default function FiscalTaxCategories() {
                 <select
                   value={product.fiscalCategoryId ?? ""}
                   onChange={event => assignProduct.mutate({ productId: product.id, fiscalCategoryId: event.target.value ? Number(event.target.value) : null })}
-                  className="h-8 shrink-0 rounded-lg border border-input bg-white px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[#b4472d]"
+                  className="h-8 shrink-0 rounded-lg border border-input bg-white px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <option value="">Sem categoria</option>
                   {categories.filter(category => category.active).map(category => <option key={category.id} value={category.id}>{category.name}</option>)}

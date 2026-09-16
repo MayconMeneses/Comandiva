@@ -63,7 +63,7 @@ export default function PlanAdmin() {
     onError: error => toast.error(error.message),
   });
 
-  if (snapshot.isLoading) return <div className="grid min-h-[40vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-[#b4472d]" /></div>;
+  if (snapshot.isLoading) return <div className="grid min-h-[40vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (snapshot.error || !snapshot.data) return <p className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">Não foi possível carregar os dados do plano.</p>;
 
   const data = snapshot.data;
@@ -94,7 +94,7 @@ export default function PlanAdmin() {
       <div className="rounded-3xl border border-[#e2d5c5] bg-[#fffdf8] p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Meu plano</p>
+            <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Meu plano</p>
             <h1 className="mt-2 font-display text-3xl font-bold">{data.planName}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Status: <strong>{STATUS_LABELS[data.status] ?? data.status}</strong>
@@ -150,7 +150,7 @@ export default function PlanAdmin() {
                     <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{label.description}</p>
                   </div>
                   {locked ? (
-                    <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#f3e2d8] px-3 py-1 text-xs font-semibold text-[#b4472d]">
+                    <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#f3e2d8] px-3 py-1 text-xs font-semibold text-primary">
                       <Lock className="h-3.5 w-3.5" />{requiredPlanName ?? "Plano superior"}
                     </span>
                   ) : (
@@ -176,7 +176,7 @@ export default function PlanAdmin() {
         <h2 className="font-display text-xl font-bold">Planos disponíveis</h2>
         <p className="mt-1 text-sm text-muted-foreground">Upgrade libera os recursos na hora. Downgrade só passa a valer no fim do período atual — nada é apagado.</p>
         {plans.isLoading ? (
-          <div className="mt-4 grid place-items-center py-6"><Loader2 className="h-6 w-6 animate-spin text-[#b4472d]" /></div>
+          <div className="mt-4 grid place-items-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {(plans.data ?? []).map(plan => {
@@ -185,17 +185,17 @@ export default function PlanAdmin() {
               const isUpgrade = plan.position > currentPosition;
               const isDowngrade = plan.position < currentPosition;
               return (
-                <div key={plan.key} className={`flex flex-col rounded-2xl border p-4 ${isCurrent ? "border-[#b4472d] bg-[#fdf1ea]" : isScheduledTarget ? "border-amber-300 bg-amber-50" : "border-[#eee4d8] bg-white"}`}>
-                  <p className="text-sm font-bold uppercase tracking-wide text-[#b4472d]">{plan.name}</p>
+                <div key={plan.key} className={`flex flex-col rounded-2xl border p-4 ${isCurrent ? "border-primary bg-[#fdf1ea]" : isScheduledTarget ? "border-amber-300 bg-amber-50" : "border-[#eee4d8] bg-white"}`}>
+                  <p className="text-sm font-bold uppercase tracking-wide text-primary">{plan.name}</p>
                   <p className="mt-1 text-2xl font-bold">{money(plan.priceCents)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
                   <p className="mt-2 text-xs text-muted-foreground">{plan.features.length} recurso(s) liberado(s)</p>
                   <div className="mt-4 flex-1" />
                   {isCurrent ? (
-                    <span className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#f3e2d8] px-3 py-2 text-xs font-semibold text-[#b4472d]"><CheckCircle2 className="h-3.5 w-3.5" />Seu plano atual</span>
+                    <span className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#f3e2d8] px-3 py-2 text-xs font-semibold text-primary"><CheckCircle2 className="h-3.5 w-3.5" />Seu plano atual</span>
                   ) : isScheduledTarget ? (
                     <span className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900"><Clock3 className="h-3.5 w-3.5" />Agendado</span>
                   ) : isUpgrade ? (
-                    <Button onClick={() => openChangeDialog(plan)} className="mt-2 rounded-xl bg-[#b4472d] hover:bg-[#943722]"><Sparkles className="mr-1.5 h-4 w-4" />Fazer upgrade</Button>
+                    <Button onClick={() => openChangeDialog(plan)} className="mt-2 rounded-xl bg-primary hover:bg-primary-hover"><Sparkles className="mr-1.5 h-4 w-4" />Fazer upgrade</Button>
                   ) : isDowngrade ? (
                     <Button variant="outline" onClick={() => openChangeDialog(plan)} className="mt-2 rounded-xl border-[#d8c8b4] bg-white">Fazer downgrade</Button>
                   ) : null}
@@ -232,7 +232,7 @@ export default function PlanAdmin() {
         </div>
         {showHistory && (
           <div className="mt-4 space-y-2">
-            {paymentHistory.isLoading ? <Loader2 className="h-5 w-5 animate-spin text-[#b4472d]" /> : paymentHistory.data?.length ? (
+            {paymentHistory.isLoading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : paymentHistory.data?.length ? (
               paymentHistory.data.map(payment => (
                 <div key={payment.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#eee4d8] bg-white px-3 py-2 text-xs">
                   <span>{new Date(payment.createdAt).toLocaleDateString("pt-BR")}</span>
@@ -267,7 +267,7 @@ export default function PlanAdmin() {
           {changePlan.error && <p className="mt-2 text-sm text-red-700">{changePlan.error.message}</p>}
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setPendingChange(null)}>Cancelar</Button>
-            <Button disabled={changePlan.isPending} onClick={confirmChange} className="rounded-xl bg-[#b4472d] hover:bg-[#943722]">{changePlan.isPending ? "Confirmando…" : <>Confirmar <ArrowRight className="ml-1.5 h-4 w-4" /></>}</Button>
+            <Button disabled={changePlan.isPending} onClick={confirmChange} className="rounded-xl bg-primary hover:bg-primary-hover">{changePlan.isPending ? "Confirmando…" : <>Confirmar <ArrowRight className="ml-1.5 h-4 w-4" /></>}</Button>
           </div>
         </DialogContent>
       </Dialog>

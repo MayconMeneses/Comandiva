@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { applyColorTheme } from "@/lib/applyColorTheme";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -152,6 +153,7 @@ function DashboardLayoutContent({
     .filter(item => !item.adminOnly || isAdmin)
     .filter(item => !item.areas || isAdmin || item.areas.some(area => permissions.includes(area)));
   const settings = trpc.catalog.settings.useQuery();
+  useEffect(() => { applyColorTheme(settings.data?.colorTheme); }, [settings.data?.colorTheme]);
   const license = trpc.admin.mySnapshot.useQuery(undefined, { staleTime: 60_000 });
   const lockedFeatureIds = new Set(Object.keys(license.data?.lockedFeatures ?? {}));
   const [lockInfo, setLockInfo] = useState<FeatureLockedInfo | null>(null);
@@ -211,7 +213,7 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-3 px-2 transition-all w-full">
               <button
                 onClick={toggleSidebar}
-                className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#e1d0bb] bg-white text-[#554235] shadow-sm transition-colors hover:bg-[#f2e3d4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b4472d] shrink-0"
+                className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#e1d0bb] bg-white text-[#554235] shadow-sm transition-colors hover:bg-[#f2e3d4] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
                 aria-label="Toggle navigation"
               >
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
@@ -263,7 +265,7 @@ function DashboardLayoutContent({
           <SidebarFooter className="border-t border-[#eadfce] bg-[#fffdf8] p-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex w-full items-center gap-3 rounded-xl border border-transparent px-2 py-2 text-left transition-colors hover:border-[#e2d0bb] hover:bg-[#f2e3d4] group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b4472d]">
+                <button className="flex w-full items-center gap-3 rounded-xl border border-transparent px-2 py-2 text-left transition-colors hover:border-[#e2d0bb] hover:bg-[#f2e3d4] group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                   <Avatar className="h-9 w-9 border shrink-0">
                     <AvatarFallback className="text-xs font-medium">
                       {user?.name?.charAt(0).toUpperCase()}

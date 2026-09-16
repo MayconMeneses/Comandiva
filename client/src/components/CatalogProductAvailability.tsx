@@ -88,7 +88,7 @@ export default function CatalogProductAvailability() {
   return (
     <section className="mt-7">
       <div className="mb-5">
-        <p className="text-xs font-bold uppercase tracking-[.16em] text-[#b4472d]">Catálogo público</p>
+        <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Catálogo público</p>
         <h2 className="mt-2 font-display text-3xl font-bold text-[#231d18]">Cardápio e disponibilidade</h2>
         <p className="mt-1 text-sm text-muted-foreground">Use <strong>Editar</strong> para alterar informações, preço ou imagem. Use <strong>Excluir</strong> para retirar o item do cardápio preservando pedidos antigos.</p>
       </div>
@@ -116,7 +116,7 @@ export default function CatalogProductAvailability() {
                             {product.imageUrl ? <img src={product.imageUrl} alt="" className="h-full w-full object-cover" /> : null}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2"><p className="font-semibold">{product.name}</p><strong className="shrink-0 text-sm text-[#b4472d]">{money(product.priceCents)}</strong></div>
+                            <div className="flex items-start justify-between gap-2"><p className="font-semibold">{product.name}</p><strong className="shrink-0 text-sm text-primary">{money(product.priceCents)}</strong></div>
                             <p className="mt-1 truncate text-xs text-muted-foreground">{product.description}</p>
                           </div>
                         </div>
@@ -146,16 +146,16 @@ export default function CatalogProductAvailability() {
       {editing ? (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/45 p-4">
           <form onSubmit={submitEdit} className="my-6 w-full max-w-xl rounded-3xl bg-[#fffdf8] p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#b4472d]">Manutenção de produto</p><h2 className="mt-1 font-display text-3xl font-bold">Editar {editing.name}</h2></div><Button type="button" variant="ghost" onClick={() => setEditing(null)} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button></div>
+            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">Manutenção de produto</p><h2 className="mt-1 font-display text-3xl font-bold">Editar {editing.name}</h2></div><Button type="button" variant="ghost" onClick={() => setEditing(null)} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button></div>
             <div className="mt-6 grid gap-4">
               <div><Label>Categoria</Label><select required value={form.categoryId} onChange={event => setForm({ ...form, categoryId: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-input bg-[#fffdfa] px-3 text-sm">{catalog.data.categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
               <div className="grid gap-4 sm:grid-cols-2"><div><Label>Nome</Label><Input required value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} className="mt-1.5 h-11 rounded-xl bg-[#fffdfa]" /></div><div><Label>Preço (R$)</Label><Input required inputMode="decimal" value={form.price} onChange={event => setForm({ ...form, price: event.target.value })} className="mt-1.5 h-11 rounded-xl bg-[#fffdfa]" /></div></div>
               <div><Label>Descrição</Label><Textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} className="mt-1.5 min-h-20 rounded-xl bg-[#fffdfa]" /></div>
               <div><Label>Tempo de preparo (minutos)</Label><Input required type="number" min="1" value={form.preparationMinutes} onChange={event => setForm({ ...form, preparationMinutes: event.target.value })} className="mt-1.5 h-11 rounded-xl bg-[#fffdfa]" /></div>
-              <div className="grid gap-3 rounded-2xl border border-[#e5d9ca] bg-[#fffaf4] p-4"><div><Label>URL da imagem</Label><Input value={form.imageUrl} onChange={event => { setForm({ ...form, imageUrl: event.target.value }); setFileName(""); }} placeholder="https://… ou /assets/pubx/…" className="mt-1.5 h-11 rounded-xl bg-white" /></div><div><Label>Ou importar nova imagem</Label><label className="mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#cdae90] bg-white p-3 text-sm font-semibold text-[#724d3c] hover:border-[#b4472d]"><ImagePlus className="h-4 w-4" />{upload.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</> : fileName || "Importar imagem do dispositivo"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={chooseFile} /></label><p className="mt-1.5 text-xs text-[#806a5a]">JPG, PNG, WEBP ou AVIF de até 20 MB.</p></div>{form.imageUrl ? <img src={form.imageUrl} alt="Prévia do produto" className="h-28 w-full rounded-xl object-cover" /> : null}{uploadError || upload.error ? <p className="text-sm text-red-700">{uploadError || upload.error?.message}</p> : null}</div>
+              <div className="grid gap-3 rounded-2xl border border-[#e5d9ca] bg-[#fffaf4] p-4"><div><Label>URL da imagem</Label><Input value={form.imageUrl} onChange={event => { setForm({ ...form, imageUrl: event.target.value }); setFileName(""); }} placeholder="https://… ou /assets/pubx/…" className="mt-1.5 h-11 rounded-xl bg-white" /></div><div><Label>Ou importar nova imagem</Label><label className="mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#cdae90] bg-white p-3 text-sm font-semibold text-[#724d3c] hover:border-primary"><ImagePlus className="h-4 w-4" />{upload.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</> : fileName || "Importar imagem do dispositivo"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={chooseFile} /></label><p className="mt-1.5 text-xs text-[#806a5a]">JPG, PNG, WEBP ou AVIF de até 20 MB.</p></div>{form.imageUrl ? <img src={form.imageUrl} alt="Prévia do produto" className="h-28 w-full rounded-xl object-cover" /> : null}{uploadError || upload.error ? <p className="text-sm text-red-700">{uploadError || upload.error?.message}</p> : null}</div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.available} onChange={event => setForm({ ...form, available: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Exibir no cardápio</label>
-                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.featured} onChange={event => setForm({ ...form, featured: event.target.checked })} className="h-4 w-4 accent-[#b4472d]" />Destacar produto</label>
+                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.available} onChange={event => setForm({ ...form, available: event.target.checked })} className="h-4 w-4 accent-primary" />Exibir no cardápio</label>
+                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.featured} onChange={event => setForm({ ...form, featured: event.target.checked })} className="h-4 w-4 accent-primary" />Destacar produto</label>
                 <label className="flex items-center gap-2 text-sm font-medium sm:col-span-2">
                   <input
                     type="checkbox"
@@ -172,7 +172,7 @@ export default function CatalogProductAvailability() {
                       }
                       setForm({ ...form, onPromotion: event.target.checked });
                     }}
-                    className="h-4 w-4 accent-[#b4472d] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
                   />
                   Em promoção (aparece também na categoria "Promoção", em primeiro lugar)
                   {promotionsLocked && !form.onPromotion ? <FeatureLockDot title="Recurso do plano Promoções — clique pra ver como liberar" onClick={() => setUpgradeInfo({ featureId: "promotions", requiredPlanKey: promotionsLocked.requiredPlanKey, requiredPlanName: promotionsLocked.requiredPlanName })} /> : null}
@@ -180,7 +180,7 @@ export default function CatalogProductAvailability() {
               </div>
             </div>
             {save.error ? <p className="mt-4 text-sm text-red-700">{save.error.message}</p> : null}
-            <Button disabled={save.isPending || upload.isPending} className="mt-6 h-11 w-full rounded-xl bg-[#b4472d] hover:bg-[#943722]">{save.isPending ? "Salvando alterações…" : "Salvar alterações"}</Button>
+            <Button disabled={save.isPending || upload.isPending} className="mt-6 h-11 w-full rounded-xl bg-primary hover:bg-primary-hover">{save.isPending ? "Salvando alterações…" : "Salvar alterações"}</Button>
           </form>
         </div>
       ) : null}

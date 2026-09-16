@@ -88,7 +88,9 @@ async function startServer() {
     }
   });
   app.get("/version", (_req, res) => res.status(200).json({ version: APP_VERSION, commit: process.env.GIT_COMMIT ?? "unknown" }));
-  app.use(express.json({ limit: "1mb" }));
+  // 12mb — cobre o base64 de até 8MB de arquivo (public.uploadMenuReference,
+  // ver server/routers/public.ts) mais a folga de ~33% que o base64 adiciona.
+  app.use(express.json({ limit: "12mb" }));
   // Cobrança da mensalidade do SaaS (restaurante-cliente pagando a
   // plataforma) — rota HTTP simples, fora do tRPC, porque quem chama é o
   // Mercado Pago.

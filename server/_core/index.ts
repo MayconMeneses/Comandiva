@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { sendOwnerAlert } from "./alerts";
 import { registerMercadoPagoWebhook } from "../payments/webhooks/mercadopago";
+import { registerLicenseRefreshWebhook } from "./licenseRefreshWebhook";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
 import { ensureStorageReady } from "../storage";
@@ -123,6 +124,8 @@ async function startServer() {
   // Webhook do Mercado Pago (confirmação automática de pagamento online) —
   // rota HTTP simples, fora do tRPC, porque quem chama é o Mercado Pago.
   registerMercadoPagoWebhook(app);
+  // Idem, pro Painel Master (saas-core) pedir sincronização imediata de plano.
+  registerLicenseRefreshWebhook(app);
   // tRPC API
   app.use(
     "/api/trpc",

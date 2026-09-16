@@ -33,6 +33,7 @@ const FEATURES: { featureId: string; name: string; category: string; minPlan: Pl
   { featureId: "team_app", name: "App da equipe (celular/tablet)", category: "operacao", minPlan: "profissional" },
   { featureId: "promotions", name: "Promoções e combos", category: "marketing", minPlan: "profissional" },
   { featureId: "reports_complete", name: "Relatórios completos", category: "relatorios", minPlan: "profissional" },
+  { featureId: "custom_theme", name: "Tema de cor personalizado", category: "marketing", minPlan: "profissional" },
   // Eventos, relatórios avançados, gestão avançada de equipe e auditoria
   // ficam reservados pro topo — diferenciais do plano mais completo.
   { featureId: "events", name: "Eventos", category: "marketing", minPlan: "premium" },
