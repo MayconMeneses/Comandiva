@@ -29,7 +29,14 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import AdminAccessManager from './AdminAccessManager';
 import { SupportModeBanner } from './SupportModeBanner';
 import { FeatureLockDot, UpgradeNudgeModal, type FeatureLockedInfo } from './admin/LockedFeature';
+import { TrialEndedBlock, TrialEndingBanner } from './admin/TrialStatus';
 import { trpc } from "@/lib/trpc";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// A partir de quantos dias antes do fim do trial a faixa de aviso começa a
+// aparecer — pedido explícito do dono: 5 dias, toda vez que ele entra no admin.
+const TRIAL_WARNING_DAYS = 5;
+const dateLabel = (ms: number) => new Date(ms).toLocaleDateString("pt-BR");
 
 // `areas`: staff só vê o item se tiver pelo menos uma dessas áreas liberadas
 // (admin sempre vê tudo — auth.me devolve a lista inteira pra ele, ver
@@ -83,6 +90,13 @@ export default function DashboardLayout({
   const supportInfo = user && "viaSupportSession" in user && user.viaSupportSession
     ? { restaurantName: user.supportRestaurantName, platformAdminEmail: user.email, expiresAt: user.supportExpiresAt }
     : null;
+  // Mesma queryKey da chamada em DashboardLayoutContent — react-query dedupe
+  // pra uma única requisição, sem precisar passar os dados por prop. Fica
+  // FORA do SidebarProvider pelo mesmo motivo do SupportModeBanner acima:
+  // o `sticky` precisa da largura inteira do topo, não só da coluna do conteúdo.
+  const license = trpc.admin.mySnapshot.useQuery(undefined, { enabled: Boolean(user), staleTime: 60_000 });
+  const daysLeft = license.data?.status === "trial" && license.data.currentPeriodEnd ? Math.ceil((license.data.currentPeriodEnd - Date.now()) / DAY_MS) : null;
+  const showTrialEndingBanner = daysLeft !== null && daysLeft <= TRIAL_WARNING_DAYS;
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -115,6 +129,9 @@ export default function DashboardLayout({
   return (
     <>
       {supportInfo ? <SupportModeBanner session={supportInfo} onExit={logout} exiting={loading} /> : null}
+      {!supportInfo && showTrialEndingBanner && license.data?.currentPeriodEnd ? (
+        <TrialEndingBanner daysLeft={daysLeft!} periodEndLabel={dateLabel(license.data.currentPeriodEnd)} />
+      ) : null}
       <SidebarProvider
         style={
           {
@@ -156,6 +173,11 @@ function DashboardLayoutContent({
   useEffect(() => { applyColorTheme(settings.data?.colorTheme); }, [settings.data?.colorTheme]);
   const license = trpc.admin.mySnapshot.useQuery(undefined, { staleTime: 60_000 });
   const lockedFeatureIds = new Set(Object.keys(license.data?.lockedFeatures ?? {}));
+  // Trial vencido sem pagamento — bloqueia todo o conteúdo, exceto a própria
+  // tela "Meu plano" (senão o dono não teria como assinar pra sair do bloqueio).
+  // Nunca bloqueia em Modo Suporte — é exatamente quando alguém da equipe
+  // pode estar logado ajudando esse restaurante a resolver isso.
+  const isTrialEnded = !supportInfo && license.data?.status === "ended";
   const [lockInfo, setLockInfo] = useState<FeatureLockedInfo | null>(null);
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
@@ -321,7 +343,7 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1 p-4">{isTrialEnded && location !== "/admin/plano" ? <TrialEndedBlock /> : children}</main>
       </SidebarInset>
       <UpgradeNudgeModal open={Boolean(lockInfo)} onOpenChange={open => { if (!open) setLockInfo(null); }} info={lockInfo} />
     </>

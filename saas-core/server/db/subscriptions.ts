@@ -186,6 +186,20 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
     return;
   }
 
+  // Trial vencido sem nenhum checkout iniciado (sem scheduledPlanId) — sem
+  // isso, o restaurante ficava com acesso completo indefinidamente após os
+  // 30 dias grátis, porque nada mais reavaliava esse estado (ver auditoria
+  // que motivou esta mudança). Reaproveita 'ended', valor do enum que antes
+  // nunca era atribuído por nenhum código — computeSnapshotForRestaurant
+  // abaixo zera as features quando vê esse status, bloqueando o acesso até
+  // o dono assinar de verdade (billing/login continuam liberados, porque
+  // não passam por nenhum feature-gate).
+  if (subscription.status === "trial" && !subscription.scheduledPlanId) {
+    await db.update(subscriptions).set({ status: "ended", updatedAt: now }).where(eq(subscriptions.id, subscription.id));
+    await recordEvent(subscription.id, "trial_ended", { status: "trial" }, { status: "ended" }, "system:reconciliation");
+    return;
+  }
+
   if (subscription.scheduledPlanId) {
     const newPeriodStart = subscription.currentPeriodEnd;
     const newPeriodEnd = newPeriodStart + ONE_MONTH_MS;
@@ -435,7 +449,12 @@ export async function computeSnapshotForRestaurant(restaurantId: number): Promis
   ]);
 
   const plansById = new Map(allPlans.map(candidate => [candidate.id, candidate]));
-  const currentPlanFeatureIds = new Set(allPlanFeatures.filter(row => row.planId === plan.id).map(row => row.featureId));
+  // Trial encerrado sem pagamento (status 'ended', ver applyDueScheduledChanges
+  // acima) — trata como se o plano não liberasse NENHUMA feature, então o
+  // laço abaixo joga todas em lockedFeatures automaticamente, sem duplicar
+  // lógica de bloqueio.
+  const isTrialExpiredUnpaid = subscription.status === "ended";
+  const currentPlanFeatureIds = isTrialExpiredUnpaid ? new Set<string>() : new Set(allPlanFeatures.filter(row => row.planId === plan.id).map(row => row.featureId));
 
   const includedFeatures: string[] = [];
   const lockedFeatures: LicenseSnapshot["lockedFeatures"] = {};
