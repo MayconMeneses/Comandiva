@@ -46,6 +46,10 @@ services:
       DATABASE_URL: mysql://${MYSQL_USER:-saas_core}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-saas_core}
     ports:
       - "127.0.0.1:${APP_PORT:-4000}:4000"
+    volumes:
+      # Mesmo raciocínio do app principal — sem isso, o backup local some no
+      # próximo rebuild. Ver docker-compose.independent.yml.
+      - saas_core_backups:/app/backups
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -60,3 +64,4 @@ services:
 
 volumes:
   saas_core_mysql_data:
+  saas_core_backups:

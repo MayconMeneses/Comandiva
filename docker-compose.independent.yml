@@ -72,6 +72,13 @@ services:
       S3_ENDPOINT: http://storage:9000
     ports:
       - "${APP_PORT:-3000}:3000"
+    volumes:
+      # Sem isso, todo backup local (scripts/backup-db.mjs) some no próximo
+      # rebuild/recreate do container — a cópia externa (BACKUP_OFFSITE_S3_*)
+      # continua sendo a proteção real contra perda da VPS inteira, mas o
+      # arquivo local precisa sobreviver a um deploy normal pra retenção
+      # (find -mtime +N) fazer sentido.
+      - pubx_backups:/app/backups
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -87,3 +94,4 @@ services:
 volumes:
   pubx_mysql_data:
   pubx_minio_data:
+  pubx_backups:
