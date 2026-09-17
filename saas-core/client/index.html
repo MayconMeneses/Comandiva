@@ -2,8 +2,14 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><!--
+      Sem noindex global aqui de propósito: este mesmo HTML serve tanto o
+      site comercial público (/comercial/*, precisa ser indexado) quanto o
+      Painel Master (/, /login, /restaurantes etc., não deve aparecer no
+      Google). Como é uma SPA de página única, a distinção é feita em tempo
+      de execução — ver PanelLayout.tsx, que injeta <meta name="robots"
+      content="noindex, nofollow"> só nas rotas do Painel Master.
+    -->
     <title>MM System Creator — Painel Master</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />

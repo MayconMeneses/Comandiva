@@ -1,4 +1,5 @@
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
+import { useNoIndex } from "@/lib/useNoIndex";
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -12,6 +13,7 @@ const NAV_ITEMS = [
 ] as const;
 
 export function PanelLayout({ children }: { children: React.ReactNode }) {
+  useNoIndex();
   const { admin, loading, logout } = usePlatformAuth();
   const [location, setLocation] = useLocation();
 

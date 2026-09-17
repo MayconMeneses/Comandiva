@@ -2,12 +2,14 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
 import { trpc } from "@/lib/trpc";
+import { useNoIndex } from "@/lib/useNoIndex";
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
 type Step = "credentials" | "totp-setup" | "totp-verify";
 
 export default function Login() {
+  useNoIndex();
   const { admin, loading } = usePlatformAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
