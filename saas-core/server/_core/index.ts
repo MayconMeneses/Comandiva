@@ -7,6 +7,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerMercadoPagoBillingWebhook } from "./mercadoPagoWebhook";
 import { registerMercadoPagoSignupWebhook } from "./mercadoPagoSignupWebhook";
+import { registerMercadoPagoWebhookRoute } from "./mercadoPagoWebhookRoute";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
@@ -93,7 +94,12 @@ async function startServer() {
   app.use(express.json({ limit: "12mb" }));
   // Cobrança da mensalidade do SaaS (restaurante-cliente pagando a
   // plataforma) — rota HTTP simples, fora do tRPC, porque quem chama é o
-  // Mercado Pago.
+  // Mercado Pago. /api/webhooks/mercadopago é a rota ÚNICA que deve ser
+  // cadastrada no painel da MP (só aceita uma URL por app/ambiente) — ela
+  // despacha internamente pros dois handlers abaixo pelo `type` do evento.
+  // As duas rotas antigas continuam registradas por retrocompatibilidade,
+  // mas nenhuma cobre o app inteiro sozinha.
+  registerMercadoPagoWebhookRoute(app);
   registerMercadoPagoBillingWebhook(app);
   registerMercadoPagoSignupWebhook(app);
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
