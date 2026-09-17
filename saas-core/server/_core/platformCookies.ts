@@ -9,3 +9,10 @@ import type { CookieOptions, Request } from "express";
 export function getPlatformSessionCookieOptions(req: Request): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure"> {
   return { httpOnly: true, path: "/", sameSite: "lax", secure: req.protocol === "https" };
 }
+
+/** Cookie separado da sessão — marca o navegador como confiável pro 2FA (ver server/_core/platformSession.ts::createTrustedDeviceToken). Vida bem mais longa de propósito: sobrevive a vários logout/login no mesmo dispositivo. */
+export const TRUSTED_DEVICE_COOKIE_NAME = "platform_trusted_device";
+
+export function getTrustedDeviceCookieOptions(req: Request, maxAgeMs: number): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure" | "maxAge"> {
+  return { httpOnly: true, path: "/", sameSite: "lax", secure: req.protocol === "https", maxAge: maxAgeMs };
+}

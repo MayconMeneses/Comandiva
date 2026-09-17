@@ -25,6 +25,12 @@ export const platformAdmins = mysqlTable(
     // restaurant_staff_credentials.permissions no app principal.
     permissions: text("permissions"),
     active: boolean("active").notNull().default(true),
+    // 2FA (TOTP) do Painel Master — totpSecret só existe depois que a conta
+    // gera um QR code de configuração (ver server/routers/masterPanel/auth.ts).
+    // totpEnabled=false + totpSecret preenchido = setup gerado mas ainda não
+    // confirmado (login gera um segredo novo a cada tentativa até confirmar).
+    totpSecret: varchar("totpSecret", { length: 64 }),
+    totpEnabled: boolean("totpEnabled").notNull().default(false),
     lastSignedInAt: bigint("lastSignedInAt", { mode: "number", unsigned: true }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),

@@ -18,3 +18,7 @@ backups/
 *.sql.gz
 *.tar.gz
 *.tar.gz.enc
+# Exceção: migrations do Drizzle (drizzle/*.sql) precisam ser versionadas —
+# sem isto, toda migration nova ficava invisível pro git por engano (só as
+# 0000-0008 estão versionadas hoje porque entraram via `git add -f` na época).
+!drizzle/*.sql

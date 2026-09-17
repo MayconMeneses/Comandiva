@@ -8,6 +8,17 @@ function stripPasswordHash<T extends { passwordHash: string }>({ passwordHash: _
   return rest;
 }
 
+/**
+ * Pra qualquer retorno que possa chegar ao cliente (contexto de sessão,
+ * listagem de equipe) — nunca deixa `totpSecret` vazar, mesmo já sem
+ * passwordHash. `authenticatePlatformAdmin` é a ÚNICA exceção de propósito
+ * (usa stripPasswordHash puro): o fluxo de login precisa do segredo em mãos
+ * pra validar o código de 2FA antes de decidir o que devolver pro cliente.
+ */
+function stripAllSecrets<T extends { passwordHash: string; totpSecret: string | null }>({ passwordHash: _passwordHash, totpSecret: _totpSecret, ...rest }: T) {
+  return rest;
+}
+
 /** owner sempre acesso total; member só as áreas em `permissions` — mesmo raciocínio de listRestaurantAccessAccounts no app principal. */
 function withParsedPermissions<T extends { permissions: string | null; role: PlatformAdminRole }>(admin: T) {
   return { ...admin, permissions: admin.role === "owner" ? [...GRANTABLE_MASTER_AREAS] : parseMasterPermissions(admin.permissions) };
@@ -52,13 +63,21 @@ export async function getPlatformAdminById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
   const [admin] = await db.select().from(platformAdmins).where(eq(platformAdmins.id, id)).limit(1);
-  return admin ? withParsedPermissions(stripPasswordHash(admin)) : undefined;
+  return admin ? withParsedPermissions(stripAllSecrets(admin)) : undefined;
+}
+
+/** Só pra uso interno do handshake de 2FA (confirmTotpSetup) — precisa do totpSecret em mãos pra validar o código. NUNCA devolver isto direto num response de tRPC. */
+export async function getPlatformAdminTotpSecretById(id: number): Promise<string | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [admin] = await db.select({ totpSecret: platformAdmins.totpSecret }).from(platformAdmins).where(eq(platformAdmins.id, id)).limit(1);
+  return admin?.totpSecret ?? undefined;
 }
 
 export async function listPlatformAdmins() {
   const db = await getDb();
   if (!db) return [];
-  return (await db.select().from(platformAdmins)).map(stripPasswordHash).map(withParsedPermissions);
+  return (await db.select().from(platformAdmins)).map(stripAllSecrets).map(withParsedPermissions);
 }
 
 /** Reseta a senha de uma conta já existente — bootstrap-platform-admin.ts é idempotente e nunca mexe numa conta que já existe. */
@@ -67,6 +86,20 @@ export async function updatePlatformAdminPassword(id: number, password: string) 
   if (!db) throw new Error("Banco de dados indisponível");
   const passwordHash = await hashPlatformPassword(password);
   await db.update(platformAdmins).set({ passwordHash, updatedAt: Date.now() }).where(eq(platformAdmins.id, id));
+}
+
+/** Grava o segredo TOTP gerado pro handshake de setup — ainda NÃO habilita (só confirmTotpSetup faz isso, depois do primeiro código bater). */
+export async function setPlatformAdminTotpSecret(id: number, totpSecret: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  await db.update(platformAdmins).set({ totpSecret, updatedAt: Date.now() }).where(eq(platformAdmins.id, id));
+}
+
+/** Confirma o 2FA depois do primeiro código válido — só a partir daqui o login passa a exigi-lo. */
+export async function enablePlatformAdminTotp(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  await db.update(platformAdmins).set({ totpEnabled: true, updatedAt: Date.now() }).where(eq(platformAdmins.id, id));
 }
 
 /** Devolve o admin (sem passwordHash) se a senha bater e a conta estiver ativa — undefined caso contrário. */

@@ -4,8 +4,9 @@ import { SignJWT } from "jose";
 /**
  * Cobertura de regressão pro núcleo de autenticação do Painel Master
  * (verifyPlatformSessionToken, operatorProcedure, restaurantProcedure e
- * hashApiKey) — hoje sem nenhum teste automatizado apesar de ser a única
- * barreira de acesso (Painel Master roda sem MFA, decisão deliberada).
+ * hashApiKey). O 2FA (TOTP) em si — geração/validação de código, fluxo de
+ * setup, dispositivo confiável — tem cobertura própria em
+ * server/routers/masterPanel/auth.test.ts e server/_core/totp.test.ts.
  * Tudo com mocks simples, sem subir servidor HTTP real: os middlewares tRPC
  * são exercitados criando um router mínimo e chamando `.createCaller(ctx)`
  * com um `TrpcContext` montado à mão, mesmo padrão já usado em
