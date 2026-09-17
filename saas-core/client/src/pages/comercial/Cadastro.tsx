@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { trpc } from "@/lib/trpc";
+import { useMercadoPagoSecurity } from "@/lib/useMercadoPagoSecurity";
 import { FormEvent, useState } from "react";
 import { Link, useParams } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
@@ -9,6 +10,7 @@ const PLAN_LABELS: Record<string, string> = { essencial: "Entrada", profissional
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
 export default function Cadastro() {
+  useMercadoPagoSecurity();
   const { planKey } = useParams<{ planKey: string }>();
   const [name, setName] = useState("");
   const [contactName, setContactName] = useState("");

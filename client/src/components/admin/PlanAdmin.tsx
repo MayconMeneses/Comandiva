@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useMercadoPagoSecurity } from "@/hooks/useMercadoPagoSecurity";
 import { FEATURE_CATALOG } from "@/lib/featureCatalog";
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, Lock, Loader2, ReceiptText, RefreshCw, Sparkles, XCircle } from "lucide-react";
@@ -29,6 +30,7 @@ const STATUS_LABELS: Record<string, string> = {
 type PendingChange = { key: string; name: string; priceCents: number; direction: "upgrade" | "downgrade" } | null;
 
 export default function PlanAdmin() {
+  useMercadoPagoSecurity();
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const snapshot = trpc.admin.mySnapshot.useQuery();
