@@ -41,9 +41,9 @@ async function getFromSaasCore<T>(path: string): Promise<T> {
 
 export type ChangePlanResult = { checkoutUrl: string } | { scheduled: true; effectiveAt: number; planKey: string } | { applied: true };
 
-export async function changeSubscriptionPlan(planKey: string, payerEmail: string): Promise<ChangePlanResult> {
+export async function changeSubscriptionPlan(planKey: string, payerEmail: string, deviceId?: string): Promise<ChangePlanResult> {
   const backUrl = `${ENV.frontendUrl.replace(/\/+$/, "")}/admin/plano`;
-  return postToSaasCore<ChangePlanResult>("billing.changePlan", { planKey, payerEmail, backUrl });
+  return postToSaasCore<ChangePlanResult>("billing.changePlan", { planKey, payerEmail, backUrl, deviceId });
 }
 
 export async function cancelSubscription(reason?: string): Promise<{ effectiveAt: number }> {

@@ -80,15 +80,21 @@ export default function PlanAdmin() {
     setPendingChange({ key: plan.key, name: plan.name, priceCents: plan.priceCents, direction: plan.position > currentPosition ? "upgrade" : "downgrade" });
   };
 
+  // window.MP_DEVICE_SESSION_ID é setado pelo security.js (useMercadoPagoSecurity
+  // acima) — sem mandar isso pro backend, o checkout hospedado do Mercado
+  // Pago pode travar o botão de pagar (mesmo bug já corrigido no cadastro
+  // de cliente novo, ver saas-core/server/_core/mercadoPagoCheckout.ts).
+  const getDeviceId = () => (window as unknown as { MP_DEVICE_SESSION_ID?: string }).MP_DEVICE_SESSION_ID;
+
   const confirmChange = () => {
     if (!pendingChange) return;
     if (!payerEmail.trim()) { toast.error("Informe um e-mail para o pagamento."); return; }
-    changePlan.mutate({ planKey: pendingChange.key, payerEmail: payerEmail.trim() });
+    changePlan.mutate({ planKey: pendingChange.key, payerEmail: payerEmail.trim(), deviceId: getDeviceId() });
   };
 
   const cancelPendingDowngrade = () => {
     if (!currentPlanEntry) return;
-    changePlan.mutate({ planKey: currentPlanEntry.key, payerEmail: payerEmail.trim() || undefined });
+    changePlan.mutate({ planKey: currentPlanEntry.key, payerEmail: payerEmail.trim() || undefined, deviceId: getDeviceId() });
   };
 
   return (

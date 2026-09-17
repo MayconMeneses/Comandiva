@@ -255,7 +255,7 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
  * preapproval, então nenhuma é inventada aqui) ou downgrade (agendado pro
  * fim do ciclo atual, dados/acesso do plano atual preservados até lá).
  */
-export async function startOrChangePlan(input: { restaurantId: number; planKey: string; payerEmail: string; backUrl: string; actor: string }): Promise<{ checkoutUrl: string } | { scheduled: true; effectiveAt: number; planKey: string } | { applied: true }> {
+export async function startOrChangePlan(input: { restaurantId: number; planKey: string; payerEmail: string; backUrl: string; actor: string; deviceId?: string }): Promise<{ checkoutUrl: string } | { scheduled: true; effectiveAt: number; planKey: string } | { applied: true }> {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const current = await getSubscriptionForRestaurant(input.restaurantId);
@@ -287,6 +287,7 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
       payerEmail: input.payerEmail,
       backUrl: input.backUrl,
       amountCents,
+      deviceId: input.deviceId,
     });
     await db
       .update(subscriptions)

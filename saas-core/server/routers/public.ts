@@ -62,7 +62,7 @@ export const publicRouter = router({
         // Pago (ver useMercadoPagoSecurity.ts) — opcional (script pode não
         // ter carregado a tempo), mas sem ele o botão de pagar no checkout
         // deles pode travar em alguns navegadores/dispositivos.
-        deviceId: z.string().trim().max(200).optional(),
+        deviceId: z.string().trim().max(1000).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {

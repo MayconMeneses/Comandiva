@@ -10,14 +10,23 @@ import { restaurantProcedure, router } from "../_core/trpc";
 // separado, só pra visibilidade/supervisão (nunca ativação manual em
 // condições normais).
 export const billingRouter = router({
-  changePlan: restaurantProcedure.input(z.object({ planKey: z.string().min(1), payerEmail: z.string().email(), backUrl: z.string().url() })).mutation(async ({ input, ctx }) => {
-    try {
-      const result = await startOrChangePlan({ restaurantId: ctx.restaurant.id, planKey: input.planKey, payerEmail: input.payerEmail, backUrl: input.backUrl, actor: `restaurant:${ctx.restaurant.id}` });
-      return result;
-    } catch (error) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível alterar o plano." });
-    }
-  }),
+  changePlan: restaurantProcedure
+    .input(z.object({ planKey: z.string().min(1), payerEmail: z.string().email(), backUrl: z.string().url(), deviceId: z.string().trim().max(1000).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const result = await startOrChangePlan({
+          restaurantId: ctx.restaurant.id,
+          planKey: input.planKey,
+          payerEmail: input.payerEmail,
+          backUrl: input.backUrl,
+          actor: `restaurant:${ctx.restaurant.id}`,
+          deviceId: input.deviceId,
+        });
+        return result;
+      } catch (error) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível alterar o plano." });
+      }
+    }),
 
   cancelSubscription: restaurantProcedure.input(z.object({ reason: z.string().max(500).optional() })).mutation(async ({ input, ctx }) => {
     try {

@@ -17,10 +17,18 @@ export async function createSubscriptionPreapproval(params: {
   payerEmail: string;
   backUrl: string;
   amountCents: number;
+  // Device ID do security.js (window.MP_DEVICE_SESSION_ID) — ver o mesmo
+  // parâmetro em mercadoPagoCheckout.ts::createImplementationFeePreference
+  // pro contexto completo do bug que isso corrige.
+  deviceId?: string;
 }): Promise<CreatedPreapproval> {
   const response = await fetch("https://api.mercadopago.com/preapproval", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${params.accessToken}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.accessToken}`,
+      ...(params.deviceId ? { "X-meli-session-id": params.deviceId } : {}),
+    },
     body: JSON.stringify({
       reason: params.reason,
       external_reference: params.externalReference,
