@@ -19,10 +19,21 @@ export async function createImplementationFeePreference(params: {
   successUrl: string;
   failureUrl: string;
   pendingUrl: string;
+  // Device ID do security.js (window.MP_DEVICE_SESSION_ID), capturado no
+  // frontend antes de criar a preferência — sem isso, o motor de risco do
+  // Mercado Pago não tem o fingerprint do dispositivo associado a ESTA
+  // transação específica e pode travar o botão de pagar no checkout
+  // hospedado deles (visto em produção no Safari/iPhone). Ver
+  // useMercadoPagoSecurity.ts + docs deles sobre header X-meli-session-id.
+  deviceId?: string;
 }): Promise<CreatedPreference> {
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${params.accessToken}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.accessToken}`,
+      ...(params.deviceId ? { "X-meli-session-id": params.deviceId } : {}),
+    },
     body: JSON.stringify({
       items: [{ title: params.title, quantity: 1, unit_price: params.amountCents / 100, currency_id: "BRL" }],
       external_reference: params.externalReference,

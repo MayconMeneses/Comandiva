@@ -31,6 +31,12 @@ export default function Cadastro() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    // window.MP_DEVICE_SESSION_ID é setado pelo security.js (ver
+    // useMercadoPagoSecurity, importado acima) — sem mandar isso pro
+    // backend, que repassa pro Mercado Pago via header X-meli-session-id
+    // na criação da preferência, o checkout hospedado deles pode travar o
+    // botão de pagar (visto em produção no Safari/iPhone).
+    const deviceId = (window as unknown as { MP_DEVICE_SESSION_ID?: string }).MP_DEVICE_SESSION_ID;
     signup.mutate({
       name,
       planKey: planKey as "essencial" | "profissional" | "premium",
@@ -38,6 +44,7 @@ export default function Cadastro() {
       contactEmail,
       contactPhone,
       returnOrigin: window.location.origin,
+      deviceId,
     });
   };
 

@@ -58,6 +58,11 @@ export const publicRouter = router({
         // open redirect: sempre concatenamos caminhos fixos aqui, nunca
         // aceitamos um path vindo do cliente).
         returnOrigin: z.string().url(),
+        // window.MP_DEVICE_SESSION_ID, setado pelo security.js do Mercado
+        // Pago (ver useMercadoPagoSecurity.ts) — opcional (script pode não
+        // ter carregado a tempo), mas sem ele o botão de pagar no checkout
+        // deles pode travar em alguns navegadores/dispositivos.
+        deviceId: z.string().trim().max(200).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -106,6 +111,7 @@ export const publicRouter = router({
         successUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
         pendingUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
         failureUrl: `${origin}/comercial/cadastro/${input.planKey}?pagamento=falhou`,
+        deviceId: input.deviceId,
       });
       await attachMpPreference(signupPaymentId, preference.id);
 
