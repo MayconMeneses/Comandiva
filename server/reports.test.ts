@@ -129,6 +129,43 @@ describe("getReportsAdvanced", () => {
     expect(result.discounts.totalDiscountCents).toBe(500);
     expect(result.discounts.ordersWithDiscountCount).toBe(1);
   });
+
+  it("produto novo (sem venda no período anterior) aparece no TOPO do productTrend, não atrás de quedas grandes", async () => {
+    const currentOrders = [{ id: 1, createdAt: T0, totalCents: 400, discountCents: 0, paymentMethod: "PIX", fulfillmentType: "DELIVERY", customerId: 1 }];
+    const previousOrders = [{ id: 99, createdAt: T0 - 5 * DAY, totalCents: 1000, discountCents: 0, paymentMethod: "PIX", fulfillmentType: "DELIVERY", customerId: 9 }];
+    // Produto 10 vendia bem e caiu -90% (1000 -> 100). Produto 20 é novo:
+    // zero venda no período anterior, 300 no atual — mesmo sem "%" calculável
+    // (changePct null), é o destaque de crescimento e precisa vir ANTES do
+    // produto em queda, não depois.
+    const currentItems = [
+      { productId: 10, productName: "Produto em Queda", quantity: 1, lineTotalCents: 100 },
+      { productId: 20, productName: "Produto Novo", quantity: 1, lineTotalCents: 300 },
+    ];
+    const previousItems = [{ productId: 10, productName: "Produto em Queda", quantity: 1, lineTotalCents: 1000 }];
+    const productRowsCurrent = [{ id: 10, categoryId: 100 }, { id: 20, categoryId: 100 }];
+    const productRowsPrevious = [{ id: 10, categoryId: 100 }];
+    const categoryRows = [{ id: 100, name: "Categoria" }];
+    const customerHistory = [{ customerId: 1, createdAt: T0 }];
+    const cancelledInPeriod: unknown[] = [];
+    const totalIncludingCancelled = [{ id: 1 }];
+
+    mocks.getDb.mockResolvedValue(
+      fakeDb(
+        new Map<unknown, unknown[][]>([
+          [orders, [currentOrders, previousOrders, customerHistory, cancelledInPeriod, totalIncludingCancelled]],
+          [orderItems, [currentItems, previousItems]],
+          [products, [productRowsCurrent, productRowsPrevious]],
+          [categories, [categoryRows, categoryRows]],
+        ]),
+      ),
+    );
+
+    const { getReportsAdvanced } = await import("./db/reports");
+    const result = await getReportsAdvanced(T0, T0 + DAY);
+
+    expect(result.productTrend[0]).toMatchObject({ name: "Produto Novo", changePct: null, currentRevenueCents: 300, previousRevenueCents: 0 });
+    expect(result.productTrend[1]).toMatchObject({ name: "Produto em Queda", changePct: -90 });
+  });
 });
 
 describe("reportsAdvancedToCsv", () => {

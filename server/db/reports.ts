@@ -35,6 +35,25 @@ function pctChange(current: number, previous: number): number | null {
   return previous > 0 ? ((current - previous) / previous) * 100 : null;
 }
 
+// changePct é null quando o período anterior foi <=0 (pctChange não consegue
+// calcular variação percentual sobre zero). Pra ordenação de "em alta/em
+// queda", isso precisa virar DOIS casos diferentes, não um só:
+// - produto novo (sem venda no período anterior) que já vendeu no período
+//   atual: é o maior crescimento possível, vai pro TOPO da lista de "em
+//   alta" — não pro fim, atrás até de produtos em queda de -90%.
+// - sem venda em nenhum dos dois períodos: não é "alta" nenhuma; mantém o
+//   comportamento antigo de ir pro fim. Na prática nunca ocorre aqui, porque
+//   productTrend só inclui produtos que tiveram receita no período atual
+//   (vem de getTopProductsAndCategories sobre os pedidos do período atual),
+//   mas o fallback fica por segurança caso essa premissa mude no futuro.
+const NEW_PRODUCT_GROWTH_RANK = Number.MAX_SAFE_INTEGER;
+const NO_DATA_GROWTH_RANK = Number.MIN_SAFE_INTEGER;
+
+function productTrendSortRank({ changePct, currentRevenueCents }: { changePct: number | null; currentRevenueCents: number }): number {
+  if (changePct !== null) return changePct;
+  return currentRevenueCents > 0 ? NEW_PRODUCT_GROWTH_RANK : NO_DATA_GROWTH_RANK;
+}
+
 function sumBy<T>(rows: T[], keyOf: (row: T) => string | null, valueOf: (row: T) => number) {
   const map = new Map<string, { key: string; revenueCents: number; orderCount: number }>();
   for (const row of rows) {
@@ -212,7 +231,7 @@ export async function getReportsAdvanced(startAt: number, endAt: number) {
       const previousRevenueCents = previousRevenueByProduct.get(product.productId) ?? 0;
       return { productId: product.productId, name: product.name, currentRevenueCents: product.revenueCents, previousRevenueCents, changePct: pctChange(product.revenueCents, previousRevenueCents) };
     })
-    .sort((a, b) => (b.changePct ?? -Infinity) - (a.changePct ?? -Infinity))
+    .sort((a, b) => productTrendSortRank(b) - productTrendSortRank(a))
     .slice(0, 20);
 
   const [cancelledCurrent, totalIncludingCancelled] = await Promise.all([
