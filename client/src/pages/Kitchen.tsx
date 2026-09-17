@@ -60,7 +60,7 @@ export default function Kitchen() {
   const settings = trpc.catalog.settings.useQuery();
   const licenseSnapshot = trpc.admin.mySnapshot.useQuery(undefined, { enabled: canOperate });
   const locked = licenseSnapshot.data?.lockedFeatures.kitchen;
-  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { enabled: canOperate && !locked, refetchInterval: 10000 });
+  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { enabled: canOperate && !licenseSnapshot.isLoading && !locked, refetchInterval: 10000 });
   if (loading) return <Loading />;
   if (!canOperate) return <TeamLogin />;
   if (licenseSnapshot.isLoading) return <Loading />;

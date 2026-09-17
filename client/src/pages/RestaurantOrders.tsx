@@ -74,7 +74,7 @@ export default function RestaurantOrders() {
   // schema no servidor; um input diferente quebraria o compartilhamento).
   const licenseSnapshot = trpc.admin.mySnapshot.useQuery(undefined, { enabled: canOperate });
   const locked = licenseSnapshot.data?.lockedFeatures.kitchen;
-  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { enabled: canOperate && !locked, refetchInterval: 10000 });
+  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { enabled: canOperate && !licenseSnapshot.isLoading && !locked, refetchInterval: 10000 });
   const orders = { data: snapshot.data?.orders, isLoading: snapshot.isLoading, isFetching: snapshot.isFetching, error: snapshot.error, refetch: snapshot.refetch };
   const settings = trpc.catalog.settings.useQuery();
   if (loading) return <Loading />;
