@@ -33,7 +33,7 @@ type CartContextValue = {
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
-const DEFAULT_STORAGE_KEY = "pub-x-cart-v1";
+const DEFAULT_STORAGE_KEY = "mm-system-creator-cart-v1";
 
 /**
  * `storageKey` isola o carrinho por contexto: o pedido delivery/retirada do
@@ -63,12 +63,12 @@ export function CartProvider({ children, storageKey = DEFAULT_STORAGE_KEY }: { c
           const existing = current.find(item => `${item.productId}:${item.addons.map(addon => addon.id).sort().join(",")}:${item.note ?? ""}` === fingerprint);
           return existing ? current.map(item => item.id === existing.id ? { ...item, quantity: item.quantity + input.quantity } : item) : [...current, { ...input, id: generateCartItemId() }];
         });
-        window.dispatchEvent(new CustomEvent("pubx:cart-updated", { detail: { name: input.name } }));
+        window.dispatchEvent(new CustomEvent("mm:cart-updated", { detail: { name: input.name } }));
       },
       updateQuantity: (id, quantity) => setItems(current => quantity > 0 ? current.map(item => item.id === id ? { ...item, quantity } : item) : current.filter(item => item.id !== id)),
       updateItem: (id, item) => {
         setItems(current => current.map(currentItem => currentItem.id === id ? { ...item, id } : currentItem));
-        window.dispatchEvent(new CustomEvent("pubx:cart-updated", { detail: { name: item.name } }));
+        window.dispatchEvent(new CustomEvent("mm:cart-updated", { detail: { name: item.name } }));
       },
       removeItem: id => setItems(current => current.filter(item => item.id !== id)),
       clearCart: () => setItems([]),

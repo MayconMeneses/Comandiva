@@ -33,7 +33,7 @@ export default function HorizontalScroller({ children, trackClassName = "" }: { 
 
   return <div className="relative">
     {canScrollLeft && <button type="button" onClick={() => scrollByPage(-1)} aria-label="Voltar" className={`${arrowClass} left-1`}><ChevronLeft className="h-5 w-5" /></button>}
-    <div ref={scrollerRef} className={`pubx-no-scrollbar flex overflow-x-auto ${trackClassName}`}>{children}</div>
+    <div ref={scrollerRef} className={`mm-no-scrollbar flex overflow-x-auto ${trackClassName}`}>{children}</div>
     {canScrollRight && <button type="button" onClick={() => scrollByPage(1)} aria-label="Avançar" className={`${arrowClass} right-1`}><ChevronRight className="h-5 w-5" /></button>}
   </div>;
 }

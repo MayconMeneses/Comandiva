@@ -57,8 +57,8 @@ A conexão é `DATABASE_URL`. O schema TypeScript está em `drizzle/schema.ts`; 
 Para preservar dados existentes, faça um dump autenticado da base atual, valide o arquivo e restaure-o na nova base antes de executar seeds. Não misture seed demonstrativo com uma base restaurada sem revisar conflitos de chaves e duplicidades.
 
 ```bash
-node scripts/backup-db.mjs backups/pubx-before-migration.sql
-DATABASE_URL=mysql://usuario:senha@novo-host:3306/pubx node scripts/restore-db.mjs backups/pubx-before-migration.sql
+node scripts/backup-db.mjs backups/mmsystemcreator-before-migration.sql
+DATABASE_URL=mysql://usuario:senha@novo-host:3306/pubx node scripts/restore-db.mjs backups/mmsystemcreator-before-migration.sql
 ```
 
 Faça um backup completo, um backup de verificação e uma restauração de ensaio antes de apontar o domínio para a nova aplicação.

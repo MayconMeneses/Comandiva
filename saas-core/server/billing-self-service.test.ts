@@ -124,7 +124,7 @@ describe("startOrChangePlan", () => {
     mocks.getPlanByKey.mockResolvedValue(PLAN_PRO);
     mocks.createSubscriptionPreapproval.mockResolvedValue({ id: "preapproval-123", initPoint: "https://mp.example/checkout/123", status: "pending" });
 
-    const result = await startOrChangePlan({ restaurantId: 7, planKey: "profissional", payerEmail: "dono@teste.com", backUrl: "https://pubx.exemplo.com/admin/plano", actor: "restaurant:7" });
+    const result = await startOrChangePlan({ restaurantId: 7, planKey: "profissional", payerEmail: "dono@teste.com", backUrl: "https://mmsystemcreator.exemplo.com/admin/plano", actor: "restaurant:7" });
 
     expect(result).toEqual({ checkoutUrl: "https://mp.example/checkout/123" });
     expect(mocks.createSubscriptionPreapproval).toHaveBeenCalledWith(expect.objectContaining({ amountCents: PLAN_PRO.priceCents, payerEmail: "dono@teste.com" }));

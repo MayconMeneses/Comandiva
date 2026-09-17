@@ -52,7 +52,7 @@ import { appRouter } from "./routers";
 
 const now = Date.now();
 const SUPPORT_SESSION = { supportSessionId: 1, restaurantName: "MM System Creator (teste)", platformAdminEmail: "dono@plataforma.com", expiresAt: now + 60_000 };
-const REAL_ADMIN = { id: 7, role: "admin", name: "Dono", username: "dono", email: "dono@pubx.com" } as unknown as TrpcContext["user"];
+const REAL_ADMIN = { id: 7, role: "admin", name: "Dono", username: "dono", email: "dono@mmsystemcreator.com" } as unknown as TrpcContext["user"];
 
 function contextWith(overrides: { user?: TrpcContext["user"]; supportSession?: TrpcContext["supportSession"] }): TrpcContext {
   return { user: overrides.user ?? null, supportSession: overrides.supportSession ?? null, req: { ip: "203.0.113.30" }, res: {} } as unknown as TrpcContext;

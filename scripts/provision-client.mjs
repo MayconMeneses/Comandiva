@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Sobe uma instância Docker isolada e nova do MM System Creator (Pubx) pra
-// um cliente específico, nesta mesma máquina — chamado pelo MMSystemCreator
-// (server/modules/companies/provisioning.ts) logo após o pagamento ser
+// Sobe uma instância Docker isolada e nova do MM System Creator pra um
+// cliente específico, nesta mesma máquina — chamado pelo saas-core
+// (server/_core/systemProvisioning.ts) logo após o pagamento ser
 // confirmado. Reaproveita o mesmo docker-compose.independent.yml/imagem de
 // sempre; o isolamento vem só de rodar com um nome de projeto (`-p`) e um
 // .env próprios por cliente — nada é copiado.
@@ -117,7 +117,7 @@ async function main() {
   const s3ConsolePort = requiredEnv("S3_CONSOLE_PORT");
   const saasCoreApiKey = requiredEnv("SAAS_CORE_API_KEY");
   const outDir = requiredEnv("OUT_DIR");
-  const projectName = `pubx-${clientSlug}`;
+  const projectName = `mm-${clientSlug}`;
 
   mkdirSync(outDir, { recursive: true });
 

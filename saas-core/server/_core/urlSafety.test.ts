@@ -3,11 +3,11 @@ import { assertSafeDeploymentUrl } from "./urlSafety";
 
 describe("assertSafeDeploymentUrl", () => {
   it("aceita uma URL https pública normal", () => {
-    expect(() => assertSafeDeploymentUrl("https://pubx.exemplo.com")).not.toThrow();
+    expect(() => assertSafeDeploymentUrl("https://mmsystemcreator.exemplo.com")).not.toThrow();
   });
 
   it("rejeita http (exige https)", () => {
-    expect(() => assertSafeDeploymentUrl("http://pubx.exemplo.com")).toThrow(/https/);
+    expect(() => assertSafeDeploymentUrl("http://mmsystemcreator.exemplo.com")).toThrow(/https/);
   });
 
   it("rejeita localhost e endereços de loopback/rede privada", () => {

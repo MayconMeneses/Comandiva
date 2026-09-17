@@ -7,7 +7,7 @@
 // e a ordem atuais (ex.: "Pizza Tradicional"), sem duplicar nem perder produtos.
 //
 // Como rodar (com os containers no ar):
-//   docker compose -f docker-compose.independent.yml exec app node_modules/.bin/tsx scripts/seed-cardapio-pubx.ts
+//   docker compose -f docker-compose.independent.yml exec app node_modules/.bin/tsx scripts/seed-cardapio-mm.ts
 
 import { eq, and, inArray } from "drizzle-orm";
 import { addonGroups, addonOptions, categories, products, promotions, restaurantSettings } from "../drizzle/schema";

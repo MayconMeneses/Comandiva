@@ -63,8 +63,8 @@ Duas formas práticas (escolha uma):
 **a) Com Git** (recomendado se o projeto for versionado em um repositório privado):
 
 ```bash
-git clone <url-do-seu-repositorio-privado> /opt/pubx
-cd /opt/pubx
+git clone <url-do-seu-repositorio-privado> /opt/mmsystemcreator
+cd /opt/mmsystemcreator
 ```
 
 **b) Sem Git, copiando direto do seu computador** (via `rsync`, a partir do seu Windows/WSL):
@@ -72,7 +72,7 @@ cd /opt/pubx
 ```bash
 rsync -avz --exclude node_modules --exclude dist --exclude .env \
   "/mnt/c/Users/maico/OneDrive/Área de Trabalho/Nova pasta/Pubx/" \
-  root@SEU_IP:/opt/pubx/
+  root@SEU_IP:/opt/mmsystemcreator/
 ```
 
 `.env`, `node_modules` e `dist` nunca devem ser copiados — o `.env` de produção é criado
@@ -80,7 +80,7 @@ direto no servidor (Etapa 4), e os outros dois são gerados pelo próprio build 
 
 ## Etapa 4 — Criar o `.env` de produção
 
-Na VPS, dentro de `/opt/pubx`:
+Na VPS, dentro de `/opt/mmsystemcreator`:
 
 ```bash
 ./iniciar.sh
@@ -162,7 +162,7 @@ encaminhados (Caddy já faz isso por padrão).
 Se ainda não subiu (ou depois de qualquer alteração no `.env`):
 
 ```bash
-cd /opt/pubx
+cd /opt/mmsystemcreator
 docker compose -f docker-compose.independent.yml up -d --build
 ```
 
@@ -248,7 +248,7 @@ crontab -e
 ```
 
 ```
-0 4 * * * cd /opt/pubx && docker compose -f docker-compose.independent.yml exec -T app node scripts/backup-db.mjs backups/auto-$(date +\%F).tar.gz && find backups -name 'auto-*.tar.gz*' -mtime +14 -delete
+0 4 * * * cd /opt/mmsystemcreator && docker compose -f docker-compose.independent.yml exec -T app node scripts/backup-db.mjs backups/auto-$(date +\%F).tar.gz && find backups -name 'auto-*.tar.gz*' -mtime +14 -delete
 ```
 
 Isso gera um backup diário às 4h e apaga automaticamente os com mais de 14 dias (retenção

@@ -6,7 +6,7 @@ import { createRestaurantWithSubscription } from "../server/db/restaurants";
  * Cadastra um restaurante-cliente novo + assinatura inicial, e imprime a API
  * key gerada UMA ÚNICA VEZ (o banco só guarda o hash dela). É o caminho
  * principal do operador nesta milestone — mais rápido que subir um endpoint
- * HTTP novo pra proteger, mesmo padrão de scripts/seed-cardapio-pubx.ts.
+ * HTTP novo pra proteger, mesmo padrão de scripts/seed-cardapio-mm.ts.
  *
  * Uso:
  *   pnpm create-restaurant --name "MM System Creator" --plan essencial --contact-email dono@exemplo.com

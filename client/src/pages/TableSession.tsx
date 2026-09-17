@@ -127,5 +127,5 @@ function TableSessionRoot({ token }: { token: string }) {
 export default function TableSession() {
   const [, params] = useRoute<{ token: string }>("/mesa/:token");
   if (!params?.token) return <Loading />;
-  return <CartProvider storageKey={`pubx-table-cart-${params.token}`}><TableSessionRoot token={params.token} /></CartProvider>;
+  return <CartProvider storageKey={`mm-table-cart-${params.token}`}><TableSessionRoot token={params.token} /></CartProvider>;
 }

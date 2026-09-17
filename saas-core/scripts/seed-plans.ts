@@ -6,7 +6,7 @@ import { features, planFeatures, planLimits, plans, type PlanKey } from "../driz
 /**
  * Seed idempotente dos planos/features/limites reais do SaaS — seguro
  * rodar de novo a qualquer momento (upsert por chave natural), mesmo padrão
- * de scripts/seed-cardapio-pubx.ts no app principal. Roda em todo boot do
+ * de scripts/seed-cardapio-mm.ts no app principal. Roda em todo boot do
  * container (ver infra/entrypoint.sh).
  */
 

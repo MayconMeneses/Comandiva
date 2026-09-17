@@ -14,7 +14,7 @@ export default defineConfig({
       // fotos de produto (.jpg) ficam de fora de propósito, ver
       // `runtimeCaching` abaixo (cacheadas sob demanda, não no install).
       registerType: "autoUpdate",
-      includeAssets: ["pubx-logo.svg"],
+      includeAssets: ["mm-logo.svg"],
       manifest: {
         name: PWA_BRANDING.name,
         short_name: PWA_BRANDING.shortName,
@@ -78,7 +78,7 @@ export default defineConfig({
             handler: "StaleWhileRevalidate",
             method: "GET",
             options: {
-              cacheName: "pubx-catalog-api",
+              cacheName: "mm-catalog-api",
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -105,7 +105,7 @@ export default defineConfig({
             urlPattern: ({ request }) => request.destination === "image",
             handler: "CacheFirst",
             options: {
-              cacheName: "pubx-images",
+              cacheName: "mm-images",
               expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },

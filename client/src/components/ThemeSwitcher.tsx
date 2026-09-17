@@ -9,11 +9,11 @@ export default function ThemeSwitcher() {
   const selectTheme = (nextTheme: SiteTheme) => {
     if (theme !== nextTheme) toggleTheme?.();
   };
-  return <div className="pubx-theme-switcher" aria-label="Escolha o tema do site">
-    <span className="pubx-theme-label">Tema do site</span>
-    <div className="pubx-theme-options" role="group" aria-label="Tema do site">
-      <button type="button" className="pubx-theme-option" data-active={theme === "light"} aria-pressed={theme === "light"} onClick={() => selectTheme("light")}><Sun className="h-2.5 w-2.5" />Claro</button>
-      <button type="button" className="pubx-theme-option" data-active={theme === "dark"} aria-pressed={theme === "dark"} onClick={() => selectTheme("dark")}><Moon className="h-2.5 w-2.5" />Escuro</button>
+  return <div className="mm-theme-switcher" aria-label="Escolha o tema do site">
+    <span className="mm-theme-label">Tema do site</span>
+    <div className="mm-theme-options" role="group" aria-label="Tema do site">
+      <button type="button" className="mm-theme-option" data-active={theme === "light"} aria-pressed={theme === "light"} onClick={() => selectTheme("light")}><Sun className="h-2.5 w-2.5" />Claro</button>
+      <button type="button" className="mm-theme-option" data-active={theme === "dark"} aria-pressed={theme === "dark"} onClick={() => selectTheme("dark")}><Moon className="h-2.5 w-2.5" />Escuro</button>
     </div>
   </div>;
 }

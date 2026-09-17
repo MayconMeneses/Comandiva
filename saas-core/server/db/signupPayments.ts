@@ -7,6 +7,7 @@ import { getPlanByKey } from "./plans";
 import { recordPlatformAuditLog } from "./auditLog";
 import { sendEmailAsync } from "../_core/emailService";
 import { buildNewPaidSignupMessage, sendTelegramMessageAsync } from "../_core/telegramService";
+import { provisionSystemInstance } from "../_core/systemProvisioning";
 import { ENV } from "../_core/env";
 
 /** Cria a linha ANTES de existir preferência no Mercado Pago — o id gerado aqui vira o external_reference da preferência. */
@@ -128,6 +129,12 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
       apiKey: result.apiKey,
     }),
   );
+
+  // Mesmo raciocínio fogo-e-esquece — subir o ambiente Docker do zero pode
+  // levar minutos (build incluído), nunca pode segurar a resposta do
+  // webhook do Mercado Pago. Sem SYSTEM_REPO_PATH/SYSTEM_DEPLOYMENTS_DIR
+  // configuradas, fica desligado sozinho (ver systemProvisioning.ts).
+  void provisionSystemInstance({ restaurantId: result.restaurantId, restaurantName: payload.name, apiKey: result.apiKey });
 
   return { found: true as const, alreadyProcessed: false as const, restaurantId: result.restaurantId };
 }

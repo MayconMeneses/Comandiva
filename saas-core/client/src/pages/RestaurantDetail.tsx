@@ -240,7 +240,7 @@ export default function RestaurantDetail() {
             </p>
             {isEditingUrl || !restaurant.deploymentUrl ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Input placeholder="https://pubx.exemplo.com" value={deploymentUrlInput} onChange={event => setDeploymentUrlInput(event.target.value)} className="max-w-xs" />
+                <Input placeholder="https://mmsystemcreator.exemplo.com" value={deploymentUrlInput} onChange={event => setDeploymentUrlInput(event.target.value)} className="max-w-xs" />
                 <Button
                   disabled={!deploymentUrlInput.trim() || updateDeploymentUrl.isPending}
                   onClick={() => updateDeploymentUrl.mutate({ restaurantId, deploymentUrl: deploymentUrlInput.trim() }, { onSuccess: () => setIsEditingUrl(false) })}

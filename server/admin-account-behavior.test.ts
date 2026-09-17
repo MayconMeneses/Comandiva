@@ -23,7 +23,7 @@ vi.mock("./_core/sdk", async importOriginal => {
 
 const { appRouter } = await import("./routers");
 
-const adminContext = { user: { id: 1, openId: "owner", name: "ADM principal", email: "owner@pubx.test", loginMethod: "local", role: "admin" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: { protocol: "https", headers: {} }, res: { cookie: vi.fn() } } as unknown as TrpcContext;
+const adminContext = { user: { id: 1, openId: "owner", name: "ADM principal", email: "owner@mmsystemcreator.test", loginMethod: "local", role: "admin" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: { protocol: "https", headers: {} }, res: { cookie: vi.fn() } } as unknown as TrpcContext;
 const publicContext = { user: null, req: { protocol: "https", headers: {} }, res: { cookie: vi.fn() } } as unknown as TrpcContext;
 
 describe("administradores adicionais", () => {

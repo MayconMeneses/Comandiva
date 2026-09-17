@@ -79,7 +79,7 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
 
 ## Decisões importantes já tomadas (não refazer sem necessidade)
 
-- **Categorias e produtos são reais, cadastrados via `scripts/seed-cardapio-pubx.ts`** — um script
+- **Categorias e produtos são reais, cadastrados via `scripts/seed-cardapio-mm.ts`** — um script
   idempotente que lê o cardápio real (extraído de fotos que o dono mandou) e popula o banco. Rodar
   de novo não duplica nada; também limpa dados de demonstração da instalação inicial
   (`scripts/seed.ts`, que só roda uma vez no primeiríssimo boot).
@@ -118,7 +118,7 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
 ./iniciar.sh                       # sobe tudo (cria .env na primeira vez)
 docker compose -f docker-compose.independent.yml down    # para
 docker compose -f docker-compose.independent.yml logs app --tail=60   # ver logs
-docker compose -f docker-compose.independent.yml exec app node_modules/.bin/tsx scripts/seed-cardapio-pubx.ts   # recadastrar cardápio real
+docker compose -f docker-compose.independent.yml exec app node_modules/.bin/tsx scripts/seed-cardapio-mm.ts   # recadastrar cardápio real
 ```
 
 O `saas-core` (Painel Master) sobe separado, de dentro da própria pasta:

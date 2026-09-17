@@ -21,7 +21,7 @@ export const restaurants = mysqlTable(
     apiKeyHash: varchar("apiKeyHash", { length: 64 }).notNull(),
     apiKeyPrefix: varchar("apiKeyPrefix", { length: 16 }).notNull(),
     status: mysqlEnum("status", restaurantStatusValues).notNull().default("active"),
-    // URL pública do deployment deste restaurante (ex.: https://pubx.exemplo.com) —
+    // URL pública do deployment deste restaurante (ex.: https://mmsystemcreator.exemplo.com) —
     // usada só pelo Modo Suporte pra montar o link de handoff. Nula até ser
     // configurada (restaurante recém-criado pode não ter URL de produção ainda).
     deploymentUrl: varchar("deploymentUrl", { length: 500 }),

@@ -15,8 +15,8 @@ describe("cartões públicos do cardápio", () => {
     expect(themeSwitcherSource).toContain('aria-pressed={theme === "dark"}');
     expect(homeSource).toContain("<ThemeSwitcher />");
     expect(appSource).toContain('<ThemeProvider defaultTheme="light" switchable>');
-    expect(styleSource).toContain(".pubx-theme-option[data-active=\"true\"]");
-    expect(styleSource).toContain(".pubx-storefront.theme-dark");
+    expect(styleSource).toContain(".mm-theme-option[data-active=\"true\"]");
+    expect(styleSource).toContain(".mm-storefront.theme-dark");
   });
 
   it("usa o logotipo enviado no cabeçalho público", () => {

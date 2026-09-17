@@ -85,6 +85,31 @@ export function buildMenuReferenceCaption(params: { restaurantId: number; restau
   return `📎 <b>Cardápio enviado pelo cliente</b>\nRestaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`;
 }
 
+export function buildEnvironmentProvisionedMessage(params: {
+  restaurantId: number;
+  restaurantName: string;
+  url: string;
+  adminUsername: string;
+  adminPassword: string;
+}): string {
+  return [
+    "🚀 <b>Ambiente técnico provisionado</b>",
+    `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
+    `URL: ${escapeHtml(params.url)}`,
+    `Login admin: <code>${escapeHtml(params.adminUsername)}</code> / <code>${escapeHtml(params.adminPassword)}</code>`,
+    "Agora é organizar o cardápio e marcar como entregue quando terminar.",
+  ].join("\n");
+}
+
+export function buildEnvironmentProvisioningFailedMessage(params: { restaurantId: number; restaurantName: string; error: string }): string {
+  return [
+    "⚠️ <b>Falha ao provisionar ambiente automaticamente</b>",
+    `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
+    `Erro: ${escapeHtml(params.error.slice(0, 400))}`,
+    "Precisa subir o ambiente na mão pra este cliente.",
+  ].join("\n");
+}
+
 export function buildNewPaidSignupMessage(params: {
   restaurantId: number;
   restaurantName: string;

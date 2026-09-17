@@ -1,6 +1,6 @@
 # Validação de instalação limpa
 
-Em 28/08/2026 foi criada uma cópia limpa do pacote em `/tmp/pubx-clean-final`, sem `node_modules` e sem `dist`. Foram executados `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm test`, `pnpm run verify:export` e `pnpm build`, com conclusão bem-sucedida.
+Em 28/08/2026 foi criada uma cópia limpa do pacote em `/tmp/mmsystemcreator-clean-final`, sem `node_modules` e sem `dist`. Foram executados `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm test`, `pnpm run verify:export` e `pnpm build`, com conclusão bem-sucedida.
 
 Também foi instalado e iniciado um MariaDB local temporário, separado de qualquer ambiente gerenciado. A migration inicial foi aplicada por uma conexão independente e a estrutura SQL foi conferida. Nenhuma operação foi executada em uma base de produção.
 

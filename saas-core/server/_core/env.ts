@@ -47,4 +47,12 @@ export const ENV = {
   // desligado, só loga (nunca derruba o fluxo que disparou a notificação).
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
   telegramChatId: process.env.TELEGRAM_CHAT_ID ?? "",
+  // Provisionamento automático de uma instância Docker isolada do sistema
+  // (MM System Creator) por restaurante-cliente — ver
+  // server/_core/pubxProvisioning.ts. Só funciona com os dois repositórios
+  // na mesma máquina (nada de VPS aqui ainda). Em branco = desligado: o
+  // restaurante é criado normalmente, só sem subir ambiente sozinho — a
+  // equipe sobe na mão como já fazia antes.
+  systemRepoPath: process.env.SYSTEM_REPO_PATH ?? "",
+  systemDeploymentsDir: process.env.SYSTEM_DEPLOYMENTS_DIR ?? "",
 };

@@ -17,7 +17,7 @@ vi.mock("./db", () => mocks);
 import { adminRouter } from "./routers/admin";
 
 const adminContext = {
-  user: { id: 7, openId: "catalog-admin", name: "Admin", email: "admin@pubx.test", loginMethod: "local", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+  user: { id: 7, openId: "catalog-admin", name: "Admin", email: "admin@mmsystemcreator.test", loginMethod: "local", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
   req: {}, res: {},
 } as unknown as TrpcContext;
 

@@ -9,8 +9,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ env: { telegramBotToken: "", telegramChatId: "" } }));
 vi.mock("./env", () => ({ ENV: mocks.env }));
 
-const { sendTelegramMessage, sendTelegramDocument, buildNewPaidSignupMessage, buildRestaurantDeliveredMessage, buildMenuReferenceCaption } =
-  await import("./telegramService");
+const {
+  sendTelegramMessage,
+  sendTelegramDocument,
+  buildNewPaidSignupMessage,
+  buildRestaurantDeliveredMessage,
+  buildMenuReferenceCaption,
+  buildEnvironmentProvisionedMessage,
+  buildEnvironmentProvisioningFailedMessage,
+} = await import("./telegramService");
 
 describe("telegramService.sendTelegramMessage", () => {
   beforeEach(() => {
@@ -85,6 +92,26 @@ describe("telegramService — mensagens", () => {
     const caption = buildMenuReferenceCaption({ restaurantId: 3, restaurantName: "<i>Teste</i>" });
     expect(caption).not.toContain("<i>Teste</i>");
     expect(caption).toContain("#3");
+  });
+
+  it("buildEnvironmentProvisionedMessage inclui URL e credenciais de admin", () => {
+    const message = buildEnvironmentProvisionedMessage({
+      restaurantId: 5,
+      restaurantName: "Restaurante Teste",
+      url: "http://localhost:5050",
+      adminUsername: "admin",
+      adminPassword: "senha123",
+    });
+    expect(message).toContain("http://localhost:5050");
+    expect(message).toContain("admin");
+    expect(message).toContain("senha123");
+    expect(message).toContain("#5");
+  });
+
+  it("buildEnvironmentProvisioningFailedMessage inclui o motivo da falha", () => {
+    const message = buildEnvironmentProvisioningFailedMessage({ restaurantId: 6, restaurantName: "Restaurante Teste", error: "Timeout esperando o container responder" });
+    expect(message).toContain("Timeout esperando");
+    expect(message).toContain("#6");
   });
 });
 

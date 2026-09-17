@@ -18,7 +18,7 @@ Crie uma base vazia no servidor novo, aplique o schema/migrations, restaure o du
 
 ```bash
 DATABASE_URL=mysql://novo_usuario:senha@novo_host:3306/pubx \
-  node scripts/restore-db.mjs backups/pubx.sql
+  node scripts/restore-db.mjs backups/mmsystemcreator.sql
 ```
 
 ## Checklist de reconciliação

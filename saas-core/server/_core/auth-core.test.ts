@@ -66,8 +66,8 @@ function unsignedNoneAlgToken(payload: Record<string, unknown>): string {
 
 describe("verifyPlatformSessionToken", () => {
   it("aceita um token válido assinado com o secret certo", async () => {
-    const token = await createPlatformSessionToken(7, "admin@pubx.com.br");
-    await expect(verifyPlatformSessionToken(token)).resolves.toEqual({ adminId: 7, email: "admin@pubx.com.br" });
+    const token = await createPlatformSessionToken(7, "admin@mmsystemcreator.com.br");
+    await expect(verifyPlatformSessionToken(token)).resolves.toEqual({ adminId: 7, email: "admin@mmsystemcreator.com.br" });
   });
 
   it("rejeita token undefined/ausente", async () => {
@@ -238,7 +238,7 @@ describe("createContext — resolução de identidade (API key x cookie de sess�
   });
 
   it("resolve platformAdmin a partir do cookie de sessão, e não do header Authorization", async () => {
-    const token = await createPlatformSessionToken(9, "dono@pubx.com.br");
+    const token = await createPlatformSessionToken(9, "dono@mmsystemcreator.com.br");
     dbMocks.getPlatformAdminById.mockResolvedValue({ id: 9, active: true });
     const ctx = await createContext(fakeExpressOpts({ cookie: `platform_session=${token}` }));
     expect(ctx.platformAdmin).toEqual({ id: 9, active: true });
