@@ -1,3 +1,5 @@
+import { ENV } from "./env";
+
 /**
  * Taxa de implementação (pagamento único) via Mercado Pago Checkout Pro —
  * API de "preferences"/"payments", diferente da API de assinatura/preapproval
@@ -35,7 +37,7 @@ export async function createImplementationFeePreference(params: {
     throw new Error("Mercado Pago recusou a criação do checkout. Tente novamente ou contate o suporte.");
   }
   const data = (await response.json()) as { id: string; init_point?: string; sandbox_init_point?: string };
-  const initPoint = data.init_point ?? data.sandbox_init_point;
+  const initPoint = ENV.isProduction ? data.init_point : (data.init_point ?? data.sandbox_init_point);
   if (!initPoint) throw new Error("Mercado Pago não retornou um link de checkout.");
   return { id: data.id, initPoint };
 }

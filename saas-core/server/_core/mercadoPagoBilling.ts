@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { ENV } from "./env";
 
 /**
  * Cobrança recorrente da mensalidade do SaaS via Mercado Pago (API de
@@ -43,7 +44,7 @@ export async function createSubscriptionPreapproval(params: {
     throw new Error("Mercado Pago recusou a criação da assinatura. Tente novamente ou contate o suporte.");
   }
   const data = (await response.json()) as { id: string; init_point?: string; sandbox_init_point?: string; status: string };
-  const initPoint = data.init_point ?? data.sandbox_init_point;
+  const initPoint = ENV.isProduction ? data.init_point : (data.init_point ?? data.sandbox_init_point);
   if (!initPoint) throw new Error("Mercado Pago não retornou um link de autorização para a assinatura.");
   return { id: data.id, initPoint, status: data.status };
 }
