@@ -90,6 +90,11 @@ export const publicRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Cobrança automática não está configurada no momento. Tente novamente mais tarde." });
       }
 
+      // DEBUG TEMPORÁRIO (2026-09-17) — investigando botão de pagar travado
+      // no checkout hospedado do Mercado Pago mesmo após enviar o device ID.
+      // Remover depois de confirmar a causa raiz.
+      console.info(`[signup-debug] deviceId recebido: ${input.deviceId ? `presente (${input.deviceId.length} chars)` : "AUSENTE"}`);
+
       const { id: signupPaymentId } = await createSignupPayment({
         payload: {
           name: input.name,
