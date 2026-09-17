@@ -49,10 +49,16 @@ export const ENV = {
   telegramChatId: process.env.TELEGRAM_CHAT_ID ?? "",
   // Provisionamento automático de uma instância Docker isolada do sistema
   // (MM System Creator) por restaurante-cliente — ver
-  // server/_core/pubxProvisioning.ts. Só funciona com os dois repositórios
-  // na mesma máquina (nada de VPS aqui ainda). Em branco = desligado: o
+  // server/_core/systemProvisioning.ts. Precisa do repositório do sistema
+  // acessível de onde o saas-core roda. Em branco = desligado: o
   // restaurante é criado normalmente, só sem subir ambiente sozinho — a
   // equipe sobe na mão como já fazia antes.
   systemRepoPath: process.env.SYSTEM_REPO_PATH ?? "",
   systemDeploymentsDir: process.env.SYSTEM_DEPLOYMENTS_DIR ?? "",
+  // Taxa de implementação cobrada no cadastro (Checkout Pro), a mesma pra
+  // qualquer plano — configurável só pra permitir um teste real de ponta a
+  // ponta (Pix/cartão) com valor baixo sem precisar mexer em código; em
+  // branco = R$150,00 (padrão real). NUNCA deixar configurada baixa em
+  // produção fora de uma janela de teste deliberada.
+  implementationFeeCents: Number(process.env.IMPLEMENTATION_FEE_CENTS) || 15000,
 };

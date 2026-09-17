@@ -20,10 +20,6 @@ const ALLOWED_MENU_MIME_TYPES = new Set([
 ]);
 const MAX_MENU_FILE_BYTES = 8 * 1024 * 1024; // 8MB — cabe folgado num cardápio em PDF/foto, sem pesar o body limit do express
 
-// Taxa de implementação — ver client/src/pages/comercial/Planos.tsx pro
-// mesmo valor exibido.
-const IMPLEMENTATION_FEE_CENTS = 15000;
-
 /**
  * Único namespace acessível sem token de operador, API key de restaurante ou
  * sessão de admin — a porta de entrada do site comercial público.
@@ -45,6 +41,7 @@ export const publicRouter = router({
       // comercial usa isto pra montar a tabela comparativa completa
       // (✅/🔒 por recurso x plano), não só a lista do que cada plano tem.
       allFeatures: allFeatures.map(feature => ({ featureId: feature.featureId, name: feature.name })),
+      implementationFeeCents: ENV.implementationFeeCents,
     };
   }),
 
@@ -96,7 +93,7 @@ export const publicRouter = router({
           contactEmail: input.contactEmail,
           contactPhone: input.contactPhone,
         },
-        amountCents: IMPLEMENTATION_FEE_CENTS,
+        amountCents: ENV.implementationFeeCents,
       });
 
       const origin = input.returnOrigin.replace(/\/$/, "");
@@ -104,7 +101,7 @@ export const publicRouter = router({
         accessToken: ENV.mercadoPagoAccessToken,
         title: "Taxa de implementação — MM System Creator",
         externalReference: String(signupPaymentId),
-        amountCents: IMPLEMENTATION_FEE_CENTS,
+        amountCents: ENV.implementationFeeCents,
         payerEmail: input.contactEmail,
         successUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
         pendingUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,

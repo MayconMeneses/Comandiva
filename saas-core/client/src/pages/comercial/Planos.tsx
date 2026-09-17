@@ -7,7 +7,6 @@ import { ComercialFooter } from "./ComercialFooter";
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
 const BASE_INCLUDES = ["Cardápio digital", "Pedidos online", "Pagamento por Pix e cartão"];
-const IMPLEMENTATION_FEE_CENTS = 15000;
 
 const TAGLINES: Record<string, string> = {
   essencial: "Quero receber pedidos e ter meu próprio canal de vendas.",
@@ -66,6 +65,7 @@ export default function Planos() {
   const plansQuery = trpc.public.plans.useQuery();
   const plans = plansQuery.data?.plans;
   const allFeatures = plansQuery.data?.allFeatures ?? [];
+  const implementationFeeCents = plansQuery.data?.implementationFeeCents ?? 15000;
 
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
@@ -270,7 +270,7 @@ export default function Planos() {
 
           <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
             <p className="text-sm font-semibold text-ink">
-              Taxa de implementação: <span className="text-accent">{money(IMPLEMENTATION_FEE_CENTS)}</span>
+              Taxa de implementação: <span className="text-accent">{money(implementationFeeCents)}</span>
             </p>
             <p className="mt-1 text-sm text-ink-soft">
               Cobrimos a configuração completa: subir seus produtos no sistema, testar tudo até funcionar

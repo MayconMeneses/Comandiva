@@ -7,7 +7,6 @@ import { ComercialHeader } from "./ComercialHeader";
 
 const PLAN_LABELS: Record<string, string> = { essencial: "Entrada", profissional: "Profissional", premium: "Premium" };
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
-const IMPLEMENTATION_FEE_CENTS = 15000;
 
 export default function Cadastro() {
   const { planKey } = useParams<{ planKey: string }>();
@@ -15,6 +14,8 @@ export default function Cadastro() {
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const plansQuery = trpc.public.plans.useQuery();
+  const implementationFeeCents = plansQuery.data?.implementationFeeCents ?? 15000;
 
   const signup = trpc.public.signup.useMutation({
     onSuccess: data => {
@@ -57,7 +58,7 @@ export default function Cadastro() {
           </p>
 
           <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3 text-sm">
-            <p className="font-semibold text-ink">Taxa de implementação: {money(IMPLEMENTATION_FEE_CENTS)}</p>
+            <p className="font-semibold text-ink">Taxa de implementação: {money(implementationFeeCents)}</p>
             <p className="mt-1 text-ink-soft">
               Cobre a configuração completa do seu sistema. Cobrada agora, ao confirmar o cadastro, via
               Mercado Pago.
@@ -119,7 +120,7 @@ export default function Cadastro() {
             disabled={signup.isPending}
             className="mt-5 w-full !bg-gradient-to-r !from-[#008cfe] !to-[#6146fd] shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:!brightness-110"
           >
-            {signup.isPending ? "Enviando..." : `Pagar ${money(IMPLEMENTATION_FEE_CENTS)} e continuar`}
+            {signup.isPending ? "Enviando..." : `Pagar ${money(implementationFeeCents)} e continuar`}
           </Button>
         </form>
       </div>
