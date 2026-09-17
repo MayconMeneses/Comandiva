@@ -18,8 +18,12 @@ export function PanelLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!loading && !admin) setLocation("/login");
-  }, [loading, admin, setLocation]);
+    // Na raiz do domínio, quem não está logado é um visitante comum — manda
+    // pro site comercial, não pro formulário de login do Painel Master (que
+    // é uma ferramenta interna, não a porta de entrada pro público). Em
+    // qualquer outra rota do Painel Master, mantém o comportamento normal.
+    if (!loading && !admin) setLocation(location === "/" ? "/comercial" : "/login");
+  }, [loading, admin, location, setLocation]);
 
   if (loading) return <div className="grid min-h-screen place-items-center text-ink-soft">Carregando…</div>;
   if (!admin) return null;
