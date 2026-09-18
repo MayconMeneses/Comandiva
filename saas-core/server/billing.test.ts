@@ -24,29 +24,35 @@ describe("verifyMercadoPagoWebhookSignature (saas-core)", () => {
   });
 });
 
-const mocks = vi.hoisted(() => ({ getDb: vi.fn(), getSubscriptionPreapproval: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getDb: vi.fn(), getSubscriptionPreapproval: vi.fn(), getAuthorizedPayment: vi.fn() }));
 vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
 vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "TEST-token", mercadoPagoWebhookSecret: "" } }));
 // Mantém verifyMercadoPagoWebhookSignature e o resto REAIS (usados no describe
-// acima) — só troca getSubscriptionPreapproval por um mock controlável, já
-// que o teste de idempotência do webhook precisa simular estados diferentes
-// (pending, depois authorized) pra MESMA preapproval.
+// acima) — só troca getSubscriptionPreapproval/getAuthorizedPayment por mocks
+// controláveis, já que os testes de idempotência/recycling do webhook
+// precisam simular estados diferentes pra MESMA preapproval/cobrança.
 vi.mock("./_core/mercadoPagoBilling", async importOriginal => {
   const actual = await importOriginal<typeof import("./_core/mercadoPagoBilling")>();
-  return { ...actual, getSubscriptionPreapproval: mocks.getSubscriptionPreapproval };
+  return { ...actual, getSubscriptionPreapproval: mocks.getSubscriptionPreapproval, getAuthorizedPayment: mocks.getAuthorizedPayment };
 });
-// applyPreapprovalStatus continua com a implementação REAL (só embrulhada
-// num vi.fn pra podermos contar quantas vezes foi chamada) — os describes
-// abaixo que já testavam a implementação real continuam testando o
-// comportamento real, sem quebrar.
+// applyPreapprovalStatus/applyDueScheduledChanges/markSubscriptionPastDue
+// continuam com a implementação REAL (só embrulhadas num vi.fn pra podermos
+// contar quantas vezes cada uma foi chamada) — os describes abaixo que já
+// testavam a implementação real continuam testando o comportamento real,
+// sem quebrar.
 vi.mock("./db/subscriptions", async importOriginal => {
   const actual = await importOriginal<typeof import("./db/subscriptions")>();
-  return { ...actual, applyPreapprovalStatus: vi.fn(actual.applyPreapprovalStatus) };
+  return {
+    ...actual,
+    applyPreapprovalStatus: vi.fn(actual.applyPreapprovalStatus),
+    applyDueScheduledChanges: vi.fn(actual.applyDueScheduledChanges),
+    markSubscriptionPastDue: vi.fn(actual.markSubscriptionPastDue),
+  };
 });
 
 import { subscriptions, webhookEvents } from "../drizzle/schema";
 import { handleMercadoPagoBillingWebhook } from "./_core/mercadoPagoWebhook";
-import { applyPreapprovalStatus, recordBillingPayment } from "./db/subscriptions";
+import { applyDueScheduledChanges, applyPreapprovalStatus, markSubscriptionPastDue, recordBillingPayment } from "./db/subscriptions";
 
 function dbStub(subscriptionRow: { id: number; restaurantId: number; status: string; gatewaySubscriptionId: string; gatewayCustomerId: string | null } | undefined, existingPayment?: unknown) {
   const insertValues = vi.fn();
@@ -177,6 +183,10 @@ function fakeReq(dataId: string) {
   return { body: { type: "subscription_preapproval", data: { id: dataId } }, query: {}, header: () => undefined } as unknown as Request;
 }
 
+function fakeAuthorizedPaymentReq(dataId: string) {
+  return { body: { type: "subscription_authorized_payment", data: { id: dataId } }, query: {}, header: () => undefined } as unknown as Request;
+}
+
 describe("handleMercadoPagoBillingWebhook — idempotência por transição de status (regressão do bug real)", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -208,5 +218,39 @@ describe("handleMercadoPagoBillingWebhook — idempotência por transição de s
     await handleMercadoPagoBillingWebhook(fakeReq("pre-1"), fakeRes());
 
     expect(applyPreapprovalStatus).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("handleMercadoPagoBillingWebhook — subscription_authorized_payment (2026-09-17: 'recycling' nunca adianta currentPeriodEnd)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("status 'recycling': marca past_due, NÃO chama applyDueScheduledChanges (período não avança)", async () => {
+    const pastPeriodEnd = Date.now() - 86400000; // já venceu — se applyDueScheduledChanges rodasse, avançaria o período
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    // Injeta currentPeriodEnd vencido na linha inicial (buildWebhookDbStub não expõe isso por padrão).
+    (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getAuthorizedPayment.mockResolvedValue({ id: "auth-1", status: "recycling", preapprovalId: "pre-1", amountCents: 24990 });
+
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-1"), fakeRes());
+
+    expect(markSubscriptionPastDue).toHaveBeenCalledTimes(1);
+    expect(applyDueScheduledChanges).not.toHaveBeenCalled();
+    expect(stub.getCurrent().status).toBe("past_due");
+    expect(stub.getCurrent().currentPeriodEnd).toBe(pastPeriodEnd); // não avançou
+  });
+
+  it("status 'processed' (cobrança normal): chama applyDueScheduledChanges, NÃO marca past_due", async () => {
+    const pastPeriodEnd = Date.now() - 86400000;
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getAuthorizedPayment.mockResolvedValue({ id: "auth-2", status: "processed", preapprovalId: "pre-1", amountCents: 24990 });
+
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-2"), fakeRes());
+
+    expect(applyDueScheduledChanges).toHaveBeenCalledTimes(1);
+    expect(markSubscriptionPastDue).not.toHaveBeenCalled();
+    expect(stub.getCurrent().currentPeriodEnd).toBeGreaterThan(pastPeriodEnd); // avançou
   });
 });

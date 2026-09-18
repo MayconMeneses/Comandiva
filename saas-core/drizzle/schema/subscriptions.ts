@@ -35,6 +35,14 @@ export const subscriptions = mysqlTable(
     nextBillingAt: bigint("nextBillingAt", { mode: "number", unsigned: true }),
     canceledAt: bigint("canceledAt", { mode: "number", unsigned: true }),
     cancelReason: varchar("cancelReason", { length: 500 }),
+    // Quando a assinatura entrou em "past_due" (Mercado Pago avisou que a
+    // cobrança recorrente falhou e está em "recycling", tentando de novo) —
+    // null quando não está em past_due. Usado pra contar os 5 dias de prazo
+    // antes de bloquear o acesso (ver applyPastDueGracePeriod em
+    // server/db/subscriptions.ts). Nunca reaproveita currentPeriodEnd/
+    // updatedAt pra isso — precisa do momento exato em que o problema
+    // começou, não de quando a linha foi tocada por outro motivo.
+    pastDueSince: bigint("pastDueSince", { mode: "number", unsigned: true }),
     gateway: mysqlEnum("gateway", subscriptionGatewayValues).notNull().default("MANUAL"),
     gatewayCustomerId: varchar("gatewayCustomerId", { length: 160 }),
     gatewaySubscriptionId: varchar("gatewaySubscriptionId", { length: 160 }),

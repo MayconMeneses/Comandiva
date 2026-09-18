@@ -142,6 +142,36 @@ export function buildRestaurantDeliveredMessage(params: { restaurantId: number; 
   ].join("\n");
 }
 
+export function buildSubscriptionRenewedMessage(params: { restaurantId: number; restaurantName: string; amountCents: number }): string {
+  const amount = (params.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return ["✅ <b>Mensalidade renovada</b>", `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`, `Valor: ${amount}`].join("\n");
+}
+
+export function buildSubscriptionPastDueMessage(params: { restaurantId: number; restaurantName: string }): string {
+  return [
+    "🟡 <b>Pagamento da mensalidade não passou</b>",
+    `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
+    "O Mercado Pago vai tentar cobrar de novo automaticamente nos próximos dias.",
+    "Se não resolver em 5 dias, o acesso do cliente é bloqueado automaticamente.",
+  ].join("\n");
+}
+
+export function buildSubscriptionRecoveredMessage(params: { restaurantId: number; restaurantName: string }): string {
+  return ["✅ <b>Pagamento recuperado</b>", `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`, "A cobrança passou e o acesso continua normal."].join("\n");
+}
+
+export function buildSubscriptionPastDueGraceExpiredMessage(params: { restaurantId: number; restaurantName: string }): string {
+  return [
+    "🔴 <b>Acesso bloqueado por falta de pagamento</b>",
+    `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
+    "Passaram 5 dias sem a cobrança da mensalidade ser confirmada — acesso bloqueado até regularizar.",
+  ].join("\n");
+}
+
+export function buildSubscriptionCanceledMessage(params: { restaurantId: number; restaurantName: string }): string {
+  return ["🔴 <b>Assinatura cancelada</b>", `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`, "O Mercado Pago cancelou a assinatura recorrente deste cliente."].join("\n");
+}
+
 /**
  * Nunca mandar segredo por engano num alerta — o texto normalmente vem de
  * stack trace/mensagem de erro interna, não de entrada de usuário, mas

@@ -71,6 +71,13 @@
       "when": 1789609735269,
       "tag": "0009_flimsy_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1789695527734,
+      "tag": "0010_woozy_hawkeye",
+      "breakpoints": true
     }
   ]
 }

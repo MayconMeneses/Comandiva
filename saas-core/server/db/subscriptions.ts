@@ -6,9 +6,17 @@ import { ENV } from "../_core/env";
 import { getPlanByKey } from "./plans";
 import { PLATFORM_NAME } from "../../shared/branding";
 import { sendEmailAsync } from "../_core/emailService";
+import {
+  buildSubscriptionCanceledMessage,
+  buildSubscriptionPastDueGraceExpiredMessage,
+  buildSubscriptionPastDueMessage,
+  buildSubscriptionRecoveredMessage,
+  buildSubscriptionRenewedMessage,
+  sendTelegramMessageAsync,
+} from "../_core/telegramService";
 
 /** Só o necessário pra endereçar um e-mail — sem contactEmail, sem envio (nada quebra, só não manda). */
-async function getRestaurantContact(restaurantId: number) {
+export async function getRestaurantContact(restaurantId: number) {
   const db = await getDb();
   if (!db) return undefined;
   const [row] = await db.select({ name: restaurants.name, contactName: restaurants.contactName, contactEmail: restaurants.contactEmail }).from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
@@ -16,6 +24,12 @@ async function getRestaurantContact(restaurantId: number) {
 }
 
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+// Prazo dado ao cliente pra regularizar uma cobrança recusada antes de
+// bloquear o acesso — o Mercado Pago já tenta cobrar de novo sozinho por até
+// 10 dias (4 tentativas) antes de cancelar a assinatura definitivamente;
+// esses 5 dias são um alerta ANTES disso, não substituem o cancelamento
+// automático deles (ver markSubscriptionPastDue/enforcePastDueGracePeriod).
+const PAST_DUE_GRACE_MS = 5 * 24 * 60 * 60 * 1000;
 
 // Promoção de lançamento: 20% de desconto na mensalidade nos 2 primeiros
 // ciclos de cobrança, pra restaurantes que nasceram com
@@ -144,14 +158,74 @@ export async function applyPreapprovalStatus(input: { preapprovalId: string; mpS
   const activating = nextStatus === "active" && subscription.status !== "active" && subscription.scheduledPlanId;
   if (subscription.status === nextStatus && !activating) return { found: true as const, applied: false as const };
 
+  const wasPastDue = subscription.status === "past_due";
   const updates: Partial<typeof subscriptions.$inferInsert> = { status: nextStatus, gatewayCustomerId: input.payerId != null ? String(input.payerId) : subscription.gatewayCustomerId, updatedAt: Date.now() };
   if (activating) {
     updates.planId = subscription.scheduledPlanId!;
     updates.scheduledPlanId = null;
   }
+  // Sai de past_due sempre que o Mercado Pago confirma a preapproval como
+  // "authorized" de novo — é o sinal mais confiável de recuperação (mais
+  // confiável que o webhook de cobrança individual, cujo status "processed"
+  // é ambíguo entre sucesso e falha definitiva, ver markSubscriptionPastDue).
+  if (wasPastDue && nextStatus === "active") updates.pastDueSince = null;
   await db.update(subscriptions).set(updates).where(eq(subscriptions.id, subscription.id));
   await recordEvent(subscription.id, activating ? "plan_activated_from_payment" : "mercadopago_status_changed", { status: subscription.status, planId: subscription.planId }, { status: nextStatus, mpStatus: input.mpStatus, planId: updates.planId ?? subscription.planId }, "mercadopago:webhook");
+
+  const contact = await getRestaurantContact(subscription.restaurantId);
+  const restaurantName = contact?.name ?? `#${subscription.restaurantId}`;
+  if (wasPastDue && nextStatus === "active") {
+    sendTelegramMessageAsync(buildSubscriptionRecoveredMessage({ restaurantId: subscription.restaurantId, restaurantName }));
+  } else if (nextStatus === "canceled" && subscription.status !== "canceled") {
+    sendTelegramMessageAsync(buildSubscriptionCanceledMessage({ restaurantId: subscription.restaurantId, restaurantName }));
+  }
   return { found: true as const, applied: true as const, restaurantId: subscription.restaurantId };
+}
+
+/**
+ * Uma cobrança recorrente falhou e o Mercado Pago está tentando de novo
+ * automaticamente ("recycling", status inequívoco — diferente de
+ * "processed", que pode significar sucesso OU falha definitiva depois de 4
+ * tentativas, ver comentário em recordBillingPayment). Marca a assinatura
+ * como past_due SEM adiantar currentPeriodEnd (diferente do fluxo normal em
+ * applyDueScheduledChanges) — o cliente não pode ganhar acesso de graça só
+ * porque o cartão recusou. Idempotente: chamar de novo enquanto já está
+ * past_due não reinicia a contagem dos 5 dias de prazo.
+ */
+export async function markSubscriptionPastDue(subscriptionId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, subscriptionId)).limit(1);
+  if (!subscription || subscription.status !== "active") return;
+  const now = Date.now();
+  await db.update(subscriptions).set({ status: "past_due", pastDueSince: now, updatedAt: now }).where(eq(subscriptions.id, subscriptionId));
+  await recordEvent(subscriptionId, "payment_recycling", { status: "active" }, { status: "past_due" }, "mercadopago:webhook");
+  const contact = await getRestaurantContact(subscription.restaurantId);
+  sendTelegramMessageAsync(buildSubscriptionPastDueMessage({ restaurantId: subscription.restaurantId, restaurantName: contact?.name ?? `#${subscription.restaurantId}` }));
+}
+
+/**
+ * Roda em todo computeSnapshotForRestaurant (abaixo) — se passou do prazo de
+ * 5 dias em past_due, bloqueia o acesso (reaproveita o mesmo mecanismo de
+ * "trial vencido sem pagamento": zera as features no snapshot) e avisa uma
+ * única vez (checa o histórico de eventos antes de mandar de novo, mesmo
+ * raciocínio de markWebhookEventOnce — sem coluna nova só pra isso).
+ */
+export async function isPastDueGraceExpired(subscription: { id: number; status: SubscriptionStatus; pastDueSince: number | null; restaurantId: number }): Promise<boolean> {
+  if (subscription.status !== "past_due" || !subscription.pastDueSince) return false;
+  const expired = Date.now() - subscription.pastDueSince > PAST_DUE_GRACE_MS;
+  if (!expired) return false;
+
+  const db = await getDb();
+  if (!db) return true;
+  const recentEvents = await db.select().from(subscriptionEvents).where(eq(subscriptionEvents.subscriptionId, subscription.id));
+  const alreadyNotifiedThisEpisode = recentEvents.some(event => event.eventType === "past_due_grace_expired" && event.createdAt >= subscription.pastDueSince!);
+  if (!alreadyNotifiedThisEpisode) {
+    await recordEvent(subscription.id, "past_due_grace_expired", { status: "past_due" }, { status: "past_due", blocked: true }, "system:reconciliation");
+    const contact = await getRestaurantContact(subscription.restaurantId);
+    sendTelegramMessageAsync(buildSubscriptionPastDueGraceExpiredMessage({ restaurantId: subscription.restaurantId, restaurantName: contact?.name ?? `#${subscription.restaurantId}` }));
+  }
+  return true;
 }
 
 /**
@@ -451,11 +525,13 @@ export async function computeSnapshotForRestaurant(restaurantId: number): Promis
 
   const plansById = new Map(allPlans.map(candidate => [candidate.id, candidate]));
   // Trial encerrado sem pagamento (status 'ended', ver applyDueScheduledChanges
-  // acima) — trata como se o plano não liberasse NENHUMA feature, então o
-  // laço abaixo joga todas em lockedFeatures automaticamente, sem duplicar
-  // lógica de bloqueio.
+  // acima) OU mensalidade recusada há mais de 5 dias sem regularizar (ver
+  // markSubscriptionPastDue/isPastDueGraceExpired) — nos dois casos trata como
+  // se o plano não liberasse NENHUMA feature, então o laço abaixo joga todas
+  // em lockedFeatures automaticamente, sem duplicar lógica de bloqueio.
   const isTrialExpiredUnpaid = subscription.status === "ended";
-  const currentPlanFeatureIds = isTrialExpiredUnpaid ? new Set<string>() : new Set(allPlanFeatures.filter(row => row.planId === plan.id).map(row => row.featureId));
+  const isPastDueBlocked = await isPastDueGraceExpired(subscription);
+  const currentPlanFeatureIds = isTrialExpiredUnpaid || isPastDueBlocked ? new Set<string>() : new Set(allPlanFeatures.filter(row => row.planId === plan.id).map(row => row.featureId));
 
   const includedFeatures: string[] = [];
   const lockedFeatures: LicenseSnapshot["lockedFeatures"] = {};

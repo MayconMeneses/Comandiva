@@ -18,6 +18,11 @@ const {
   buildEnvironmentProvisionedMessage,
   buildEnvironmentProvisioningFailedMessage,
   buildSystemErrorMessage,
+  buildSubscriptionRenewedMessage,
+  buildSubscriptionPastDueMessage,
+  buildSubscriptionRecoveredMessage,
+  buildSubscriptionPastDueGraceExpiredMessage,
+  buildSubscriptionCanceledMessage,
 } = await import("./telegramService");
 
 describe("telegramService.sendTelegramMessage", () => {
@@ -154,6 +159,27 @@ describe("telegramService — mensagens", () => {
   it("buildSystemErrorMessage trunca detalhe muito longo (limite do Telegram)", () => {
     const message = buildSystemErrorMessage({ subject: "teste", detail: "x".repeat(5000) });
     expect(message.length).toBeLessThan(4096);
+  });
+
+  it("buildSubscriptionRenewedMessage inclui o valor cobrado", () => {
+    const message = buildSubscriptionRenewedMessage({ restaurantId: 9, restaurantName: "Restaurante Teste", amountCents: 24990 });
+    expect(message).toContain("#9");
+    expect(message).toContain("R$");
+  });
+
+  it("buildSubscriptionPastDueMessage explica o prazo de 5 dias", () => {
+    const message = buildSubscriptionPastDueMessage({ restaurantId: 9, restaurantName: "Restaurante Teste" });
+    expect(message).toContain("5 dias");
+  });
+
+  it("buildSubscriptionRecoveredMessage e buildSubscriptionCanceledMessage identificam o restaurante", () => {
+    expect(buildSubscriptionRecoveredMessage({ restaurantId: 9, restaurantName: "Restaurante Teste" })).toContain("#9");
+    expect(buildSubscriptionCanceledMessage({ restaurantId: 9, restaurantName: "Restaurante Teste" })).toContain("#9");
+  });
+
+  it("buildSubscriptionPastDueGraceExpiredMessage menciona o bloqueio", () => {
+    const message = buildSubscriptionPastDueGraceExpiredMessage({ restaurantId: 9, restaurantName: "Restaurante Teste" });
+    expect(message).toContain("bloqueado");
   });
 });
 
