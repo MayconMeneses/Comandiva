@@ -139,6 +139,7 @@ export const publicRouter = router({
         fileName: z.string().trim().min(1).max(200),
         mimeType: z.string(),
         fileBase64: z.string(),
+        notes: z.string().trim().max(2000).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -168,7 +169,7 @@ export const publicRouter = router({
         fileBuffer,
         fileName: input.fileName,
         mimeType: input.mimeType,
-        caption: buildMenuReferenceCaption({ restaurantId: restaurant.id, restaurantName: restaurant.name }),
+        caption: buildMenuReferenceCaption({ restaurantId: restaurant.id, restaurantName: restaurant.name, notes: input.notes }),
       });
 
       return { success: true as const };

@@ -24,6 +24,7 @@ export default function Cardapio() {
   const search = useSearch();
   const restaurantId = Number(new URLSearchParams(search).get("ref"));
   const [file, setFile] = useState<File | null>(null);
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
@@ -48,7 +49,7 @@ export default function Cardapio() {
     if (!file || !Number.isFinite(restaurantId) || restaurantId <= 0) return;
     setError(null);
     const fileBase64 = await readFileAsBase64(file);
-    upload.mutate({ restaurantId, fileName: file.name, mimeType: file.type, fileBase64 });
+    upload.mutate({ restaurantId, fileName: file.name, mimeType: file.type, fileBase64, notes: notes.trim() || undefined });
   }
 
   return (
@@ -83,6 +84,21 @@ export default function Cardapio() {
                 onChange={onFileChange}
                 className="mt-5 block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-accent"
               />
+
+              <div className="mt-4">
+                <label htmlFor="notes" className="text-sm font-medium text-ink">
+                  Observações <span className="font-normal text-ink-soft">(opcional)</span>
+                </label>
+                <textarea
+                  id="notes"
+                  value={notes}
+                  onChange={event => setNotes(event.target.value)}
+                  maxLength={2000}
+                  rows={3}
+                  placeholder="Horário de funcionamento, preferências de cores, algo que devemos saber..."
+                  className="mt-1.5 block w-full rounded-lg border border-border bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-soft/60"
+                />
+              </div>
 
               {(error || upload.error) && (
                 <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-sm text-red-400">

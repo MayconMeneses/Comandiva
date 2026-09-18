@@ -95,6 +95,23 @@ describe("telegramService — mensagens", () => {
     expect(caption).toContain("#3");
   });
 
+  it("buildMenuReferenceCaption inclui as observações do cliente quando informadas", () => {
+    const caption = buildMenuReferenceCaption({ restaurantId: 3, restaurantName: "Restaurante Teste", notes: "Abrimos das 18h às 23h, sextas até meia-noite." });
+    expect(caption).toContain("Observações do cliente");
+    expect(caption).toContain("Abrimos das 18h às 23h");
+  });
+
+  it("buildMenuReferenceCaption não adiciona seção de observações quando não informadas ou só espaço em branco", () => {
+    expect(buildMenuReferenceCaption({ restaurantId: 3, restaurantName: "Restaurante Teste" })).not.toContain("Observações");
+    expect(buildMenuReferenceCaption({ restaurantId: 3, restaurantName: "Restaurante Teste", notes: "   " })).not.toContain("Observações");
+  });
+
+  it("buildMenuReferenceCaption escapa HTML nas observações do cliente", () => {
+    const caption = buildMenuReferenceCaption({ restaurantId: 3, restaurantName: "Restaurante Teste", notes: "<script>alert(1)</script>" });
+    expect(caption).not.toContain("<script>alert(1)</script>");
+    expect(caption).toContain("&lt;script&gt;");
+  });
+
   it("buildEnvironmentProvisionedMessage inclui URL e credenciais de admin", () => {
     const message = buildEnvironmentProvisionedMessage({
       restaurantId: 5,

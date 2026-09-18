@@ -81,8 +81,10 @@ export function sendTelegramDocumentAsync(params: { fileBuffer: Buffer; fileName
   void sendTelegramDocument(params).catch(error => console.error("[telegram] Erro inesperado ao enviar documento:", error));
 }
 
-export function buildMenuReferenceCaption(params: { restaurantId: number; restaurantName: string }): string {
-  return `📎 <b>Cardápio enviado pelo cliente</b>\nRestaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`;
+export function buildMenuReferenceCaption(params: { restaurantId: number; restaurantName: string; notes?: string }): string {
+  const base = `📎 <b>Cardápio enviado pelo cliente</b>\nRestaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`;
+  const trimmedNotes = params.notes?.trim();
+  return trimmedNotes ? `${base}\n\n💬 <b>Observações do cliente:</b>\n${escapeHtml(trimmedNotes)}` : base;
 }
 
 export function buildEnvironmentProvisionedMessage(params: {
