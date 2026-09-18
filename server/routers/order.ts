@@ -275,6 +275,9 @@ export const orderRouter = router({
     const limit = checkRateLimit(`order-create:${ctx.req.ip}`);
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitos pedidos em pouco tempo. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     const priced = await priceOrder(input);
+    if (input.paymentMethod === "CASH" && input.changeForCents !== undefined && input.changeForCents < priced.totalCents) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `O valor para troco precisa ser igual ou maior que o total do pedido (${formatCurrency(priced.totalCents)}).` });
+    }
     if (input.fulfillmentType === "DELIVERY" && priced.deliveryRoute && !addressMatchesRoute(priced.deliveryRoute, input.address ?? {})) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "O bairro/cidade informado não coincide com a rota de entrega selecionada. Corrija o endereço ou escolha a rota correta." });
     }
