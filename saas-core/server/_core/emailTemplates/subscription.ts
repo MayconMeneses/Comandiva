@@ -67,6 +67,18 @@ export const subscriptionCancelRequested: EmailTemplateDefinition<SubscriptionCa
   }),
 };
 
+export type SubscriptionAccessSuspendedVars = { customerName: string; restaurantName: string; graceDaysUsed: number; actionUrl: string };
+export const subscriptionAccessSuspended: EmailTemplateDefinition<SubscriptionAccessSuspendedVars> = {
+  subject: () => "Acesso suspenso por falta de pagamento",
+  render: vars => renderEmailLayout({
+    title: "Acesso suspenso",
+    bodyHtml: paragraph(`Olá, ${vars.customerName}. Passaram-se ${vars.graceDaysUsed} dias sem conseguirmos confirmar a cobrança da mensalidade de ${escapeHtml(vars.restaurantName)}, e o acesso foi suspenso.`)
+      + paragraph("Assim que o pagamento for regularizado, o acesso volta automaticamente — sem precisar entrar em contato com o suporte."),
+    ctaLabel: "Regularizar pagamento",
+    ctaUrl: vars.actionUrl,
+  }),
+};
+
 export type SubscriptionCancelEffectiveVars = { customerName: string; restaurantName: string; actionUrl: string };
 export const subscriptionCancelEffective: EmailTemplateDefinition<SubscriptionCancelEffectiveVars> = {
   subject: () => "Assinatura encerrada",

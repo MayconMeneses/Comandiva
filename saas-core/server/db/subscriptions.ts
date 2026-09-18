@@ -29,7 +29,8 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 // 10 dias (4 tentativas) antes de cancelar a assinatura definitivamente;
 // esses 5 dias são um alerta ANTES disso, não substituem o cancelamento
 // automático deles (ver markSubscriptionPastDue/enforcePastDueGracePeriod).
-const PAST_DUE_GRACE_MS = 5 * 24 * 60 * 60 * 1000;
+const PAST_DUE_GRACE_DAYS = 5;
+const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000;
 
 // Promoção de lançamento: 20% de desconto na mensalidade nos 2 primeiros
 // ciclos de cobrança, pra restaurantes que nasceram com
@@ -176,6 +177,10 @@ export async function applyPreapprovalStatus(input: { preapprovalId: string; mpS
   const restaurantName = contact?.name ?? `#${subscription.restaurantId}`;
   if (wasPastDue && nextStatus === "active") {
     sendTelegramMessageAsync(buildSubscriptionRecoveredMessage({ restaurantId: subscription.restaurantId, restaurantName }));
+    if (contact?.contactEmail) {
+      const [plan] = await db.select().from(plans).where(eq(plans.id, updates.planId ?? subscription.planId)).limit(1);
+      sendEmailAsync(contact.contactEmail, "paymentRecovered", { customerName: contact.contactName || contact.name, restaurantName, amountCents: plan?.priceCents ?? 0, actionUrl: ENV.commercialSiteUrl });
+    }
   } else if (nextStatus === "canceled" && subscription.status !== "canceled") {
     sendTelegramMessageAsync(buildSubscriptionCanceledMessage({ restaurantId: subscription.restaurantId, restaurantName }));
   }
@@ -202,6 +207,18 @@ export async function markSubscriptionPastDue(subscriptionId: number): Promise<v
   await recordEvent(subscriptionId, "payment_recycling", { status: "active" }, { status: "past_due" }, "mercadopago:webhook");
   const contact = await getRestaurantContact(subscription.restaurantId);
   sendTelegramMessageAsync(buildSubscriptionPastDueMessage({ restaurantId: subscription.restaurantId, restaurantName: contact?.name ?? `#${subscription.restaurantId}` }));
+  if (contact?.contactEmail) {
+    const [plan] = await db.select().from(plans).where(eq(plans.id, subscription.planId)).limit(1);
+    sendEmailAsync(contact.contactEmail, "paymentOverdue", {
+      customerName: contact.contactName || contact.name,
+      restaurantName: contact.name,
+      planName: plan?.name ?? "",
+      amountCents: plan?.priceCents ?? 0,
+      dueDate: now,
+      graceDays: PAST_DUE_GRACE_DAYS,
+      actionUrl: ENV.commercialSiteUrl,
+    });
+  }
 }
 
 /**
@@ -224,8 +241,44 @@ export async function isPastDueGraceExpired(subscription: { id: number; status: 
     await recordEvent(subscription.id, "past_due_grace_expired", { status: "past_due" }, { status: "past_due", blocked: true }, "system:reconciliation");
     const contact = await getRestaurantContact(subscription.restaurantId);
     sendTelegramMessageAsync(buildSubscriptionPastDueGraceExpiredMessage({ restaurantId: subscription.restaurantId, restaurantName: contact?.name ?? `#${subscription.restaurantId}` }));
+    if (contact?.contactEmail) {
+      sendEmailAsync(contact.contactEmail, "subscriptionAccessSuspended", {
+        customerName: contact.contactName || contact.name,
+        restaurantName: contact.name,
+        graceDaysUsed: PAST_DUE_GRACE_DAYS,
+        actionUrl: ENV.commercialSiteUrl,
+      });
+    }
   }
   return true;
+}
+
+/**
+ * Avisa (Telegram + e-mail do cliente) que uma renovação mensal foi
+ * confirmada — chamado pelo webhook só quando a assinatura JÁ estava
+ * "active" antes (evita notificar a primeira ativação, que já tem seu
+ * próprio e-mail de boas-vindas em confirmSignupPaymentAndCreateRestaurant).
+ */
+export async function notifySubscriptionRenewed(subscriptionId: number, amountCents: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, subscriptionId)).limit(1);
+  if (!subscription) return;
+  const contact = await getRestaurantContact(subscription.restaurantId);
+  const restaurantName = contact?.name ?? `#${subscription.restaurantId}`;
+  sendTelegramMessageAsync(buildSubscriptionRenewedMessage({ restaurantId: subscription.restaurantId, restaurantName, amountCents }));
+  if (contact?.contactEmail) {
+    const [plan] = await db.select().from(plans).where(eq(plans.id, subscription.planId)).limit(1);
+    sendEmailAsync(contact.contactEmail, "subscriptionRenewed", {
+      customerName: contact.contactName || contact.name,
+      restaurantName,
+      planName: plan?.name ?? "",
+      amountCents,
+      renewalDate: Date.now(),
+      nextBillingDate: subscription.currentPeriodEnd,
+      actionUrl: ENV.commercialSiteUrl,
+    });
+  }
 }
 
 /**

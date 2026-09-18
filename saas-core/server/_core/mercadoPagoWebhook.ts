@@ -1,8 +1,7 @@
 import type { Express, Request, Response } from "express";
-import { applyDueScheduledChanges, applyPreapprovalStatus, getRestaurantContact, getSubscriptionByGatewaySubscriptionId, markSubscriptionPastDue, recordBillingPayment } from "../db/subscriptions";
+import { applyDueScheduledChanges, applyPreapprovalStatus, getSubscriptionByGatewaySubscriptionId, markSubscriptionPastDue, notifySubscriptionRenewed, recordBillingPayment } from "../db/subscriptions";
 import { markWebhookEventOnce } from "../db/webhookEvents";
 import { getSubscriptionPreapproval, getAuthorizedPayment, verifyMercadoPagoWebhookSignature } from "./mercadoPagoBilling";
-import { buildSubscriptionRenewedMessage, sendTelegramMessageAsync } from "./telegramService";
 import { ENV } from "./env";
 
 /**
@@ -89,8 +88,7 @@ export async function handleMercadoPagoBillingWebhook(req: Request, res: Respons
             const wasActive = subscription.status === "active";
             await applyDueScheduledChanges(subscription.id);
             if (wasActive && payment.amountCents != null) {
-              const contact = await getRestaurantContact(subscription.restaurantId);
-              sendTelegramMessageAsync(buildSubscriptionRenewedMessage({ restaurantId: subscription.restaurantId, restaurantName: contact?.name ?? `#${subscription.restaurantId}`, amountCents: payment.amountCents }));
+              await notifySubscriptionRenewed(subscription.id, payment.amountCents);
             }
           }
           await recordBillingPayment({ preapprovalId: payment.preapprovalId, gatewayPaymentId: payment.id, amountCents: payment.amountCents, mpStatus: payment.status });

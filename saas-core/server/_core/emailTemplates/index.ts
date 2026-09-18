@@ -1,6 +1,6 @@
 import { accessReleased, passwordReset, restaurantReady, welcome } from "./account";
 import { paymentApproved, paymentFailed, paymentOverdue, paymentPending, paymentRecovered } from "./payment";
-import { subscriptionCancelEffective, subscriptionCancelRequested, subscriptionDowngraded, subscriptionRenewalFailed, subscriptionRenewed, subscriptionUpgraded } from "./subscription";
+import { subscriptionAccessSuspended, subscriptionCancelEffective, subscriptionCancelRequested, subscriptionDowngraded, subscriptionRenewalFailed, subscriptionRenewed, subscriptionUpgraded } from "./subscription";
 
 /**
  * Registro central — todo template passa por aqui, nunca é chamado direto
@@ -24,6 +24,7 @@ export const EMAIL_TEMPLATES = {
   subscriptionDowngraded,
   subscriptionCancelRequested,
   subscriptionCancelEffective,
+  subscriptionAccessSuspended,
 } as const;
 
 export type EmailTemplateId = keyof typeof EMAIL_TEMPLATES;
