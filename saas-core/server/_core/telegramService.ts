@@ -139,3 +139,32 @@ export function buildRestaurantDeliveredMessage(params: { restaurantId: number; 
     `Teste grátis de 30 dias começou a valer — termina em ${trialEndsAtLabel}.`,
   ].join("\n");
 }
+
+/**
+ * Nunca mandar segredo por engano num alerta — o texto normalmente vem de
+ * stack trace/mensagem de erro interna, não de entrada de usuário, mas
+ * aplicamos essa rede de segurança mesmo assim (mesmo raciocínio de
+ * server/_core/alerts.ts no app principal).
+ */
+function redactSecrets(text: string): string {
+  return text
+    .replace(/(Bearer\s+)\S+/gi, "$1[REDACTED]")
+    .replace(/((?:api[_-]?key|secret|password|senha|token)["'\s:=]+)[^\s"']{4,}/gi, "$1[REDACTED]");
+}
+
+const MAX_ERROR_MESSAGE_LENGTH = 3500; // Telegram limita a 4096 caracteres; deixa folga pro resto do texto.
+
+export function buildSystemErrorMessage(params: { subject: string; detail: string }): string {
+  const environment = ENV.isProduction ? "Produção" : "Desenvolvimento";
+  const horario = new Date().toLocaleString("pt-BR", { timeZone: "America/Fortaleza" });
+  const safeDetail = redactSecrets(params.detail).slice(0, MAX_ERROR_MESSAGE_LENGTH);
+  return [
+    "🔴 <b>Erro grave no saas-core</b>",
+    `Ambiente: ${escapeHtml(environment)}`,
+    `Evento: ${escapeHtml(params.subject)}`,
+    "",
+    `<pre>${escapeHtml(safeDetail)}</pre>`,
+    "",
+    `Horário: ${escapeHtml(horario)}`,
+  ].join("\n");
+}

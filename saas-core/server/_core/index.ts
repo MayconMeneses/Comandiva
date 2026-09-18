@@ -13,6 +13,7 @@ import { ENV } from "./env";
 import { getDb } from "../db/client";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { buildSystemErrorMessage, sendTelegramMessage } from "./telegramService";
 
 const APP_VERSION = (() => {
   try {
@@ -22,13 +23,33 @@ const APP_VERSION = (() => {
   }
 })();
 
+// Evita inundar o Telegram com alertas repetidos num crash-loop — no máximo
+// 1 alerta a cada 10 minutos entre os dois tipos de erro (mesmo raciocínio
+// de server/_core/alerts.ts no app principal).
+let lastErrorAlertAt = 0;
+const ERROR_ALERT_THROTTLE_MS = 10 * 60 * 1000;
+
+function alertSystemError(subject: string, detail: string): Promise<void> {
+  const now = Date.now();
+  if (now - lastErrorAlertAt < ERROR_ALERT_THROTTLE_MS) return Promise.resolve();
+  lastErrorAlertAt = now;
+  return sendTelegramMessage(buildSystemErrorMessage({ subject, detail }))
+    .then(outcome => {
+      if (!outcome.sent) console.error("[fatal] Falha ao mandar alerta pelo Telegram:", outcome.reason);
+    })
+    .catch(error => console.error("[fatal] Erro inesperado ao mandar alerta pelo Telegram:", error));
+}
+
 process.on("uncaughtException", error => {
   console.error("[fatal] uncaughtException:", error);
-  process.exit(1);
+  void alertSystemError("Erro não tratado — servidor pode reiniciar", error.stack ?? error.message).finally(() => {
+    process.exit(1);
+  });
 });
 
 process.on("unhandledRejection", reason => {
   console.error("[fatal] unhandledRejection:", reason);
+  void alertSystemError("Promise rejeitada sem tratamento", String(reason));
 });
 
 async function startServer() {

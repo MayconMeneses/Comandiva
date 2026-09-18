@@ -17,6 +17,7 @@ const {
   buildMenuReferenceCaption,
   buildEnvironmentProvisionedMessage,
   buildEnvironmentProvisioningFailedMessage,
+  buildSystemErrorMessage,
 } = await import("./telegramService");
 
 describe("telegramService.sendTelegramMessage", () => {
@@ -112,6 +113,30 @@ describe("telegramService — mensagens", () => {
     const message = buildEnvironmentProvisioningFailedMessage({ restaurantId: 6, restaurantName: "Restaurante Teste", error: "Timeout esperando o container responder" });
     expect(message).toContain("Timeout esperando");
     expect(message).toContain("#6");
+  });
+
+  it("buildSystemErrorMessage inclui o assunto e o detalhe do erro", () => {
+    const message = buildSystemErrorMessage({ subject: "Erro não tratado — servidor pode reiniciar", detail: "TypeError: Cannot read properties of undefined" });
+    expect(message).toContain("Erro não tratado");
+    expect(message).toContain("Cannot read properties of undefined");
+  });
+
+  it("buildSystemErrorMessage escapa HTML do detalhe (stack trace pode conter < >)", () => {
+    const message = buildSystemErrorMessage({ subject: "teste", detail: "<script>alert(1)</script>" });
+    expect(message).not.toContain("<script>alert(1)</script>");
+    expect(message).toContain("&lt;script&gt;");
+  });
+
+  it("buildSystemErrorMessage nunca vaza segredo (token/senha) mesmo se vier no detalhe", () => {
+    const message = buildSystemErrorMessage({ subject: "teste", detail: "Authorization: Bearer sk_live_abcdef123456\npassword=minhaSenhaSecreta123" });
+    expect(message).not.toContain("sk_live_abcdef123456");
+    expect(message).not.toContain("minhaSenhaSecreta123");
+    expect(message).toContain("[REDACTED]");
+  });
+
+  it("buildSystemErrorMessage trunca detalhe muito longo (limite do Telegram)", () => {
+    const message = buildSystemErrorMessage({ subject: "teste", detail: "x".repeat(5000) });
+    expect(message.length).toBeLessThan(4096);
   });
 });
 
