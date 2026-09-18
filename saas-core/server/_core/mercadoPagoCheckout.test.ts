@@ -17,6 +17,7 @@ const BASE_PARAMS = {
   successUrl: "https://exemplo.com/ok",
   failureUrl: "https://exemplo.com/falhou",
   pendingUrl: "https://exemplo.com/pendente",
+  notificationUrl: "https://exemplo.com/api/webhooks/mercadopago",
 };
 
 afterEach(() => {
@@ -42,5 +43,18 @@ describe("createImplementationFeePreference — header X-meli-session-id", () =>
 
     const [, options] = fetchMock.mock.calls[0];
     expect(options.headers["X-meli-session-id"]).toBeUndefined();
+  });
+});
+
+describe("createImplementationFeePreference — notification_url", () => {
+  it("envia notification_url no corpo da preferência (2026-09-17: não dá pra depender só da URL cadastrada no painel do Mercado Pago)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "pref-1", init_point: "https://mp.example/checkout/pref-1" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createImplementationFeePreference({ ...BASE_PARAMS });
+
+    const [, options] = fetchMock.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.notification_url).toBe("https://exemplo.com/api/webhooks/mercadopago");
   });
 });

@@ -19,6 +19,14 @@ export async function createImplementationFeePreference(params: {
   successUrl: string;
   failureUrl: string;
   pendingUrl: string;
+  // URL de notificação (webhook) desta preferência especificamente — não dá
+  // pra depender só da URL cadastrada no painel do Mercado Pago (o painel
+  // deles só aceita UMA URL por aplicação/ambiente, ver
+  // mercadoPagoWebhookRoute.ts; se ela ficar desatualizada — como aconteceu
+  // em produção em 2026-09-17 — nenhuma preferência recebe notificação,
+  // mesmo com o pagamento aprovado do lado deles). Setar aqui garante que
+  // funciona de qualquer forma, independente da config do painel.
+  notificationUrl: string;
   // Device ID do security.js (window.MP_DEVICE_SESSION_ID), capturado no
   // frontend antes de criar a preferência — sem isso, o motor de risco do
   // Mercado Pago não tem o fingerprint do dispositivo associado a ESTA
@@ -40,6 +48,7 @@ export async function createImplementationFeePreference(params: {
       payer: { email: params.payerEmail },
       back_urls: { success: params.successUrl, failure: params.failureUrl, pending: params.pendingUrl },
       auto_return: "approved",
+      notification_url: params.notificationUrl,
     }),
   });
   if (!response.ok) {
