@@ -97,7 +97,7 @@ export const adminCatalogRouter = router({
     await db.delete(addonOptions).where(eq(addonOptions.id, input.optionId));
     return { success: true };
   }),
-  saveAddonGroup: restaurantProcedureFor("catalog").input(z.object({ id: optionalId, productId: z.number().int().positive(), name: z.string().min(2).max(120), required: z.boolean().default(false), minSelections: z.number().int().min(0).max(10).default(0), maxSelections: z.number().int().min(1).max(10).default(1), sortOrder, active: z.boolean().default(true) }).superRefine((value, context) => {
+  saveAddonGroup: restaurantProcedureFor("catalog").input(z.object({ id: optionalId, productId: z.number().int().positive(), name: z.string().min(2).max(120), required: z.boolean().default(false), minSelections: z.number().int().min(0).max(100).default(0), maxSelections: z.number().int().min(1).max(100).default(1), sortOrder, active: z.boolean().default(true) }).superRefine((value, context) => {
     if (value.minSelections > value.maxSelections) context.addIssue({ code: "custom", path: ["minSelections"], message: "O mínimo não pode ser maior que o máximo." });
   })).mutation(async ({ input }) => {
     const db = await getDb();
