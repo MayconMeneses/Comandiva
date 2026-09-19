@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Cobre o gap identificado na auditoria de cobrança recorrente: um trial que
@@ -8,9 +8,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 const mocks = vi.hoisted(() => ({ getDb: vi.fn() }));
 vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
-vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "" } }));
+vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "", internalDemoRestaurantIds: [] } }));
 
 import { features, planFeatures, planLimits, plans, subscriptions } from "../drizzle/schema";
+import { ENV } from "./_core/env";
 import { applyDueScheduledChanges, computeSnapshotForRestaurant } from "./db/subscriptions";
 
 const PLAN_ESSENCIAL = { id: 1, key: "essencial", name: "Essencial", priceCents: 9999, position: 1 };
@@ -69,6 +70,21 @@ function buildSnapshotDbStub(subscriptionRow: Record<string, unknown>) {
 
 describe("applyDueScheduledChanges — trial vencido", () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(() => { ENV.internalDemoRestaurantIds = []; });
+
+  it("restaurante de uso interno (ENV.internalDemoRestaurantIds): renova o período em vez de virar 'ended'", async () => {
+    ENV.internalDemoRestaurantIds = [7];
+    const previousEnd = Date.now() - 1000;
+    const stub = buildSnapshotDbStub({ id: 10, restaurantId: 7, planId: PLAN_ESSENCIAL.id, status: "trial", currentPeriodEnd: previousEnd, scheduledPlanId: null, gatewaySubscriptionId: null });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    await applyDueScheduledChanges(10);
+
+    expect(stub.getCurrent().status).toBe("trial");
+    expect(stub.getCurrent().currentPeriodEnd).toBeGreaterThan(previousEnd);
+    expect(stub.insertCalls.some(event => event.eventType === "trial_ended")).toBe(false);
+    expect(stub.insertCalls.some(event => event.eventType === "trial_renewed_internal_demo")).toBe(true);
+  });
 
   it("trial vencido sem checkout iniciado (sem scheduledPlanId): vira 'ended' e grava evento de auditoria", async () => {
     const stub = buildSnapshotDbStub({ id: 10, restaurantId: 7, planId: PLAN_ESSENCIAL.id, status: "trial", currentPeriodEnd: Date.now() - 1000, scheduledPlanId: null, gatewaySubscriptionId: null });

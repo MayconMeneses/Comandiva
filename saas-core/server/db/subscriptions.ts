@@ -322,6 +322,16 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
   // o dono assinar de verdade (billing/login continuam liberados, porque
   // não passam por nenhum feature-gate).
   if (subscription.status === "trial" && !subscription.scheduledPlanId) {
+    if (ENV.internalDemoRestaurantIds.includes(subscription.restaurantId)) {
+      // Restaurante de uso interno/demonstração (ver ENV.internalDemoRestaurantIds)
+      // — em vez de bloquear, renova o período de 30 dias a partir de agora.
+      // Continua em 'trial', então o aviso "faltam N dias" (TrialEndingBanner)
+      // segue aparecendo com a data sempre fresca, mas o bloqueio total
+      // (TrialEndedBlock) nunca é acionado pra esses restaurantes.
+      await db.update(subscriptions).set({ currentPeriodStart: now, currentPeriodEnd: now + ONE_MONTH_MS, updatedAt: now }).where(eq(subscriptions.id, subscription.id));
+      await recordEvent(subscription.id, "trial_renewed_internal_demo", { currentPeriodEnd: subscription.currentPeriodEnd }, { currentPeriodEnd: now + ONE_MONTH_MS }, "system:reconciliation");
+      return;
+    }
     await db.update(subscriptions).set({ status: "ended", updatedAt: now }).where(eq(subscriptions.id, subscription.id));
     await recordEvent(subscription.id, "trial_ended", { status: "trial" }, { status: "ended" }, "system:reconciliation");
     return;
