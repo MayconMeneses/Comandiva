@@ -44,6 +44,14 @@ const FULFILLMENT_LABEL = { DELIVERY: "Entrega", PICKUP: "Retirada", DINE_IN: "M
 
 const ORIGIN_TAG: Record<string, string> = { GARCOM: "Garçom", QR_CODE: "QR Code", BALCAO: "Balcão" };
 
+// Comanda (sempre, no aceite) e DANFE (delivery/retirada, ao sair/ficar
+// pronto — ver "Quando emitir" no plano de emissão de NFC-e) imprimem
+// sozinhos nesses 3 momentos, reaproveitando a mesma tela de comprovante que
+// já existia só pra reimpressão manual (Receipt.tsx, ?autoprint=1 dispara
+// window.print() sozinho lá). Mesa não entra aqui — o fechamento da comanda
+// (TableMapManager) é quem dispara a impressão dela, consolidada.
+const AUTO_PRINT_STATUSES = new Set(["ACCEPTED", "OUT_FOR_DELIVERY", "READY_FOR_PICKUP"]);
+
 function OrderCard({ order }: { order: { id: number; publicCode: string; customerName: string; customerPhone: string; fulfillmentType: "DELIVERY" | "PICKUP" | "DINE_IN"; origin: string; tableLabel: string | null; status: string; totalCents: number; createdAt: number; acceptedAt: number | null; preparingAt: number | null; customerNote: string | null; items: Array<{ id: number; productName: string; quantity: number; note: string | null }> } }) {
   const utils = trpc.useUtils(); const updateStatus = trpc.admin.updateOrderStatus.useMutation({ onSuccess: () => void utils.admin.operationalSnapshot.invalidate() }); const meta = statusMeta[order.status as ActiveStatus]; if (!meta) return null;
   const next = order.status === "PREPARING"
@@ -53,11 +61,24 @@ function OrderCard({ order }: { order: { id: number; publicCode: string; custome
     : order.status === "READY_FOR_PICKUP" && order.fulfillmentType === "DINE_IN" ? { status: "COMPLETED" as const, label: "Marcar como servido" }
     : meta.next;
   const itemNotes = order.items.filter(item => item.note);
+  const advance = () => {
+    if (!next) return;
+    // Abre a aba em branco AQUI (síncrono, dentro do clique — gesto real do
+    // usuário) e só navega ela pra URL de verdade depois que a mutation
+    // responder — abrir depois, dentro do onSuccess assíncrono, é bloqueado
+    // pelo navegador por não contar mais como gesto do usuário (mesmo
+    // problema já visto com pop-up do Modo Suporte no Painel Master).
+    const printTab = AUTO_PRINT_STATUSES.has(next.status) ? window.open("", "_blank") : null;
+    updateStatus.mutate({ orderId: order.id, status: next.status }, {
+      onSuccess: () => { if (printTab) printTab.location.href = `/admin/comprovante/${order.id}?autoprint=1`; },
+      onError: () => printTab?.close(),
+    });
+  };
   return <article className="rounded-2xl border border-[#e3d6c6] bg-[#fffdf8] p-4 shadow-[0_8px_20px_rgba(53,34,17,.06)]"><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs font-bold tracking-wide text-primary">{order.publicCode}</p><h3 className="mt-1 font-display text-xl font-bold text-[#241b16]">{order.fulfillmentType === "DINE_IN" && order.tableLabel ? order.tableLabel : order.customerName}</h3></div><strong className="text-sm text-[#241b16]">{money(order.totalCents)}</strong></div><div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"><span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{order.customerPhone}</span><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div>{order.status === "PENDING"
   ? <div className="mt-3"><PrepTimeProgress since={order.createdAt} label="Aceite" /></div>
   : order.status === "ACCEPTED"
   ? <div className="mt-3"><PrepTimeProgress since={order.acceptedAt ?? order.createdAt} orangeAtMinutes={5} redAtMinutes={10} /></div>
-  : <div className="mt-3"><PrepTimeProgress since={order.preparingAt ?? order.acceptedAt ?? order.createdAt} label="Produção" orangeAtMinutes={20} redAtMinutes={40} /></div>}<p className="mt-3 line-clamp-2 border-t border-[#eee4d8] pt-3 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p>{(order.customerNote || itemNotes.length > 0) && <div className="mt-2 space-y-1.5 rounded-xl border border-amber-300 bg-amber-50 p-3"><div className="flex items-start gap-2 text-xs font-semibold text-amber-900"><MessageSquareWarning className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div className="space-y-1"> {order.customerNote && <p>{order.customerNote}</p>} {itemNotes.map(item => <p key={item.id} className="font-normal">{item.productName}: {item.note}</p>)}</div></div></div>}<div className="mt-4 flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#695b50]">{FULFILLMENT_LABEL[order.fulfillmentType]}{ORIGIN_TAG[order.origin] ? ` · ${ORIGIN_TAG[order.origin]}` : ""}</span><div className="flex items-center gap-2">{order.status !== "PENDING" && <button type="button" onClick={() => window.open(`/admin/comprovante/${order.id}`, "_blank", "noopener,noreferrer")} className="grid h-9 w-9 place-items-center rounded-lg border border-[#d9c9b4] text-[#725645] transition hover:border-primary hover:text-primary" aria-label="Imprimir comprovante"><Printer className="h-4 w-4" /></button>}{next ? <Button size="sm" disabled={updateStatus.isPending} onClick={() => updateStatus.mutate({ orderId: order.id, status: next.status })} className="h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{updateStatus.isPending ? "Atualizando…" : next.label}<ChevronRight className="ml-1 h-3.5 w-3.5" /></Button> : null}</div></div>{updateStatus.error ? <p className="mt-3 text-xs text-red-700">{updateStatus.error.message}</p> : null}</article>;
+  : <div className="mt-3"><PrepTimeProgress since={order.preparingAt ?? order.acceptedAt ?? order.createdAt} label="Produção" orangeAtMinutes={20} redAtMinutes={40} /></div>}<p className="mt-3 line-clamp-2 border-t border-[#eee4d8] pt-3 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p>{(order.customerNote || itemNotes.length > 0) && <div className="mt-2 space-y-1.5 rounded-xl border border-amber-300 bg-amber-50 p-3"><div className="flex items-start gap-2 text-xs font-semibold text-amber-900"><MessageSquareWarning className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div className="space-y-1"> {order.customerNote && <p>{order.customerNote}</p>} {itemNotes.map(item => <p key={item.id} className="font-normal">{item.productName}: {item.note}</p>)}</div></div></div>}<div className="mt-4 flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#695b50]">{FULFILLMENT_LABEL[order.fulfillmentType]}{ORIGIN_TAG[order.origin] ? ` · ${ORIGIN_TAG[order.origin]}` : ""}</span><div className="flex items-center gap-2">{order.status !== "PENDING" && <button type="button" onClick={() => window.open(`/admin/comprovante/${order.id}`, "_blank", "noopener,noreferrer")} className="grid h-9 w-9 place-items-center rounded-lg border border-[#d9c9b4] text-[#725645] transition hover:border-primary hover:text-primary" aria-label="Imprimir comprovante"><Printer className="h-4 w-4" /></button>}{next ? <Button size="sm" disabled={updateStatus.isPending} onClick={advance} className="h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{updateStatus.isPending ? "Atualizando…" : next.label}<ChevronRight className="ml-1 h-3.5 w-3.5" /></Button> : null}</div></div>{updateStatus.error ? <p className="mt-3 text-xs text-red-700">{updateStatus.error.message}</p> : null}</article>;
 }
 
 export default function RestaurantOrders() {

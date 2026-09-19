@@ -111,7 +111,17 @@ function SessionDrawer({ sessionId, tableLabel, onClose }: { sessionId: number; 
       <div><h3 className="text-sm font-semibold">Lançar nova rodada</h3><div className="mt-2"><CartProvider storageKey={`mm-staff-table-round-${data.table?.id}`}><AddRoundForm tableId={data.table!.id} sessionId={sessionId} onDone={() => void detail.refetch()} /></CartProvider></div></div>
       {data.balanceDueCents > 0 && <div><h3 className="text-sm font-semibold">Fechar conta</h3><div className="mt-2"><RecordPaymentForm sessionId={sessionId} balanceDueCents={data.balanceDueCents} /></div></div>}
       {data.billPayments.length > 0 && <div className="rounded-xl border border-[#e4d8c8] bg-white p-3"><h3 className="text-sm font-semibold">Pagamentos registrados</h3><div className="mt-2 space-y-1 text-xs text-muted-foreground">{data.billPayments.map(payment => <p key={payment.id}>{payment.payerLabel ? `${payment.payerLabel} · ` : ""}{money(payment.amountCents)} — {payment.method}</p>)}</div></div>}
-      <div className="flex flex-wrap gap-2 border-t border-[#eee4d8] pt-4"><Button disabled={data.balanceDueCents > 0 || closeSession.isPending} onClick={() => closeSession.mutate({ sessionId })} className="h-10 rounded-xl bg-[#3f7a52] hover:bg-[#2f5d3e]"><ReceiptText className="mr-1.5 h-4 w-4" />{closeSession.isPending ? "Fechando…" : "Fechar comanda"}</Button><Button variant="outline" disabled={cancelSession.isPending} onClick={() => { if (window.confirm("Cancelar esta comanda? Os pedidos continuam no histórico, mas a mesa volta a ficar livre.")) cancelSession.mutate({ sessionId }); }} className="h-10 rounded-xl border-red-200 text-red-700 hover:bg-red-50"><XCircle className="mr-1.5 h-4 w-4" />Cancelar comanda</Button></div>
+      <div className="flex flex-wrap gap-2 border-t border-[#eee4d8] pt-4"><Button disabled={data.balanceDueCents > 0 || closeSession.isPending} onClick={() => {
+        // Mesma técnica de RestaurantOrders.tsx: abre a aba em branco aqui
+        // (gesto real do usuário, senão o navegador bloqueia), navega pra
+        // URL de verdade só depois que a comanda fechar de verdade. Qualquer
+        // pedido da comanda serve de âncora — Receipt.tsx detecta que é
+        // DINE_IN e busca a nota CONSOLIDADA pela comanda, não a desse
+        // pedido isolado (ver DanfeSection em Receipt.tsx).
+        const anchorOrderId = data.orders[0]?.id;
+        const printTab = anchorOrderId ? window.open("", "_blank") : null;
+        closeSession.mutate({ sessionId }, { onSuccess: () => { if (printTab && anchorOrderId) printTab.location.href = `/admin/comprovante/${anchorOrderId}?autoprint=1`; }, onError: () => printTab?.close() });
+      }} className="h-10 rounded-xl bg-[#3f7a52] hover:bg-[#2f5d3e]"><ReceiptText className="mr-1.5 h-4 w-4" />{closeSession.isPending ? "Fechando…" : "Fechar comanda"}</Button><Button variant="outline" disabled={cancelSession.isPending} onClick={() => { if (window.confirm("Cancelar esta comanda? Os pedidos continuam no histórico, mas a mesa volta a ficar livre.")) cancelSession.mutate({ sessionId }); }} className="h-10 rounded-xl border-red-200 text-red-700 hover:bg-red-50"><XCircle className="mr-1.5 h-4 w-4" />Cancelar comanda</Button></div>
       {data.balanceDueCents > 0 && <p className="text-xs text-[#a43720]">Registre o pagamento do saldo restante antes de fechar a comanda.</p>}
     </div>}
   </DialogContent></Dialog>;

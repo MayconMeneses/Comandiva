@@ -110,6 +110,12 @@ export const fiscalSettings = mysqlTable("fiscal_settings", {
   nfceNextNumber: int("nfceNextNumber").notNull().default(1),
   cscId: varchar("cscId", { length: 40 }),
   cscTokenEncrypted: text("cscTokenEncrypted"),
+  // Token da conta do restaurante no provedor de emissão (Focus NFe) — ver
+  // server/_core/nfceEmission.ts. Substitui cscId/cscTokenEncrypted (pensados
+  // pra integração direta com a SEFAZ, que este projeto não faz) como
+  // credencial de emissão; os dois campos antigos ficam sem uso mas não são
+  // removidos (dado já gravado não quebra nada continuando ali).
+  providerApiTokenEncrypted: text("providerApiTokenEncrypted"),
   certificateEncrypted: text("certificateEncrypted"),
   certificatePasswordEncrypted: text("certificatePasswordEncrypted"),
   certificateFilename: varchar("certificateFilename", { length: 255 }),
@@ -120,12 +126,23 @@ export const fiscalSettings = mysqlTable("fiscal_settings", {
 
 export const fiscalDocumentStatusValues = ["PENDING", "AUTHORIZED", "REJECTED", "CANCELLED", "CONTINGENCY", "ERROR"] as const;
 
-/** Uma NFC-e por pedido. Nunca UPDATE em cima de um documento já autorizado — cancelamento/inutilização são eventos novos, não edição (mesmo raciocínio de order_status_history ser append-only). */
+/**
+ * Uma NFC-e por pedido AVULSO (delivery/retirada/balcão) OU uma por COMANDA
+ * DE MESA fechada (consolidando todas as rodadas) — nunca as duas coisas ao
+ * mesmo tempo. Exatamente um entre `orderId`/`tableSessionId` é preenchido
+ * (regra de aplicação, não expressável como CHECK simples no MySQL); pra
+ * mesa, `consolidatedOrderIds` guarda quais pedidos entraram naquela nota.
+ * Nunca UPDATE em cima de um documento já autorizado — cancelamento/
+ * inutilização são eventos novos, não edição (mesmo raciocínio de
+ * order_status_history ser append-only).
+ */
 export const fiscalDocuments = mysqlTable(
   "fiscal_documents",
   {
     id: int("id").autoincrement().primaryKey(),
-    orderId: int("orderId").notNull(),
+    orderId: int("orderId"),
+    tableSessionId: int("tableSessionId"),
+    consolidatedOrderIds: text("consolidatedOrderIds"),
     status: mysqlEnum("status", fiscalDocumentStatusValues).notNull().default("PENDING"),
     environment: mysqlEnum("environment", fiscalEnvironmentValues).notNull(),
     chaveAcesso: varchar("chaveAcesso", { length: 44 }),
@@ -140,7 +157,11 @@ export const fiscalDocuments = mysqlTable(
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
     authorizedAt: bigint("authorizedAt", { mode: "number", unsigned: true }),
   },
-  table => [uniqueIndex("fiscal_documents_order_unique").on(table.orderId), index("fiscal_documents_status_idx").on(table.status, table.createdAt)],
+  table => [
+    uniqueIndex("fiscal_documents_order_unique").on(table.orderId),
+    uniqueIndex("fiscal_documents_table_session_unique").on(table.tableSessionId),
+    index("fiscal_documents_status_idx").on(table.status, table.createdAt),
+  ],
 );
 
 /**

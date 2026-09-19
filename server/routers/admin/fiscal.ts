@@ -1,16 +1,17 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { fiscalEnvironmentValues, regimeTributarioValues } from "../../../drizzle/schema";
+import { regimeTributarioValues } from "../../../drizzle/schema";
 import { isValidCnpjChecksum } from "../../../shared/fiscal";
 import {
   assignProductFiscalCategory,
+  confirmFiscalProductionReady,
   countProductsWithoutFiscalCategory,
   deactivateFiscalTaxCategory,
   getFiscalSettings,
   listFiscalTaxCategories,
   saveFiscalCadastralData,
   saveFiscalCertificate,
-  saveFiscalCscToken,
+  saveFiscalProviderToken,
   saveFiscalTaxCategory,
 } from "../../db";
 import { adminOnlyProcedure, router } from "../../_core/trpc";
@@ -38,15 +39,20 @@ export const adminFiscalRouter = router({
         cnpj: cnpjSchema,
         inscricaoEstadual: z.string().trim().min(1).max(20),
         regimeTributario: z.enum(regimeTributarioValues),
-        environment: z.enum(fiscalEnvironmentValues),
-        nfceSeries: z.number().int().min(1).max(999),
-        nfceNextNumber: z.number().int().min(1).max(999999999),
       }),
     )
     .mutation(async ({ input }) => {
       await saveFiscalCadastralData(input);
       return { success: true };
     }),
+
+  // Não editável livremente — só troca environment pra PRODUCAO depois de
+  // pelo menos 1 emissão de teste bem-sucedida em HOMOLOGACAO (Etapa 6 do
+  // plano de emissão), pra nunca gerar nota "de verdade" sem querer.
+  confirmFiscalProductionReady: fiscalProcedure.mutation(async () => {
+    await confirmFiscalProductionReady();
+    return { success: true };
+  }),
 
   uploadFiscalCertificate: fiscalProcedure
     .input(z.object({ filename: z.string().min(1).max(255), dataBase64: z.string().min(8), password: z.string().min(1).max(255) }))
@@ -61,11 +67,11 @@ export const adminFiscalRouter = router({
       return { success: true };
     }),
 
-  saveFiscalCscToken: fiscalProcedure.input(z.object({ cscId: z.string().trim().min(1).max(40), token: z.string().trim().min(1).max(255) })).mutation(async ({ input }) => {
+  saveFiscalProviderToken: fiscalProcedure.input(z.object({ token: z.string().trim().min(1).max(255) })).mutation(async ({ input }) => {
     try {
-      await saveFiscalCscToken(input);
+      await saveFiscalProviderToken(input.token);
     } catch (error) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error instanceof Error ? error.message : "Falha ao salvar o token CSC." });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error instanceof Error ? error.message : "Falha ao salvar o token do provedor." });
     }
     return { success: true };
   }),
