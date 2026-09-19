@@ -1,7 +1,25 @@
 import { Link } from "wouter";
 import type { ReactNode, SVGProps } from "react";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "MM System Creator",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do seu restaurante.",
+  offers: {
+    "@type": "Offer",
+    price: "99.99",
+    priceCurrency: "BRL",
+    url: "https://mmsystem.tech/comercial/planos",
+  },
+  author: { "@type": "Person", name: "Maycon Meneses" },
+};
 
 const PRIMARY_LINK_CLASSES =
   "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-6 text-sm font-semibold text-white shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110";
@@ -233,8 +251,15 @@ const STEPS = [
 ];
 
 export default function Home() {
+  usePageMeta({
+    title: "Sistema para Restaurante sem Comissão — Cardápio Digital e Pedidos Online | MM System Creator",
+    description:
+      "Sistema completo para restaurante: cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por venda. 30 dias grátis, sem cartão de crédito.",
+    path: "/comercial",
+  });
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
       <ComercialHeader />
 
       {/* Hero */}

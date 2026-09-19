@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import type { ReactNode, SVGProps } from "react";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
 
@@ -62,6 +63,12 @@ const IconCheck = (props: SVGProps<SVGSVGElement>) => (
 );
 
 export default function Planos() {
+  usePageMeta({
+    title: "Planos e Preços — Sistema para Restaurante a partir de R$ 99,99/mês | MM System Creator",
+    description:
+      "Compare os planos do MM System Creator: cardápio digital, pedidos online, mesas com QR Code, cozinha e relatórios. A partir de R$ 99,99/mês, sem comissão por pedido. 30 dias grátis.",
+    path: "/comercial/planos",
+  });
   const plansQuery = trpc.public.plans.useQuery();
   const plans = plansQuery.data?.plans;
   const allFeatures = plansQuery.data?.allFeatures ?? [];
