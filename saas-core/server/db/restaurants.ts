@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { generateApiKey, hashApiKey } from "../_core/apiKey";
 import { getDb } from "./client";
 import { plans, restaurants, subscriptionEvents, subscriptions, type PlanKey, type RestaurantStatus } from "../../drizzle/schema";
@@ -248,12 +248,20 @@ export async function listRestaurantsForPanel(filters: { status?: RestaurantStat
     filters.planKey ? eq(plans.key, filters.planKey) : undefined,
   ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
 
+  // Sem paginação de verdade ainda (tela do Painel Master não tem "carregar
+  // mais") — esse limite é só uma trava de segurança pra nunca puxar a
+  // tabela inteira pra memória caso a base de restaurantes-cliente cresça
+  // muito; mais recentes primeiro, pra nunca cortar quem acabou de entrar.
+  // Se algum dia passar de 500 restaurantes ativos, isso precisa virar
+  // paginação de verdade (backend + UI).
   const rows = await db
     .select({ restaurant: restaurants, subscription: subscriptions, plan: plans })
     .from(restaurants)
     .innerJoin(subscriptions, eq(subscriptions.restaurantId, restaurants.id))
     .innerJoin(plans, eq(subscriptions.planId, plans.id))
-    .where(conditions.length ? and(...conditions) : undefined);
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(restaurants.id))
+    .limit(500);
 
   const now = Date.now();
   const visible = filters.includeHidden

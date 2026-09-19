@@ -25,7 +25,9 @@ describe("verifyMercadoPagoWebhookSignature (saas-core)", () => {
 });
 
 const mocks = vi.hoisted(() => ({ getDb: vi.fn(), getSubscriptionPreapproval: vi.fn(), getAuthorizedPayment: vi.fn() }));
-vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
+// cached: passthrough (sem memoização de verdade) — evita que o cache real (30s de TTL,
+// num closure só por módulo) vaze estado entre testes.
+vi.mock("./db/client", () => ({ getDb: mocks.getDb, cached: (_ttlMs: number, fn: () => unknown) => fn, PLANS_CACHE_TTL_MS: 30_000 }));
 vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "TEST-token", mercadoPagoWebhookSecret: "" } }));
 // Mantém verifyMercadoPagoWebhookSignature e o resto REAIS (usados no describe
 // acima) — só troca getSubscriptionPreapproval/getAuthorizedPayment por mocks

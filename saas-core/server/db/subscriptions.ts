@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { getDb } from "./client";
 import { billingPayments, features, planFeatures, planLimits, plans, restaurants, subscriptionEvents, subscriptions, type SubscriptionStatus } from "../../drizzle/schema";
 import { createSubscriptionPreapproval, updateSubscriptionPreapproval } from "../_core/mercadoPagoBilling";
@@ -235,8 +235,12 @@ export async function isPastDueGraceExpired(subscription: { id: number; status: 
 
   const db = await getDb();
   if (!db) return true;
-  const recentEvents = await db.select().from(subscriptionEvents).where(eq(subscriptionEvents.subscriptionId, subscription.id));
-  const alreadyNotifiedThisEpisode = recentEvents.some(event => event.eventType === "past_due_grace_expired" && event.createdAt >= subscription.pastDueSince!);
+  const [existingNotification] = await db
+    .select({ id: subscriptionEvents.id })
+    .from(subscriptionEvents)
+    .where(and(eq(subscriptionEvents.subscriptionId, subscription.id), eq(subscriptionEvents.eventType, "past_due_grace_expired"), gte(subscriptionEvents.createdAt, subscription.pastDueSince!)))
+    .limit(1);
+  const alreadyNotifiedThisEpisode = Boolean(existingNotification);
   if (!alreadyNotifiedThisEpisode) {
     await recordEvent(subscription.id, "past_due_grace_expired", { status: "past_due" }, { status: "past_due", blocked: true }, "system:reconciliation");
     const contact = await getRestaurantContact(subscription.restaurantId);

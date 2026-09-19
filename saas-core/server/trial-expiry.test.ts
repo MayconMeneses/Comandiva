@@ -7,7 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * branch pra status 'trial'). Ver server/db/subscriptions.ts.
  */
 const mocks = vi.hoisted(() => ({ getDb: vi.fn() }));
-vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
+// cached: passthrough (sem memoização de verdade) — evita que o cache real (30s de TTL,
+// num closure só por módulo) vaze estado entre testes.
+vi.mock("./db/client", () => ({ getDb: mocks.getDb, cached: (_ttlMs: number, fn: () => unknown) => fn, PLANS_CACHE_TTL_MS: 30_000 }));
 vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "", internalDemoRestaurantIds: [] } }));
 
 import { features, planFeatures, planLimits, plans, subscriptions } from "../drizzle/schema";

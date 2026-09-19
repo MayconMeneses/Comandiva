@@ -14,7 +14,9 @@ const mocks = vi.hoisted(() => ({
   recordPlatformAuditLog: vi.fn(),
 }));
 
-vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
+// cached: passthrough (sem memoização de verdade) — evita que o cache real (30s de TTL,
+// num closure só por módulo) vaze estado entre testes.
+vi.mock("./db/client", () => ({ getDb: mocks.getDb, cached: (_ttlMs: number, fn: () => unknown) => fn, PLANS_CACHE_TTL_MS: 30_000 }));
 vi.mock("./db/restaurants", async importOriginal => {
   const actual = await importOriginal<typeof import("./db/restaurants")>();
   return { ...actual, createRestaurantWithSubscription: mocks.createRestaurantWithSubscription };
