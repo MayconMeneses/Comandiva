@@ -13,14 +13,27 @@ import { Loading, money } from "./shared";
  * já que uma nota de mesa cobre várias rodadas — nunca as duas ao mesmo
  * tempo (ver server/_core/nfceEmission.ts).
  */
+// A emissão na Focus NFe é síncrona (responde autorizado/rejeitado na hora),
+// mas o disparo aqui é "fire and forget" (ver server/_core/nfceEmission.ts)
+// — entre o pedido mudar de status e a linha em fiscal_documents existir, tem
+// uma janela curta real onde a busca ainda não acha nada (`doc` undefined).
+// Poll só nessa janela, e só por um tempo limitado: se o fiscal nem estiver
+// configurado (comum — nenhuma linha nunca vai ser criada), não faz sentido
+// martelar o servidor pra sempre toda vez que alguém abrir um comprovante
+// (achado da auditoria de escalabilidade 2026-09-19).
+const DANFE_POLL_WINDOW_MS = 40_000;
+const DANFE_POLL_INTERVAL_MS = 5_000;
+
 function DanfeSection({ order }: { order: { id: number; fulfillmentType: "DELIVERY" | "PICKUP" | "DINE_IN"; tableSessionId: number | null } }) {
   const utils = trpc.useUtils();
   const isDineIn = order.fulfillmentType === "DINE_IN" && order.tableSessionId;
+  const mountedAt = useRef(Date.now());
+  const pollWhileMissing = (query: { state: { data?: unknown } }) => (!query.state.data && Date.now() - mountedAt.current < DANFE_POLL_WINDOW_MS ? DANFE_POLL_INTERVAL_MS : false);
   // Só um dos dois fica habilitado — a nota é buscada por pedido OU por
   // comanda, nunca por ambos (mesmo raciocínio de fiscal_documents.orderId
   // XOR tableSessionId).
-  const byOrder = trpc.admin.fiscalDocumentForOrder.useQuery({ orderId: order.id }, { enabled: !isDineIn, refetchInterval: query => (query.state.data?.status === "PENDING" ? 4000 : false) });
-  const byTable = trpc.admin.fiscalDocumentForTableSession.useQuery({ sessionId: order.tableSessionId ?? 0 }, { enabled: Boolean(isDineIn), refetchInterval: query => (query.state.data?.status === "PENDING" ? 4000 : false) });
+  const byOrder = trpc.admin.fiscalDocumentForOrder.useQuery({ orderId: order.id }, { enabled: !isDineIn, refetchInterval: pollWhileMissing });
+  const byTable = trpc.admin.fiscalDocumentForTableSession.useQuery({ sessionId: order.tableSessionId ?? 0 }, { enabled: Boolean(isDineIn), refetchInterval: pollWhileMissing });
   const doc = isDineIn ? byTable.data : byOrder.data;
   const isLoading = isDineIn ? byTable.isLoading : byOrder.isLoading;
 

@@ -32,7 +32,11 @@ export const customerRouter = router({
   // telefone em sequência colhendo dados pessoais (nome e endereço) de
   // clientes reais — não é proteção de login, é proteção contra enumeração.
   lookupByPhone: publicProcedure.input(z.object({ phone: phoneSchema })).query(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`customer-lookup:${ctx.req.ip}`);
+    // Continua mais apertado que os outros endpoints (o propósito aqui é
+    // anti-enumeração, não só anti-abuso — ver comentário acima), só um
+    // pouco mais alto que o padrão de força bruta pra não barrar clientes
+    // legítimos atrás do mesmo IP em horário de pico.
+    const limit = checkRateLimit(`customer-lookup:${ctx.req.ip}`, { maxAttempts: 20 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas consultas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     return getCustomerByPhone(input.phone);
   }),

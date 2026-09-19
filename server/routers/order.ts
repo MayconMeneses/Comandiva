@@ -272,7 +272,12 @@ export const orderRouter = router({
     };
   }),
   create: publicProcedure.input(checkoutSchema).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`order-create:${ctx.req.ip}`);
+    // Limite bem acima do padrão de força bruta (8/10min): muitos clientes
+    // legítimos atrás do mesmo IP (wifi do restaurante, CGNAT de operadora)
+    // fazendo pedido num horário de pico não pode ser barrado como se fosse
+    // abuso — o padrão baixo existia só porque nunca tinha sido revisado pra
+    // esse endpoint especificamente (auditoria de escalabilidade 2026-09-19).
+    const limit = checkRateLimit(`order-create:${ctx.req.ip}`, { maxAttempts: 40 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitos pedidos em pouco tempo. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     const priced = await priceOrder(input);
     if (input.paymentMethod === "CASH" && input.changeForCents !== undefined && input.changeForCents < priced.totalCents) {

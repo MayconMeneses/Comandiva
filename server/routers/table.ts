@@ -123,7 +123,11 @@ export const tableRouter = router({
     };
   }),
   addRound: featureProcedure("extra_rounds").input(addRoundSchema).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`table-add-round:${ctx.req.ip}`);
+    // Chave é por IP, não por mesa — várias mesas no mesmo wifi do
+    // restaurante lançando rodadas ao longo de uma noite cheia somam pro
+    // mesmo contador; 8/10min (padrão de força bruta) é baixo demais pra
+    // isso (auditoria de escalabilidade 2026-09-19).
+    const limit = checkRateLimit(`table-add-round:${ctx.req.ip}`, { maxAttempts: 30 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
     const table = await findTableByToken(input.token);
     if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
@@ -137,7 +141,7 @@ export const tableRouter = router({
     });
   }),
   requestBill: featureProcedure("request_bill").input(z.object({ token: z.string().min(6).max(24) })).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`table-request-bill:${ctx.req.ip}`);
+    const limit = checkRateLimit(`table-request-bill:${ctx.req.ip}`, { maxAttempts: 30 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
     const table = await findTableByToken(input.token);
     if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
@@ -146,7 +150,7 @@ export const tableRouter = router({
     return { success: true };
   }),
   callWaiter: featureProcedure("call_waiter").input(z.object({ token: z.string().min(6).max(24) })).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`table-call-waiter:${ctx.req.ip}`);
+    const limit = checkRateLimit(`table-call-waiter:${ctx.req.ip}`, { maxAttempts: 30 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
     const table = await findTableByToken(input.token);
     if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
