@@ -29,11 +29,15 @@ const adminContext = {
 function dbReturning(paymentRow: { id: number; orderId: number; status: string; amountCents: number } | undefined) {
   const insertValues = vi.fn();
   const updateSet = vi.fn(() => ({ where: vi.fn() }));
+  const writable = { update: () => ({ set: updateSet }), insert: () => ({ values: insertValues }) };
   return {
     db: {
       select: () => ({ from: () => ({ where: () => ({ limit: async () => (paymentRow ? [paymentRow] : []) }) }) }),
-      update: () => ({ set: updateSet }),
-      insert: () => ({ values: insertValues }),
+      ...writable,
+      // markPaymentRefunded agora envolve UPDATE payments + INSERT orderChangeLogs
+      // numa db.transaction — o `tx` espião reusa os mesmos spies do `db` de fora,
+      // então as asserções de updateSet/insertValues continuam valendo.
+      transaction: async (fn: (tx: typeof writable) => Promise<unknown>) => fn(writable),
     },
     updateSet,
     insertValues,

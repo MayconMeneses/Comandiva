@@ -27,11 +27,16 @@ export async function getOrOpenSessionForTable(tableId: number, partySize?: numb
   const existing = await findOpenSessionForTable(tableId);
   if (existing) return existing;
   const now = Date.now();
-  const result = await db.insert(tableSessions).values({ tableId, status: "OPEN", partySize: partySize ?? null, openedAt: now, createdAt: now, updatedAt: now });
-  const sessionId = Number(result[0].insertId);
-  await db.update(restaurantTables).set({ status: "OCCUPIED", updatedAt: now }).where(and(eq(restaurantTables.id, tableId), eq(restaurantTables.status, "FREE")));
-  const [session] = await db.select().from(tableSessions).where(eq(tableSessions.id, sessionId)).limit(1);
-  return session!;
+  // Abrir a comanda + ocupar a mesa andam juntos numa transação — antes
+  // eram 2 escritas soltas, então uma queda entre elas podia deixar uma
+  // comanda aberta sem a mesa marcada OCCUPIED (ou vice-versa).
+  return db.transaction(async tx => {
+    const result = await tx.insert(tableSessions).values({ tableId, status: "OPEN", partySize: partySize ?? null, openedAt: now, createdAt: now, updatedAt: now });
+    const sessionId = Number(result[0].insertId);
+    await tx.update(restaurantTables).set({ status: "OCCUPIED", updatedAt: now }).where(and(eq(restaurantTables.id, tableId), eq(restaurantTables.status, "FREE")));
+    const [session] = await tx.select().from(tableSessions).where(eq(tableSessions.id, sessionId)).limit(1);
+    return session!;
+  });
 }
 
 export async function getSessionWithOrders(sessionId: number) {

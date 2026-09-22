@@ -129,8 +129,10 @@ export const adminOrdersRouter = router({
     if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Pagamento não encontrado para este pedido." });
     if (payment.status !== "PAID") throw new TRPCError({ code: "BAD_REQUEST", message: `Só é possível marcar como reembolsado um pagamento com status "Pago" (status atual: ${payment.status}).` });
     const now = Date.now();
-    await db.update(payments).set({ status: "REFUNDED", refundedAt: now, refundedByUserId: ctx.user?.id ?? null, refundReason: input.reason, updatedAt: now }).where(eq(payments.id, payment.id));
-    await db.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "PAYMENT_REFUNDED", details: JSON.stringify({ amountCents: payment.amountCents, reason: input.reason }), createdAt: now });
+    await db.transaction(async tx => {
+      await tx.update(payments).set({ status: "REFUNDED", refundedAt: now, refundedByUserId: ctx.user?.id ?? null, refundReason: input.reason, updatedAt: now }).where(eq(payments.id, payment.id));
+      await tx.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "PAYMENT_REFUNDED", details: JSON.stringify({ amountCents: payment.amountCents, reason: input.reason }), createdAt: now });
+    });
     return getOrderWithDetails(input.orderId);
   }),
   archiveOrder: adminProcedure.input(z.object({ orderId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
@@ -140,8 +142,10 @@ export const adminOrdersRouter = router({
     if (!current || current.archivedAt) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
     if (current.status !== "COMPLETED" && current.status !== "CANCELLED") throw new TRPCError({ code: "BAD_REQUEST", message: "Conclua ou cancele o pedido antes de removê-lo da lista." });
     const now = Date.now();
-    await db.update(orders).set({ archivedAt: now, updatedAt: now }).where(eq(orders.id, input.orderId));
-    await db.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "ORDER_ARCHIVED", details: JSON.stringify({ status: current.status }), createdAt: now });
+    await db.transaction(async tx => {
+      await tx.update(orders).set({ archivedAt: now, updatedAt: now }).where(eq(orders.id, input.orderId));
+      await tx.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "ORDER_ARCHIVED", details: JSON.stringify({ status: current.status }), createdAt: now });
+    });
     return { success: true };
   }),
   updateOrderStatus: restaurantProcedure.input(z.object({ orderId: z.number().int().positive(), status: statusSchema, note: z.string().max(500).optional() })).mutation(async ({ input, ctx }) => {
@@ -157,22 +161,31 @@ export const adminOrdersRouter = router({
     // Numa mesa isso não vale: servir um prato não fecha a comanda, então o pagamento dela
     // só é marcado quando a conta é de fato fechada (ver server/db/tables.ts, closeTableSession).
     const autoMarksPaid = input.status === "COMPLETED" && current.fulfillmentType !== "DINE_IN";
-    await db.update(orders).set({
-      status: input.status,
-      updatedAt: now,
-      paymentStatus: autoMarksPaid ? "PAID" : current.paymentStatus,
-      acceptedAt: input.status === "ACCEPTED" ? now : current.acceptedAt,
-      preparingAt: input.status === "PREPARING" ? now : current.preparingAt,
-      completedAt: input.status === "COMPLETED" ? now : current.completedAt,
-      cancelledAt: input.status === "CANCELLED" ? now : current.cancelledAt,
-    }).where(eq(orders.id, input.orderId));
-    if (input.status === "COMPLETED") await db.update(payments).set({ status: "PAID", paidAt: now, updatedAt: now }).where(eq(payments.orderId, input.orderId));
-    if (input.status === "CANCELLED") await db.update(payments).set({ status: "CANCELLED", updatedAt: now }).where(eq(payments.orderId, input.orderId));
-    await db.insert(orderStatusHistory).values({ orderId: input.orderId, status: input.status, note: input.note ?? null, changedByUserId: ctx.user?.id ?? null, createdAt: now });
-    if (input.status === "ACCEPTED") {
-      const fullOrder = await getOrderWithDetails(input.orderId);
-      await db.insert(printJobs).values({ orderId: input.orderId, status: "PENDING", receiptPayload: JSON.stringify(fullOrder), attempts: 0, createdAt: now, updatedAt: now });
-    }
+    // As 4 escritas abaixo (+ a leitura de printJobs, que precisa enxergar o
+    // UPDATE de orders ainda não commitado) andam juntas numa transação —
+    // antes rodavam soltas, então uma queda no meio (processo caindo,
+    // conexão caindo) podia deixar orders/payments/order_status_history/
+    // print_jobs inconsistentes entre si. getOrderWithDetails recebe `tx`
+    // de propósito (ver comentário em server/db/orders.ts) — numa conexão
+    // separada, o isolamento do MySQL não veria o UPDATE ainda não commitado.
+    await db.transaction(async tx => {
+      await tx.update(orders).set({
+        status: input.status,
+        updatedAt: now,
+        paymentStatus: autoMarksPaid ? "PAID" : current.paymentStatus,
+        acceptedAt: input.status === "ACCEPTED" ? now : current.acceptedAt,
+        preparingAt: input.status === "PREPARING" ? now : current.preparingAt,
+        completedAt: input.status === "COMPLETED" ? now : current.completedAt,
+        cancelledAt: input.status === "CANCELLED" ? now : current.cancelledAt,
+      }).where(eq(orders.id, input.orderId));
+      if (input.status === "COMPLETED") await tx.update(payments).set({ status: "PAID", paidAt: now, updatedAt: now }).where(eq(payments.orderId, input.orderId));
+      if (input.status === "CANCELLED") await tx.update(payments).set({ status: "CANCELLED", updatedAt: now }).where(eq(payments.orderId, input.orderId));
+      await tx.insert(orderStatusHistory).values({ orderId: input.orderId, status: input.status, note: input.note ?? null, changedByUserId: ctx.user?.id ?? null, createdAt: now });
+      if (input.status === "ACCEPTED") {
+        const fullOrder = await getOrderWithDetails(input.orderId, tx);
+        await tx.insert(printJobs).values({ orderId: input.orderId, status: "PENDING", receiptPayload: JSON.stringify(fullOrder), attempts: 0, createdAt: now, updatedAt: now });
+      }
+    });
     // Dinheiro/cartão na entrega: o valor já está fechado desde o aceite
     // (não muda mais), então emite a NFC-e aqui — no momento em que o pedido
     // sai fisicamente do restaurante — em vez de esperar o "concluído" que só

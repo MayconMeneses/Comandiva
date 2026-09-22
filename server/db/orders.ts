@@ -12,7 +12,7 @@ type OrderRow = typeof orders.$inferSelect;
  * relacionada, via inArray) — não uma consulta por pedido. Preserva
  * exatamente a ordem e o filtro que o chamador já aplicou em `orderRows`.
  */
-async function attachOrderDetails(db: Db, orderRows: OrderRow[]) {
+async function attachOrderDetails(db: DbOrTx, orderRows: OrderRow[]) {
   if (!orderRows.length) return [];
   const orderIds = orderRows.map(order => order.id);
   const items = await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds));
@@ -64,8 +64,16 @@ async function attachOrderDetails(db: Db, orderRows: OrderRow[]) {
   });
 }
 
-export async function getOrderWithDetails(orderId: number) {
-  const db = await getDb();
+/**
+ * `dbOrTx` opcional — permite chamar de dentro de uma transação já aberta
+ * (ex.: admin/orders.ts::updateOrderStatus, que precisa ler o pedido já
+ * atualizado ANTES do commit pra montar o payload do print job; numa
+ * conexão separada, o isolamento do MySQL faria essa leitura não enxergar
+ * o UPDATE ainda não commitado). Sem passar nada, comportamento igual a
+ * sempre — abre a própria conexão.
+ */
+export async function getOrderWithDetails(orderId: number, dbOrTx?: DbOrTx) {
+  const db = dbOrTx ?? (await getDb());
   if (!db) throw new Error("Banco de dados indisponível");
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   if (!order) return undefined;
