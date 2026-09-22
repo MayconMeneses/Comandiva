@@ -8,6 +8,7 @@ import { masterPanelSupportRouter } from "./support";
 import { masterPanelBillingRouter } from "./billing";
 import { masterPanelTeamRouter } from "./team";
 import { masterPanelMaintenanceRouter } from "./maintenance";
+import { masterPanelSettingsRouter } from "./settings";
 
 export const masterPanelRouter = router({
   auth: masterPanelAuthRouter,
@@ -19,4 +20,5 @@ export const masterPanelRouter = router({
   billing: masterPanelBillingRouter,
   team: masterPanelTeamRouter,
   maintenance: masterPanelMaintenanceRouter,
+  settings: masterPanelSettingsRouter,
 });

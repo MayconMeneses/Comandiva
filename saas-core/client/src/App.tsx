@@ -7,6 +7,7 @@ import NotFound from "./pages/NotFound";
 // visitante do site comercial baixava também o bundle inteiro do Painel
 // Master (Dashboard/RestaurantList/AuditLog/etc.), e vice-versa. Mesmo
 // padrão já usado no app principal (client/src/App.tsx).
+const Aparencia = lazy(() => import("./pages/Aparencia"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Equipe = lazy(() => import("./pages/Equipe"));
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/auditoria" component={AuditLog} />
         <Route path="/equipe" component={Equipe} />
         <Route path="/manutencao" component={Manutencao} />
+        <Route path="/aparencia" component={Aparencia} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
