@@ -14,7 +14,7 @@ vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "", internalDemoR
 
 import { features, planFeatures, planLimits, plans, subscriptions } from "../drizzle/schema";
 import { ENV } from "./_core/env";
-import { applyDueScheduledChanges, computeSnapshotForRestaurant } from "./db/subscriptions";
+import { applyDueScheduledChanges, applyPreapprovalStatus, computeSnapshotForRestaurant } from "./db/subscriptions";
 
 const PLAN_ESSENCIAL = { id: 1, key: "essencial", name: "Essencial", priceCents: 9999, position: 1 };
 const PLAN_PRO = { id: 2, key: "profissional", name: "Profissional", priceCents: 19999, position: 2 };
@@ -109,14 +109,31 @@ describe("applyDueScheduledChanges — trial vencido", () => {
     expect(stub.updateCalls).toHaveLength(0);
   });
 
-  it("trial vencido MAS com checkout em andamento (scheduledPlanId setado): não marca como 'ended' — deixa o fluxo normal de assinatura seguir", async () => {
+  it("trial vencido com checkout iniciado mas nunca confirmado (scheduledPlanId setado, status ainda 'trial'): vira 'ended' — achado M2 da auditoria, antes concedia um mês grátis do plano pago sem pagamento confirmado", async () => {
     const stub = buildSnapshotDbStub({ id: 10, restaurantId: 7, planId: PLAN_ESSENCIAL.id, status: "trial", currentPeriodEnd: Date.now() - 1000, scheduledPlanId: PLAN_PRO.id, gatewaySubscriptionId: "pre-1" });
     mocks.getDb.mockResolvedValue(stub.db);
 
     await applyDueScheduledChanges(10);
 
-    expect(stub.getCurrent().status).not.toBe("ended");
-    expect(stub.insertCalls.some(event => event.eventType === "trial_ended")).toBe(false);
+    expect(stub.getCurrent().status).toBe("ended");
+    expect(stub.getCurrent().planId).toBe(PLAN_ESSENCIAL.id); // nunca promove pro plano agendado sem confirmação de pagamento
+    expect(stub.insertCalls.some(event => event.eventType === "trial_ended")).toBe(true);
+  });
+
+  it("confirmação tardia do Mercado Pago continua ativando o plano normalmente mesmo depois do trial já ter virado 'ended'", async () => {
+    // applyPreapprovalStatus é quem faz essa ativação (chamada direto pelo
+    // webhook, não por applyDueScheduledChanges) — este teste prova que ela
+    // não depende de nenhum status específico além de "não está active ainda
+    // e tem um scheduledPlanId", então continua funcionando mesmo se
+    // applyDueScheduledChanges já rodou antes e marcou como 'ended'.
+    const stub = buildSnapshotDbStub({ id: 10, restaurantId: 7, planId: PLAN_ESSENCIAL.id, status: "ended", currentPeriodEnd: Date.now() - 1000, scheduledPlanId: PLAN_PRO.id, gatewaySubscriptionId: "pre-1", gatewayCustomerId: null });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const result = await applyPreapprovalStatus({ preapprovalId: "pre-1", mpStatus: "authorized", payerId: 999 });
+
+    expect(result).toEqual({ found: true, applied: true, restaurantId: 7 });
+    expect(stub.getCurrent().status).toBe("active");
+    expect(stub.getCurrent().planId).toBe(PLAN_PRO.id);
   });
 });
 
@@ -151,6 +168,27 @@ describe("computeSnapshotForRestaurant — bloqueio de acesso com trial 'ended'"
     const snapshot = await computeSnapshotForRestaurant(7);
 
     expect(snapshot.status).toBe("ended");
+    expect(snapshot.features).toEqual([]);
+  });
+
+  it("status 'canceled': zera features e bloqueia todas — achado H1 da auditoria, antes ficava com acesso total pra sempre", async () => {
+    const stub = buildSnapshotDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "canceled", currentPeriodEnd: Date.now() + 500_000, scheduledPlanId: null, gatewaySubscriptionId: "pre-1" });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const snapshot = await computeSnapshotForRestaurant(7);
+
+    expect(snapshot.status).toBe("canceled");
+    expect(snapshot.features).toEqual([]);
+    expect(Object.keys(snapshot.lockedFeatures)).toEqual(expect.arrayContaining(["tables_qr", "audit"]));
+  });
+
+  it("status 'suspended' (preapproval pausada no Mercado Pago): zera features e bloqueia todas — mesmo achado H1", async () => {
+    const stub = buildSnapshotDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "suspended", currentPeriodEnd: Date.now() + 500_000, scheduledPlanId: null, gatewaySubscriptionId: "pre-1" });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const snapshot = await computeSnapshotForRestaurant(7);
+
+    expect(snapshot.status).toBe("suspended");
     expect(snapshot.features).toEqual([]);
   });
 });
