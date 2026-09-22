@@ -41,6 +41,27 @@ export function sendTelegramMessageAsync(text: string): void {
   void sendTelegramMessage(text).catch(error => console.error("[telegram] Erro inesperado ao enviar mensagem:", error));
 }
 
+// Evita inundar o Telegram com alertas repetidos — no máximo 1 alerta por
+// `kind` a cada 10min (mesmo raciocínio de server/_core/alerts.ts no app
+// principal). Por `kind` (não uma janela única global) pra um crash-loop de
+// erro interno numa requisição não "consumir" a janela e esconder um
+// uncaughtException real logo em seguida, ou vice-versa.
+const lastAlertAtByKind = new Map<string, number>();
+const ALERT_THROTTLE_MS = 10 * 60 * 1000;
+
+/** Ponto único de alerta de malfuncionamento (crash do processo ou erro interno numa requisição) — sempre pelo Telegram, nunca bloqueia quem chamou. */
+export function alertSystemError(subject: string, detail: string, kind: string): Promise<void> {
+  const now = Date.now();
+  const lastAlertAt = lastAlertAtByKind.get(kind) ?? 0;
+  if (now - lastAlertAt < ALERT_THROTTLE_MS) return Promise.resolve();
+  lastAlertAtByKind.set(kind, now);
+  return sendTelegramMessage(buildSystemErrorMessage({ subject, detail }))
+    .then(outcome => {
+      if (!outcome.sent) console.error("[telegram] Falha ao mandar alerta de erro:", outcome.reason);
+    })
+    .catch(error => console.error("[telegram] Erro inesperado ao mandar alerta de erro:", error));
+}
+
 /** `parse_mode: "HTML"` do Telegram — nome de restaurante/contato vem de quem preenche o formulário público, nunca confiar sem escapar. */
 function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

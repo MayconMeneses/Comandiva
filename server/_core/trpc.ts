@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { getStaffPermissionsByUserId } from "../db/users";
+import { sendOwnerAlert } from "./alerts";
 import type { TrpcContext } from "./context";
 import { ENV } from "./env";
 import { getLicenseSnapshot, type FeatureId } from "./license";
@@ -12,7 +13,7 @@ export type FeatureLockedInfo = { featureId: FeatureId; requiredPlanKey: string 
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
-  errorFormatter({ shape, error }) {
+  errorFormatter({ shape, error, path }) {
     const cause = error.cause as { featureLocked?: FeatureLockedInfo } | undefined;
     // Erro de validação (Zod) chega em error.cause com a mensagem já amigável
     // em cada issue — sem isso, shape.message vira o JSON bruto de issues[],
@@ -25,7 +26,14 @@ const t = initTRPC.context<TrpcContext>().create({
     // "Banco de dados indisponível") nunca define `cause`, então não cai
     // aqui e mantém a mensagem curada normalmente.
     const isUnintentionalInternalError = error.code === "INTERNAL_SERVER_ERROR" && error.cause instanceof Error && !(error.cause instanceof ZodError);
-    if (isUnintentionalInternalError) console.error("[trpc] Erro interno não tratado:", error.cause);
+    if (isUnintentionalInternalError) {
+      console.error("[trpc] Erro interno não tratado:", error.cause);
+      // Mesmo canal (Telegram/e-mail/webhook) já usado pra uncaughtException —
+      // aqui é o caso "menor" (um endpoint falhou, servidor continua de pé),
+      // por isso kind próprio ("trpcInternalError") com seu próprio throttle
+      // de 10min, em vez de competir pela janela do crash total do processo.
+      void sendOwnerAlert("Erro interno numa requisição", `Endpoint: ${path ?? "desconhecido"}\n\n${(error.cause as Error).stack ?? (error.cause as Error).message}`, "trpcInternalError");
+    }
     return {
       ...shape,
       message: zodMessage ?? (isUnintentionalInternalError ? "Erro interno. Tente novamente." : shape.message),

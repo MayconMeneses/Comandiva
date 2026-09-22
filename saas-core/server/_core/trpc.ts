@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import type { TrpcContext } from "./context";
 import { ENV } from "./env";
 import type { MasterPermissionArea } from "./permissions";
+import { alertSystemError } from "./telegramService";
 
 // Sem superjson de propósito: datas já são epoch-ms em todo o schema (nunca
 // Date/Map/Set no payload), então JSON puro basta — tanto pro `fetch` cru da
@@ -12,10 +13,19 @@ import type { MasterPermissionArea } from "./permissions";
 // precisa ser adicionado aqui E lá ao mesmo tempo, ou client/servidor
 // discordam do formato do payload.
 const t = initTRPC.context<TrpcContext>().create({
-  errorFormatter({ shape, error }) {
+  errorFormatter({ shape, error, path }) {
     // Sem isso, erro de validação (Zod) mostra o JSON bruto de issues[] pro
     // usuário final em vez da mensagem amigável que o schema já define.
     const zodMessage = error.cause instanceof ZodError ? error.cause.issues[0]?.message : undefined;
+    // Mesmo raciocínio do app principal (server/_core/trpc.ts): erro
+    // interno não tratado (não é validação Zod nem TRPCError lançado de
+    // propósito) merece alerta — servidor não caiu, mas alguma requisição
+    // quebrou de um jeito inesperado.
+    const isUnintentionalInternalError = error.code === "INTERNAL_SERVER_ERROR" && error.cause instanceof Error && !(error.cause instanceof ZodError);
+    if (isUnintentionalInternalError) {
+      console.error("[trpc] Erro interno não tratado:", error.cause);
+      void alertSystemError("Erro interno numa requisição", `Endpoint: ${path ?? "desconhecido"}\n\n${(error.cause as Error).stack ?? (error.cause as Error).message}`, "trpcInternalError");
+    }
     return zodMessage ? { ...shape, message: zodMessage } : shape;
   },
 });

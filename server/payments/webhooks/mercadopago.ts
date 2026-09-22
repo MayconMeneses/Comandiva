@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { checkRateLimit } from "../../_core/rateLimit";
+import { sendOwnerAlert } from "../../_core/alerts";
 import { getActiveGatewayAndProvider } from "../paymentService";
 import { applyPaymentStatusNotification } from "../paymentService";
 
@@ -90,6 +91,7 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
     // confirmação de pagamento pra sempre. Responder erro aciona o reenvio
     // automático deles (contrato documentado do Mercado Pago para webhooks).
     console.error("[webhook] Falha ao processar notificação do Mercado Pago:", error);
+    void sendOwnerAlert("Falha no webhook de pagamento (Mercado Pago)", error instanceof Error ? (error.stack ?? error.message) : String(error), "mercadoPagoWebhook");
     res.status(500).json({ received: false });
   }
 }

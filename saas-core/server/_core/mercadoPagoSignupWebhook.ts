@@ -4,6 +4,7 @@ import { markWebhookEventOnce } from "../db/webhookEvents";
 import { getPayment } from "./mercadoPagoCheckout";
 import { verifyMercadoPagoWebhookSignature } from "./mercadoPagoBilling";
 import { ENV } from "./env";
+import { alertSystemError } from "./telegramService";
 
 /**
  * Webhook da TAXA DE IMPLEMENTAÇÃO (pagamento único, Checkout Pro) — rota
@@ -63,6 +64,7 @@ export async function handleMercadoPagoSignupWebhook(req: Request, res: Response
     }
   } catch (error) {
     console.error("[signup-webhook] Falha ao processar notificação do Mercado Pago:", error);
+    void alertSystemError("Falha no webhook de taxa de implementação (Mercado Pago)", error instanceof Error ? (error.stack ?? error.message) : String(error), "mercadoPagoSignupWebhook");
   }
   res.status(200).json({ received: true });
 }
