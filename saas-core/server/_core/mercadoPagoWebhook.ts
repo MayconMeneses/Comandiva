@@ -98,7 +98,7 @@ export async function handleMercadoPagoBillingWebhook(req: Request, res: Respons
     }
   } catch (error) {
     console.error("[billing-webhook] Falha ao processar notificação do Mercado Pago:", error);
-    void alertSystemError("Falha no webhook de cobrança (Mercado Pago)", error instanceof Error ? (error.stack ?? error.message) : String(error), "mercadoPagoBillingWebhook");
+    void alertSystemError("Falha no webhook de cobrança (Mercado Pago)", error instanceof Error ? (error.stack ?? error.message) : String(error), "mercadoPagoBillingWebhook", "Cobrança de assinatura (webhook Mercado Pago)");
   }
   res.status(200).json({ received: true });
 }

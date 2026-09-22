@@ -11,6 +11,52 @@ import type { StaffPermissionArea } from "./permissions";
 
 export type FeatureLockedInfo = { featureId: FeatureId; requiredPlanKey: string | null; requiredPlanName: string | null };
 
+// appRouter (../routers.ts) aninha cada arquivo de router num namespace
+// próprio — o primeiro segmento do `path` do tRPC já diz de qual área do
+// sistema veio o erro, sem precisar caçar isso no código toda vez que um
+// alerta chega. Mantido perto do errorFormatter (único lugar que usa isso).
+const AREA_BY_NAMESPACE: Record<string, string> = {
+  admin: "Painel administrativo",
+  catalog: "Cardápio público",
+  order: "Pedido (checkout/acompanhamento)",
+  customer: "Cadastro de cliente",
+  dataRights: "Portal de dados pessoais (LGPD)",
+  table: "Mesas (QR Code + painel operacional)",
+  support: "Modo Suporte",
+  system: "Sistema",
+  auth: "Autenticação",
+};
+export function describeArea(path: string | undefined): string {
+  const namespace = path?.split(".")[0];
+  return (namespace && AREA_BY_NAMESPACE[namespace]) || "Pub X (área desconhecida)";
+}
+
+/**
+ * Decide se um erro de requisição merece alerta pro dono e dispara se sim —
+ * extraído do errorFormatter abaixo só pra dar pra testar essa decisão
+ * isoladamente (server/trpc-error-alert.test.ts), sem precisar simular uma
+ * requisição HTTP real (createCaller() NÃO passa pelo errorFormatter — só o
+ * adaptador HTTP de verdade faz isso).
+ */
+export function alertOnUnintentionalInternalError(error: { code: string; cause?: unknown }, path: string | undefined): boolean {
+  // Uma exceção não tratada (erro do driver do banco, de uma API externa
+  // etc.) chega aqui auto-empacotada pelo próprio tRPC como TRPCError com
+  // `cause` = o erro original — nesse caso error.message é a mensagem CRUA
+  // do erro interno. Um TRPCError lançado por nós de propósito (ex.:
+  // "Banco de dados indisponível") nunca define `cause`, então não cai
+  // aqui e mantém a mensagem curada normalmente.
+  const isUnintentionalInternalError = error.code === "INTERNAL_SERVER_ERROR" && error.cause instanceof Error && !(error.cause instanceof ZodError);
+  if (isUnintentionalInternalError) {
+    console.error("[trpc] Erro interno não tratado:", error.cause);
+    // Mesmo canal (Telegram/e-mail/webhook) já usado pra uncaughtException —
+    // aqui é o caso "menor" (um endpoint falhou, servidor continua de pé),
+    // por isso kind próprio ("trpcInternalError") com seu próprio throttle
+    // de 10min, em vez de competir pela janela do crash total do processo.
+    void sendOwnerAlert(`Erro interno numa requisição (${path ?? "endpoint desconhecido"})`, (error.cause as Error).stack ?? (error.cause as Error).message, "trpcInternalError", undefined, describeArea(path));
+  }
+  return isUnintentionalInternalError;
+}
+
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error, path }) {
@@ -19,21 +65,7 @@ const t = initTRPC.context<TrpcContext>().create({
     // em cada issue — sem isso, shape.message vira o JSON bruto de issues[],
     // que os formulários mostram direto pro usuário final (ex: campo "usuário").
     const zodMessage = error.cause instanceof ZodError ? error.cause.issues[0]?.message : undefined;
-    // Uma exceção não tratada (erro do driver do banco, de uma API externa
-    // etc.) chega aqui auto-empacotada pelo próprio tRPC como TRPCError com
-    // `cause` = o erro original — nesse caso error.message é a mensagem CRUA
-    // do erro interno. Um TRPCError lançado por nós de propósito (ex.:
-    // "Banco de dados indisponível") nunca define `cause`, então não cai
-    // aqui e mantém a mensagem curada normalmente.
-    const isUnintentionalInternalError = error.code === "INTERNAL_SERVER_ERROR" && error.cause instanceof Error && !(error.cause instanceof ZodError);
-    if (isUnintentionalInternalError) {
-      console.error("[trpc] Erro interno não tratado:", error.cause);
-      // Mesmo canal (Telegram/e-mail/webhook) já usado pra uncaughtException —
-      // aqui é o caso "menor" (um endpoint falhou, servidor continua de pé),
-      // por isso kind próprio ("trpcInternalError") com seu próprio throttle
-      // de 10min, em vez de competir pela janela do crash total do processo.
-      void sendOwnerAlert("Erro interno numa requisição", `Endpoint: ${path ?? "desconhecido"}\n\n${(error.cause as Error).stack ?? (error.cause as Error).message}`, "trpcInternalError");
-    }
+    const isUnintentionalInternalError = alertOnUnintentionalInternalError(error, path);
     return {
       ...shape,
       message: zodMessage ?? (isUnintentionalInternalError ? "Erro interno. Tente novamente." : shape.message),

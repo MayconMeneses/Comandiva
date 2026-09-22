@@ -50,12 +50,12 @@ const lastAlertAtByKind = new Map<string, number>();
 const ALERT_THROTTLE_MS = 10 * 60 * 1000;
 
 /** Ponto único de alerta de malfuncionamento (crash do processo ou erro interno numa requisição) — sempre pelo Telegram, nunca bloqueia quem chamou. */
-export function alertSystemError(subject: string, detail: string, kind: string): Promise<void> {
+export function alertSystemError(subject: string, detail: string, kind: string, area?: string): Promise<void> {
   const now = Date.now();
   const lastAlertAt = lastAlertAtByKind.get(kind) ?? 0;
   if (now - lastAlertAt < ALERT_THROTTLE_MS) return Promise.resolve();
   lastAlertAtByKind.set(kind, now);
-  return sendTelegramMessage(buildSystemErrorMessage({ subject, detail }))
+  return sendTelegramMessage(buildSystemErrorMessage({ subject, detail, area }))
     .then(outcome => {
       if (!outcome.sent) console.error("[telegram] Falha ao mandar alerta de erro:", outcome.reason);
     })
@@ -214,14 +214,39 @@ function redactSecrets(text: string): string {
 
 const MAX_ERROR_MESSAGE_LENGTH = 3500; // Telegram limita a 4096 caracteres; deixa folga pro resto do texto.
 
-export function buildSystemErrorMessage(params: { subject: string; detail: string }): string {
+/**
+ * Acha "server/pasta/arquivo.ts:linha" na primeira linha do stack trace que
+ * não é do node_modules — é o que deixa quem recebe o alerta ir direto no
+ * código, em vez de só ver a mensagem crua do erro (mesmo raciocínio de
+ * server/_core/alerts.ts no app principal).
+ */
+function extractSourceLocation(text: string): string | undefined {
+  for (const line of text.split("\n")) {
+    if (line.includes("node_modules")) continue;
+    const match = line.match(/((?:server|shared|client)[\\/][^\s():]+):(\d+):\d+/);
+    if (match) return `${match[1]!.replace(/\\/g, "/")}:${match[2]}`;
+  }
+  return undefined;
+}
+
+/**
+ * `area` identifica QUAL parte do saas-core (o mesmo processo hospeda o
+ * Painel Master, o site comercial de cadastro e a API interna/operador) —
+ * ver server/_core/trpc.ts::describeArea, que deriva isso do namespace tRPC.
+ * Omitido pros crashes de processo inteiro (uncaughtException/unhandledRejection),
+ * que não têm uma área específica — o processo caiu todo.
+ */
+export function buildSystemErrorMessage(params: { subject: string; detail: string; area?: string }): string {
   const environment = ENV.isProduction ? "Produção" : "Desenvolvimento";
   const horario = new Date().toLocaleString("pt-BR", { timeZone: "America/Fortaleza" });
+  const location = extractSourceLocation(params.detail);
   const safeDetail = redactSecrets(params.detail).slice(0, MAX_ERROR_MESSAGE_LENGTH);
   return [
     "🔴 <b>Erro grave no saas-core</b>",
     `Ambiente: ${escapeHtml(environment)}`,
+    ...(params.area ? [`Área: ${escapeHtml(params.area)}`] : []),
     `Evento: ${escapeHtml(params.subject)}`,
+    ...(location ? [`Local: ${escapeHtml(location)}`] : []),
     "",
     `<pre>${escapeHtml(safeDetail)}</pre>`,
     "",

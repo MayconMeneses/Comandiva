@@ -91,7 +91,7 @@ export async function handleMercadoPagoWebhook(req: Request, res: Response) {
     // confirmação de pagamento pra sempre. Responder erro aciona o reenvio
     // automático deles (contrato documentado do Mercado Pago para webhooks).
     console.error("[webhook] Falha ao processar notificação do Mercado Pago:", error);
-    void sendOwnerAlert("Falha no webhook de pagamento (Mercado Pago)", error instanceof Error ? (error.stack ?? error.message) : String(error), "mercadoPagoWebhook");
+    void sendOwnerAlert("Falha no webhook de pagamento (Mercado Pago)", error instanceof Error ? (error.stack ?? error.message) : String(error), "mercadoPagoWebhook", undefined, "Pagamento de pedido (webhook Mercado Pago)");
     res.status(500).json({ received: false });
   }
 }
