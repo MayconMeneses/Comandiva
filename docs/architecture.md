@@ -27,6 +27,37 @@ O painel administrativo exige autenticação e as operações sensíveis usam au
 | Confirmação de telefone | Estrutura preparada, confirmação no fluxo atual | Integrar fornecedor oficial de SMS ou WhatsApp Business |
 | Pagamentos | Registro financeiro por pedido, com método e status | Conectar adquirente ou provedor Pix oficial quando necessário |
 
+## Camada de licenciamento (SaaS)
+
+Este deployment pode operar de duas formas: independente (tudo liberado, sem
+licenciamento nenhum) ou como cliente de um serviço central `saas-core`
+(billing/planos/limites), que hospeda o Painel Master e o site comercial. A
+diferença é só configuração — em branco, `SAAS_CORE_URL`/`SAAS_CORE_API_KEY`
+desligam a camada inteira sem mudar nenhum comportamento existente.
+
+Quando configurado, `server/_core/license.ts` sincroniza periodicamente
+(`LICENSE_SYNC_INTERVAL_MS`) o plano/features/limites atuais do restaurante
+com o `saas-core`, guardando o resultado em `subscription_cache` (tabela
+única, sempre 1 linha). O middleware `requireFeature`/`featureProcedure`
+(`server/_core/trpc.ts`) usa esse cache pra travar procedures específicas
+(ex.: Mesas/QR Code, Auditoria, Eventos) conforme o plano contratado — nunca
+bloqueia por falta de sincronização bem-sucedida (fail-open): se o
+`saas-core` estiver fora do ar, o último snapshot bom conhecido continua
+valendo.
+
+**Modo Suporte** (`server/routers/support.ts`, tRPC module `support`) é o
+mecanismo pelo qual o dono da plataforma (Painel Master do `saas-core`) abre
+uma sessão de diagnóstico temporária neste restaurante — tempo limitado,
+uso único, com toda mutação reportada de volta pro `saas-core` pra auditoria
+central. Fica de fora, mesmo em Modo Suporte: gestão de equipe/credenciais
+(`team.*`), gateways de pagamento e a chave Pix — ver `server/_core/trpc.ts`
+(`adminOnlyProcedure`, sem fallback de sessão de suporte).
+
+**Mesas / QR Code** (`server/routers/table.ts`, tRPC module `table`) é um
+conjunto de recursos pagos (Profissional/Premium) pra pedido, chamada de
+garçom, conta e reserva feitos pelo próprio cliente escaneando o QR Code da
+mesa — travado pelo mesmo mecanismo de feature-gate acima.
+
 ## Impressão de pedidos
 
 Ao aceitar um pedido, o sistema registra uma tarefa na fila de impressão com o conteúdo do comprovante. O painel já oferece comprovante em layout estreito, adequado à impressão térmica pelo navegador. A interface de integração também disponibiliza tarefas pendentes e confirmação de impressão para ser usada por um agente local instalado no computador do restaurante.
