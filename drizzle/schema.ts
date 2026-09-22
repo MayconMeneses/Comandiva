@@ -84,6 +84,11 @@ export const restaurantSettings = mysqlTable("restaurant_settings", {
   // que um tema novo for adicionado ao catálogo). "classico" é sempre o valor
   // que reproduz a aparência original (pré-seletor de tema).
   colorTheme: varchar("colorTheme", { length: 20 }).notNull().default("classico"),
+  // Fundo personalizado (hex #rrggbb), sobrepõe só a família fundo/superfície/
+  // texto do tema acima — NULL usa o `background` do tema escolhido, sem
+  // mudança nenhuma (mesmo comportamento de sempre). Também recurso pago
+  // "custom_theme", mesma trava de colorTheme. Ver shared/deriveSurfacePalette.ts.
+  customBackgroundColor: varchar("customBackgroundColor", { length: 7 }),
   createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
   updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
 });
@@ -582,6 +587,34 @@ export const orderChangeLogs = mysqlTable(
     // ordena globalmente por createdAt sem orderId fixo.
     index("order_change_logs_created_idx").on(table.createdAt),
   ],
+);
+
+/**
+ * Auditoria de ações administrativas sensíveis (equipe/permissões, gateway
+ * de pagamento, chave Pix) — antes só existia auditoria de pedidos
+ * (order_status_history/order_change_logs acima); criar/pausar/excluir uma
+ * conta admin, ou trocar a credencial de um gateway/a chave Pix, não
+ * deixava rastro nenhum (achado M1 da auditoria de segurança). Mesmo
+ * formato de platform_audit_log do saas-core. NUNCA grava o valor de uma
+ * credencial/senha em beforeJson/afterJson — só o fato de que mudou.
+ */
+export const accountAuditLog = mysqlTable(
+  "account_audit_log",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Nulo quando o ator não pôde ser resolvido (não deveria acontecer, já
+    // que todas as mutations auditadas exigem adminOnlyProcedure/adminProcedure).
+    actorUserId: int("actorUserId"),
+    actorName: varchar("actorName", { length: 160 }).notNull(),
+    action: varchar("action", { length: 80 }).notNull(),
+    entityType: varchar("entityType", { length: 40 }),
+    entityId: int("entityId"),
+    beforeJson: text("beforeJson"),
+    afterJson: text("afterJson"),
+    ip: varchar("ip", { length: 64 }),
+    createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
+  },
+  table => [index("account_audit_log_created_idx").on(table.createdAt)],
 );
 
 export const printJobs = mysqlTable(

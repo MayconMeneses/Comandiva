@@ -170,14 +170,16 @@ function DashboardLayoutContent({
     .filter(item => !item.adminOnly || isAdmin)
     .filter(item => !item.areas || isAdmin || item.areas.some(area => permissions.includes(area)));
   const settings = trpc.catalog.settings.useQuery();
-  useEffect(() => { applyColorTheme(settings.data?.colorTheme); }, [settings.data?.colorTheme]);
+  useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
   const license = trpc.admin.mySnapshot.useQuery(undefined, { staleTime: 60_000 });
   const lockedFeatureIds = new Set(Object.keys(license.data?.lockedFeatures ?? {}));
-  // Trial vencido sem pagamento — bloqueia todo o conteúdo, exceto a própria
-  // tela "Meu plano" (senão o dono não teria como assinar pra sair do bloqueio).
-  // Nunca bloqueia em Modo Suporte — é exatamente quando alguém da equipe
-  // pode estar logado ajudando esse restaurante a resolver isso.
-  const isTrialEnded = !supportInfo && license.data?.status === "ended";
+  // Assinatura fora do ar (trial vencido sem pagamento, cancelada ou suspensa
+  // no Mercado Pago) — bloqueia todo o conteúdo, exceto a própria tela "Meu
+  // plano" (senão o dono não teria como assinar pra sair do bloqueio). Nunca
+  // bloqueia em Modo Suporte — é exatamente quando alguém da equipe pode
+  // estar logado ajudando esse restaurante a resolver isso.
+  const ACCESS_BLOCKED_STATUSES = new Set(["ended", "canceled", "suspended"]);
+  const isAccessBlocked = !supportInfo && ACCESS_BLOCKED_STATUSES.has(license.data?.status ?? "");
   const [lockInfo, setLockInfo] = useState<FeatureLockedInfo | null>(null);
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
@@ -343,7 +345,7 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-4">{isTrialEnded && location !== "/admin/plano" ? <TrialEndedBlock /> : children}</main>
+        <main className="flex-1 p-4">{isAccessBlocked && location !== "/admin/plano" ? <TrialEndedBlock status={license.data?.status ?? "ended"} /> : children}</main>
       </SidebarInset>
       <UpgradeNudgeModal open={Boolean(lockInfo)} onOpenChange={open => { if (!open) setLockInfo(null); }} info={lockInfo} />
     </>

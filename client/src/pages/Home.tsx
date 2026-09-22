@@ -26,7 +26,7 @@ export default function Home() {
   const [, setLocation] = useLocation(); const { itemCount } = useCart(); const { theme } = useTheme(); const [selected, setSelected] = useState<MenuProduct | null>(null); const [editingItem, setEditingItem] = useState<CartItem | null>(null); const [cartOpen, setCartOpen] = useState(false); const [justAdded, setJustAdded] = useState<string | null>(null);
   useEffect(() => { const handleCartUpdate = (event: Event) => setJustAdded((event as CustomEvent<{ name: string }>).detail.name); window.addEventListener("mm:cart-updated", handleCartUpdate); return () => window.removeEventListener("mm:cart-updated", handleCartUpdate); }, []);
   const settings = trpc.catalog.settings.useQuery(); const catalog = trpc.catalog.list.useQuery();
-  useEffect(() => { applyColorTheme(settings.data?.colorTheme); }, [settings.data?.colorTheme]);
+  useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
   const categories = (catalog.data ?? []) as MenuCategory[];
   if (settings.isLoading || catalog.isLoading) return <div className="grid min-h-screen place-items-center bg-background"><div className="text-center"><div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /><p className="text-sm text-muted-foreground">Preparando o cardápio…</p></div></div>;
   if (settings.error || catalog.error) return <div className="grid min-h-screen place-items-center px-6 text-center"><div><h1 className="font-display text-3xl">Não foi possível abrir o cardápio.</h1><p className="mt-3 text-muted-foreground">Atualize a página em alguns instantes.</p></div></div>;

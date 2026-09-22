@@ -21,7 +21,7 @@ export const adminSettingsRouter = router({
     await sendOwnerAlert("Teste de notificação", "Se você recebeu esta mensagem, os alertas do MM System Creator estão funcionando corretamente.", "test");
     return { success: true };
   }),
-  updateSettings: adminProcedure.input(z.object({ isAcceptingOrders: z.boolean(), deliveryFeeCents: z.number().int().min(0).max(999999), minimumOrderCents: z.number().int().min(0).max(9999999), estimatedDeliveryMin: z.number().int().min(1).max(240), estimatedDeliveryMax: z.number().int().min(1).max(360), openingHours: z.string().min(2).max(255), logoUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), pixKey: z.string().max(255).optional(), pixQrCodeUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), lunchStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), lunchEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), promotionCategoryImageUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), address: z.string().max(2000).optional(), phone: z.string().max(24).optional(), aboutText: z.string().max(5000).optional(), colorTheme: z.enum(COLOR_THEME_KEYS).optional() }).superRefine((value, context) => {
+  updateSettings: adminProcedure.input(z.object({ isAcceptingOrders: z.boolean(), deliveryFeeCents: z.number().int().min(0).max(999999), minimumOrderCents: z.number().int().min(0).max(9999999), estimatedDeliveryMin: z.number().int().min(1).max(240), estimatedDeliveryMax: z.number().int().min(1).max(360), openingHours: z.string().min(2).max(255), logoUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), pixKey: z.string().max(255).optional(), pixQrCodeUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), lunchStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), lunchEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), promotionCategoryImageUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), address: z.string().max(2000).optional(), phone: z.string().max(24).optional(), aboutText: z.string().max(5000).optional(), colorTheme: z.enum(COLOR_THEME_KEYS).optional(), customBackgroundColor: z.string().regex(/^#[0-9a-f]{6}$/i).nullable().optional() }).superRefine((value, context) => {
     if (value.estimatedDeliveryMin > value.estimatedDeliveryMax) context.addIssue({ code: "custom", path: ["estimatedDeliveryMin"], message: "O tempo mínimo deve ser menor ou igual ao máximo." });
   })).mutation(async ({ input, ctx }) => {
     // Chave Pix fica de fora do Modo Suporte mesmo com escrita liberada no
@@ -42,8 +42,16 @@ export const adminSettingsRouter = router({
     if (input.colorTheme !== undefined && input.colorTheme !== settings.colorTheme && input.colorTheme !== "classico") {
       await assertFeatureAvailable("custom_theme");
     }
-    const { logoUrl, pixKey, pixQrCodeUrl, lunchStartTime, lunchEndTime, dinnerStartTime, dinnerEndTime, promotionCategoryImageUrl, address, phone, aboutText, ...rest } = input;
+    // Mesma regra de trava do colorTheme acima: só na troca pra um valor novo
+    // não-nulo, nunca ao reenviar o valor já salvo nem ao voltar pro padrão
+    // (customBackgroundColor: null) — não pode travar quem já tinha configurado
+    // antes de um downgrade de plano.
+    if (input.customBackgroundColor !== undefined && input.customBackgroundColor !== settings.customBackgroundColor && input.customBackgroundColor !== null) {
+      await assertFeatureAvailable("custom_theme");
+    }
+    const { logoUrl, pixKey, pixQrCodeUrl, lunchStartTime, lunchEndTime, dinnerStartTime, dinnerEndTime, promotionCategoryImageUrl, address, phone, aboutText, customBackgroundColor, ...rest } = input;
     const pixUpdates: Record<string, unknown> = {};
+    if (customBackgroundColor !== undefined) pixUpdates.customBackgroundColor = customBackgroundColor ? customBackgroundColor.toLowerCase() : null;
     if (pixKey !== undefined) pixUpdates.pixKey = pixKey ? pixKey : null;
     if (pixQrCodeUrl !== undefined) pixUpdates.pixQrCodeUrl = pixQrCodeUrl ? pixQrCodeUrl : null;
     if (lunchStartTime !== undefined) pixUpdates.lunchStartTime = lunchStartTime ? lunchStartTime : null;

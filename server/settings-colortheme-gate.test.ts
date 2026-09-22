@@ -104,3 +104,67 @@ describe("admin.updateSettings — colorTheme respeita o gate de plano só na tr
     expect(mocks.getLicenseSnapshot).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Mesmo grandfather clause acima, agora pro fundo personalizado
+ * (customBackgroundColor) — a mesma feature paga (custom_theme), mesma regra:
+ * só trava na troca pra um valor novo não-nulo.
+ */
+describe("admin.updateSettings — customBackgroundColor respeita o gate de plano só na troca pra um valor novo", () => {
+  const setWhere = vi.fn();
+  const set = vi.fn();
+  const update = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setWhere.mockResolvedValue(undefined);
+    set.mockReturnValue({ where: setWhere });
+    update.mockReturnValue({ set });
+    mocks.getDb.mockResolvedValue({ update });
+  });
+
+  it("bloqueia definir uma cor nova quando o plano atual não inclui custom_theme", async () => {
+    mocks.getStoreSettings.mockResolvedValue({ id: 1, customBackgroundColor: null });
+    mocks.getLicenseSnapshot.mockResolvedValue(LOCKED_SNAPSHOT);
+
+    await expect(
+      adminRouter.createCaller(adminContext).updateSettings({ ...BASE_INPUT, customBackgroundColor: "#0b1220" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", cause: { featureLocked: { featureId: "custom_theme" } } });
+    expect(setWhere).not.toHaveBeenCalled();
+  });
+
+  it("permite definir uma cor nova quando o plano inclui custom_theme", async () => {
+    mocks.getStoreSettings.mockResolvedValue({ id: 1, customBackgroundColor: null });
+    mocks.getLicenseSnapshot.mockResolvedValue(UNLOCKED_SNAPSHOT);
+
+    await expect(
+      adminRouter.createCaller(adminContext).updateSettings({ ...BASE_INPUT, customBackgroundColor: "#0b1220" }),
+    ).resolves.toEqual({ success: true });
+  });
+
+  it("nunca bloqueia voltar pro padrão (customBackgroundColor: null), mesmo sem o plano incluir custom_theme", async () => {
+    mocks.getStoreSettings.mockResolvedValue({ id: 1, customBackgroundColor: "#0b1220" });
+    mocks.getLicenseSnapshot.mockResolvedValue(LOCKED_SNAPSHOT);
+
+    await expect(
+      adminRouter.createCaller(adminContext).updateSettings({ ...BASE_INPUT, customBackgroundColor: null }),
+    ).resolves.toEqual({ success: true });
+  });
+
+  it("nunca bloqueia reenviar a mesma cor já salva (downgrade de plano não quebra configuração existente)", async () => {
+    mocks.getStoreSettings.mockResolvedValue({ id: 1, customBackgroundColor: "#0b1220" });
+    mocks.getLicenseSnapshot.mockResolvedValue(LOCKED_SNAPSHOT);
+
+    await expect(
+      adminRouter.createCaller(adminContext).updateSettings({ ...BASE_INPUT, customBackgroundColor: "#0b1220" }),
+    ).resolves.toEqual({ success: true });
+  });
+
+  it("não checa o gate quando customBackgroundColor nem é enviado (outros campos do formulário)", async () => {
+    mocks.getStoreSettings.mockResolvedValue({ id: 1, customBackgroundColor: null });
+    mocks.getLicenseSnapshot.mockResolvedValue(LOCKED_SNAPSHOT);
+
+    await expect(adminRouter.createCaller(adminContext).updateSettings(BASE_INPUT)).resolves.toEqual({ success: true });
+    expect(mocks.getLicenseSnapshot).not.toHaveBeenCalled();
+  });
+});
