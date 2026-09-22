@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "./client";
 import { signupPayments, subscriptionEvents, type SignupPayload } from "../../drizzle/schema";
-import { createRestaurantWithSubscription } from "./restaurants";
+import { createRestaurantWithSubscription, hasRestaurantForContact } from "./restaurants";
 import { getSubscriptionForRestaurant } from "./subscriptions";
 import { getPlanByKey } from "./plans";
 import { recordPlatformAuditLog } from "./auditLog";
@@ -59,6 +59,13 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
   if (row.status === "restaurant_created") return { found: true as const, alreadyProcessed: true as const, restaurantId: row.restaurantId! };
 
   const payload = row.payload as SignupPayload;
+  // E-mail/telefone que já teve restaurante antes (mesmo cancelado/encerrado)
+  // não ganha um novo trial de 30 dias — sem isso, cancelar e cadastrar de
+  // novo dava teste grátis indefinidamente (achado da auditoria de
+  // segurança). Só se aplica ao cadastro público — criação manual via
+  // Painel Master/CLI continua concedendo trial normalmente, um operador
+  // humano já decide conscientemente ali.
+  const isRepeatContact = await hasRestaurantForContact(payload.contactEmail, payload.contactPhone);
   const result = await createRestaurantWithSubscription({
     name: payload.name,
     planKey: payload.planKey,
@@ -66,6 +73,7 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
     contactEmail: payload.contactEmail,
     contactPhone: payload.contactPhone,
     actor: "public:signup",
+    grantTrial: !isRepeatContact,
   });
 
   const now = Date.now();
@@ -127,6 +135,7 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
       contactPhone: payload.contactPhone,
       amountCents: row.amountCents,
       apiKey: result.apiKey,
+      repeatContact: isRepeatContact,
     }),
   );
 

@@ -40,12 +40,37 @@ export type CreateRestaurantInput = {
   contactEmail?: string;
   contactPhone?: string;
   actor?: string;
+  // false = pula o trial de 30 dias, assinatura nasce direto em "ended"
+  // (bloqueada, precisa assinar de verdade pra usar) — usado pelo cadastro
+  // público quando o mesmo contato já teve restaurante antes (ver
+  // hasRestaurantForContact/achado da auditoria: sem isso, cancelar e
+  // cadastrar de novo dava um teste grátis novo indefinidamente). Default
+  // true preserva o comportamento pra criação manual (Painel Master/CLI),
+  // onde um operador humano já está decidindo conscientemente.
+  grantTrial?: boolean;
 };
 
 /**
- * Cria um restaurante-cliente novo + sua assinatura inicial (status "trial"),
- * numa única operação. Devolve a API key em texto puro — a ÚNICA vez que ela
- * existe fora do hash guardado no banco; quem chama precisa copiar/salvar
+ * Existe algum restaurante (qualquer status, inclusive cancelado/encerrado)
+ * com este e-mail ou telefone de contato? Usado só pelo cadastro público
+ * pra decidir se concede um novo trial — nunca bloqueia o cadastro em si,
+ * só a gratuidade dos 30 dias.
+ */
+export async function hasRestaurantForContact(contactEmail?: string, contactPhone?: string): Promise<boolean> {
+  const email = contactEmail?.trim().toLowerCase();
+  const phone = contactPhone?.trim();
+  if (!email && !phone) return false;
+
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db.select({ id: restaurants.id, contactEmail: restaurants.contactEmail, contactPhone: restaurants.contactPhone }).from(restaurants);
+  return rows.some(row => (email && row.contactEmail?.trim().toLowerCase() === email) || (phone && row.contactPhone?.trim() === phone));
+}
+
+/**
+ * Cria um restaurante-cliente novo + sua assinatura inicial, numa única
+ * operação. Devolve a API key em texto puro — a ÚNICA vez que ela existe
+ * fora do hash guardado no banco; quem chama precisa copiar/salvar
  * imediatamente (mesmo padrão de senha provisória exibida uma vez só).
  */
 export async function createRestaurantWithSubscription(input: CreateRestaurantInput) {
@@ -57,6 +82,7 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
 
   const { apiKey, apiKeyHash, apiKeyPrefix } = generateApiKey();
   const now = Date.now();
+  const grantTrial = input.grantTrial ?? true;
 
   const deliveryDueAt = addBusinessDays(now, DELIVERY_SLA_BUSINESS_DAYS);
 
@@ -78,11 +104,15 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
 
   // Período "zerado" de propósito (start = end = agora): o teste grátis de
   // verdade só passa a contar em markRestaurantDelivered, quando a
-  // configuração estiver pronta — nunca no cadastro em si.
+  // configuração estiver pronta — nunca no cadastro em si. Sem trial
+  // concedido (contato repetido), nasce direto em "ended": markRestaurantDelivered
+  // não mexe em status != "trial", então o bloqueio (ver computeSnapshotForRestaurant)
+  // já vale desde o primeiro acesso, antes mesmo da entrega.
+  const initialStatus = grantTrial ? "trial" : "ended";
   const subscriptionResult = await db.insert(subscriptions).values({
     restaurantId,
     planId: plan.id,
-    status: "trial",
+    status: initialStatus,
     startedAt: now,
     currentPeriodStart: now,
     currentPeriodEnd: now,
@@ -94,13 +124,13 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
 
   await db.insert(subscriptionEvents).values({
     subscriptionId,
-    eventType: "created",
-    afterJson: JSON.stringify({ planKey: plan.key, status: "trial", deliveryDueAt }),
+    eventType: grantTrial ? "created" : "created_no_trial_repeat_contact",
+    afterJson: JSON.stringify({ planKey: plan.key, status: initialStatus, deliveryDueAt }),
     actor: input.actor ?? "operator:cli",
     createdAt: now,
   });
 
-  return { restaurantId, apiKey, planKey: plan.key, status: "trial" as const, deliveryDueAt };
+  return { restaurantId, apiKey, planKey: plan.key, status: initialStatus, deliveryDueAt };
 }
 
 /**
