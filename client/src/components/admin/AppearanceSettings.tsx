@@ -103,7 +103,7 @@ export default function AppearanceSettings({ settings }: AppearanceSettingsProps
     applyLive(colorTheme, null);
   };
 
-  return <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
+  return <section className="rounded-2xl border border-border bg-card text-card-foreground p-6">
     <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Aparência</p>
     <h2 className="mt-1 font-display text-2xl font-bold">Cor de marca e fundo</h2>
     <p className="mt-1 text-sm text-muted-foreground">Aplica no cardápio público e no painel administrativo.</p>
@@ -131,7 +131,7 @@ export default function AppearanceSettings({ settings }: AppearanceSettingsProps
       {themeLocked
         ? <div className="mt-3"><LockedFeatureCard title="Cor de fundo personalizada" requiredPlanName={themeLocked.requiredPlanName} featureId="custom_theme" /></div>
         : <div className="mt-3 flex flex-wrap items-center gap-3">
-            <input type="color" value={HEX_PATTERN.test(hexDraft) ? hexDraft : (customBackgroundColor ?? "#f6f1e8")} onChange={event => pickBackground(event.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-[#d8c7b0] bg-white p-1" aria-label="Selecionar cor de fundo" />
+            <input type="color" value={HEX_PATTERN.test(hexDraft) ? hexDraft : (customBackgroundColor ?? "#f6f1e8")} onChange={event => pickBackground(event.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-border bg-card p-1" aria-label="Selecionar cor de fundo" />
             <Input
               value={hexDraft}
               onChange={event => {
@@ -140,10 +140,10 @@ export default function AppearanceSettings({ settings }: AppearanceSettingsProps
                 if (HEX_PATTERN.test(value)) pickBackground(value.toLowerCase());
               }}
               placeholder="#0b1220"
-              className="h-11 w-32 rounded-xl bg-white font-mono uppercase"
+              className="h-11 w-32 rounded-xl bg-card font-mono uppercase"
               maxLength={7}
             />
-            {customBackgroundColor ? <Button type="button" variant="outline" size="sm" onClick={restoreDefault} className="h-9 rounded-lg border-[#d8c7b0] bg-white text-xs">Restaurar padrão</Button> : null}
+            {customBackgroundColor ? <Button type="button" variant="outline" size="sm" onClick={restoreDefault} className="h-9 rounded-lg border-border bg-card text-xs">Restaurar padrão</Button> : null}
           </div>}
     </div>
 

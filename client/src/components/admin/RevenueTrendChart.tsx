@@ -23,13 +23,13 @@ export default function RevenueTrendChart() {
   const barWidth = data ? CHART_WIDTH / data.series.length - barGap : 0;
   const labelEvery = data && data.series.length > 14 ? 5 : 1;
 
-  return <div className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
+  return <div className="rounded-2xl border border-border bg-card p-6">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="font-display text-2xl font-bold">Movimento</h2>
-      <div className="flex gap-2">{(["week", "month", "year"] as const).map(value => <button key={value} type="button" onClick={() => setGranularity(value)} className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${granularity === value ? "bg-primary text-white" : "border border-[#d8c7b0] bg-white text-[#4a3d30] hover:border-[#bd8a7c]"}`}>{GRANULARITY_LABEL[value]}</button>)}</div>
+      <div className="flex gap-2">{(["week", "month", "year"] as const).map(value => <button key={value} type="button" onClick={() => setGranularity(value)} className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${granularity === value ? "bg-primary text-white" : "border border-border bg-card text-muted-foreground hover:border-[#bd8a7c]"}`}>{GRANULARITY_LABEL[value]}</button>)}</div>
     </div>
 
-    {trend.isLoading && <div className="mt-6 h-48 animate-pulse rounded-xl bg-[#f1e9dc]" />}
+    {trend.isLoading && <div className="mt-6 h-48 animate-pulse rounded-xl bg-muted" />}
     {trend.error && <p className="mt-6 text-sm text-red-700">Não foi possível carregar o movimento agora. {trend.error.message}</p>}
 
     {data && <>

@@ -53,10 +53,10 @@ export default function AuditLog() {
       ) : query.error ? (
         <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{query.error.message}</p>
       ) : entries.length ? (
-        <div className="overflow-x-auto rounded-2xl border border-[#e4d8c8] bg-[#fffdf8]">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-[#e4d8c8] text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3">Quando</th>
                 <th className="px-4 py-3">Pedido</th>
                 <th className="px-4 py-3">Ação</th>
@@ -65,7 +65,7 @@ export default function AuditLog() {
             </thead>
             <tbody>
               {entries.map(entry => (
-                <tr key={`${entry.kind}-${entry.id}`} className="border-b border-[#f0e6d8] last:border-0">
+                <tr key={`${entry.kind}-${entry.id}`} className="border-b border-border last:border-0">
                   <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString("pt-BR")}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 font-medium">{entry.orderPublicCode}</td>
                   <td className="px-4 py-2.5">
@@ -82,7 +82,7 @@ export default function AuditLog() {
           </table>
         </div>
       ) : (
-        <p className="rounded-xl border border-dashed border-[#d9cdbc] p-4 text-sm text-muted-foreground">Nenhuma ação registrada ainda.</p>
+        <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma ação registrada ainda.</p>
       )}
 
       <div className="mb-5 mt-10 flex items-end justify-between gap-4">
@@ -98,10 +98,10 @@ export default function AuditLog() {
       ) : accountQuery.error ? (
         <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{accountQuery.error.message}</p>
       ) : accountEntries.length ? (
-        <div className="overflow-x-auto rounded-2xl border border-[#e4d8c8] bg-[#fffdf8]">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-[#e4d8c8] text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3">Quando</th>
                 <th className="px-4 py-3">Ação</th>
                 <th className="px-4 py-3">Quem</th>
@@ -109,7 +109,7 @@ export default function AuditLog() {
             </thead>
             <tbody>
               {accountEntries.map(entry => (
-                <tr key={entry.id} className="border-b border-[#f0e6d8] last:border-0">
+                <tr key={entry.id} className="border-b border-border last:border-0">
                   <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-2.5">{ACCOUNT_ACTION_LABELS[entry.action] ?? entry.action}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{entry.actorName}</td>
@@ -119,7 +119,7 @@ export default function AuditLog() {
           </table>
         </div>
       ) : (
-        <p className="rounded-xl border border-dashed border-[#d9cdbc] p-4 text-sm text-muted-foreground">Nenhuma ação administrativa registrada ainda.</p>
+        <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma ação administrativa registrada ainda.</p>
       )}
     </section>
   );

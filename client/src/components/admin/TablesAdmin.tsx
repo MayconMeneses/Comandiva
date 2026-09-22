@@ -9,12 +9,12 @@ import { useState } from "react";
 
 function CollapsibleSection({ title, description, count, children }: { title: string; description: string; count?: number; children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  return <section className="overflow-hidden rounded-2xl border border-[#e4d8c8] bg-[#fffdf8]">
+  return <section className="overflow-hidden rounded-2xl border border-border bg-card">
     <button type="button" onClick={() => setIsOpen(value => !value)} aria-expanded={isOpen} className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-[#f6ede0]">
       <div className="min-w-0"><h3 className="font-display text-2xl font-bold">{title}{typeof count === "number" ? ` (${count})` : ""}</h3><p className="text-sm text-muted-foreground">{description}</p></div>
       <ChevronDown className={`h-5 w-5 shrink-0 text-[#8a5c3f] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
     </button>
-    <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}><div className="overflow-hidden"><div className="border-t border-[#eee5d9] p-4">{children}</div></div></div>
+    <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}><div className="overflow-hidden"><div className="border-t border-border p-4">{children}</div></div></div>
   </section>;
 }
 

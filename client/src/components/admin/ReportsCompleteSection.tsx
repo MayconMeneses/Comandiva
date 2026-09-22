@@ -7,13 +7,13 @@ type Period = { range: "today" | "7days" | "30days" | "custom"; customDate?: str
 
 function StatBlock({ title, rows }: { title: string; rows: { label: string; revenueCents: number; orderCount: number }[] }) {
   return (
-    <div className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-5">
+    <div className="rounded-2xl border border-border bg-card p-5">
       <h3 className="font-display text-lg font-bold">{title}</h3>
       {rows.length ? (
         <div className="mt-3 space-y-2">
           {rows.map(row => (
             <div key={row.label} className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-[#5b4639]">{row.label}</span>
+              <span className="text-muted-foreground">{row.label}</span>
               <span className="flex items-center gap-2">
                 <span className="font-semibold">{money(row.revenueCents)}</span>
                 <span className="text-xs text-muted-foreground">({row.orderCount})</span>
@@ -56,17 +56,17 @@ export default function ReportsCompleteSection({ range, customDate }: Period) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Faturamento</p>
           <p className="mt-2 text-xl font-bold">{money(data.comparison.currentRevenueCents)}</p>
           <div className="mt-1"><ChangeBadge pct={data.comparison.revenueChangePct} /></div>
         </div>
-        <div className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pedidos</p>
           <p className="mt-2 text-xl font-bold">{data.comparison.currentOrderCount}</p>
           <div className="mt-1"><ChangeBadge pct={data.comparison.orderCountChangePct} /></div>
         </div>
-        <div className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket médio</p>
           <p className="mt-2 text-xl font-bold">{money(data.comparison.currentAvgTicketCents)}</p>
           <div className="mt-1"><ChangeBadge pct={data.comparison.avgTicketChangePct} /></div>
@@ -80,10 +80,10 @@ export default function ReportsCompleteSection({ range, customDate }: Period) {
         <StatBlock title="Categorias mais vendidas" rows={data.topCategories.map(row => ({ label: row.name, revenueCents: row.revenueCents, orderCount: row.quantity }))} />
       </div>
 
-      <div className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-5">
+      <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="font-display text-lg font-bold">Faturamento por dia</h3>
         {data.byDay.length ? (
-          <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[420px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-1.5">Dia</th><th className="py-1.5 text-right">Faturamento</th><th className="py-1.5 text-right">Pedidos</th></tr></thead><tbody>{data.byDay.map(row => <tr key={row.date} className="border-t border-[#f0e6d8]"><td className="py-1.5">{row.label}</td><td className="py-1.5 text-right font-semibold">{money(row.revenueCents)}</td><td className="py-1.5 text-right text-muted-foreground">{row.orderCount}</td></tr>)}</tbody></table></div>
+          <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[420px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-1.5">Dia</th><th className="py-1.5 text-right">Faturamento</th><th className="py-1.5 text-right">Pedidos</th></tr></thead><tbody>{data.byDay.map(row => <tr key={row.date} className="border-t border-border"><td className="py-1.5">{row.label}</td><td className="py-1.5 text-right font-semibold">{money(row.revenueCents)}</td><td className="py-1.5 text-right text-muted-foreground">{row.orderCount}</td></tr>)}</tbody></table></div>
         ) : <p className="mt-3 text-sm text-muted-foreground">Sem dados no período.</p>}
       </div>
     </div>

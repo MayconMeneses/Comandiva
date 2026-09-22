@@ -22,18 +22,18 @@ export default function PixSettings({ settings }: { settings: { isAcceptingOrder
     event.preventDefault();
     update.mutate({ isAcceptingOrders: settings.isAcceptingOrders, deliveryFeeCents: settings.deliveryFeeCents, minimumOrderCents: settings.minimumOrderCents, estimatedDeliveryMin: settings.estimatedDeliveryMin, estimatedDeliveryMax: settings.estimatedDeliveryMax, openingHours: settings.openingHours ?? "", logoUrl: settings.logoUrl ?? "", pixKey: form.pixKey, pixQrCodeUrl: form.pixQrCodeUrl });
   };
-  return <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
+  return <section className="rounded-2xl border border-border bg-card p-6">
     <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Recebimento</p>
     <h2 className="mt-1 font-display text-2xl font-bold">Pix</h2>
     <p className="mt-1 text-sm text-muted-foreground">Preencha a chave e/ou envie o QR Code para exibir na tela de pagamento quando o cliente escolher Pix.</p>
     <form onSubmit={submit} className="mt-5 space-y-4">
-      <div><Label>Chave Pix</Label><Input value={form.pixKey} onChange={event => setForm({ ...form, pixKey: event.target.value })} placeholder="CPF, e-mail, telefone ou chave aleatória" className="mt-1.5 h-11 rounded-xl bg-white" /></div>
+      <div><Label>Chave Pix</Label><Input value={form.pixKey} onChange={event => setForm({ ...form, pixKey: event.target.value })} placeholder="CPF, e-mail, telefone ou chave aleatória" className="mt-1.5 h-11 rounded-xl bg-card" /></div>
       <div>
         <Label>QR Code</Label>
         <div className="mt-1.5 flex items-center gap-4">
-          <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-dashed border-[#d8c7b0] bg-[#fffdfa]">{form.pixQrCodeUrl ? <img src={form.pixQrCodeUrl} alt="QR Code Pix" className="h-full w-full object-contain" /> : <span className="text-[10px] text-muted-foreground">Sem QR</span>}</div>
+          <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-dashed border-border bg-card">{form.pixQrCodeUrl ? <img src={form.pixQrCodeUrl} alt="QR Code Pix" className="h-full w-full object-contain" /> : <span className="text-[10px] text-muted-foreground">Sem QR</span>}</div>
           <div className="flex-1">
-            <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handlePixQrFile(event.target.files?.[0])} className="h-10 rounded-xl bg-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" />
+            <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handlePixQrFile(event.target.files?.[0])} className="h-10 rounded-xl bg-card file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" />
             {uploadPixQr.isPending && <p className="mt-1 text-xs text-muted-foreground">Enviando imagem…</p>}
             {fileError && <p className="mt-1 text-xs text-red-700">{fileError}</p>}
             {uploadPixQr.error && <p className="mt-1 text-xs text-red-700">{uploadPixQr.error.message}</p>}

@@ -96,27 +96,27 @@ export default function FiscalSettings() {
       )}
 
       {pending.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-4">
+        <div className="mb-6 rounded-2xl border border-border bg-card p-4">
           <p className="text-sm font-semibold">Pendente: {pending.join(", ")}.</p>
         </div>
       )}
 
       {!pending.length && !isProduction && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 text-sm"><Rocket className="h-4 w-4 text-primary" /><span>Tudo configurado. Emita uma nota de teste (homologação) e, quando confirmar que funcionou, ative as notas reais.</span></div>
           <Button onClick={() => confirmProduction.mutate()} disabled={confirmProduction.isPending} className="h-9 rounded-xl bg-primary hover:bg-primary-hover">{confirmProduction.isPending ? "Ativando…" : "Já testei, começar a emitir notas de verdade"}</Button>
         </div>
       )}
 
       <div className="space-y-8">
-        <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
+        <section className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2"><Landmark className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Dados cadastrais</h2></div>
           <form onSubmit={submitCadastral} onFocus={startCadastral} className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div><Label>CNPJ</Label><Input value={cnpj} onChange={event => setCnpj(formatCnpj(event.target.value))} placeholder="00.000.000/0000-00" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
-            <div><Label>Inscrição Estadual</Label><Input value={inscricaoEstadual} onChange={event => setInscricaoEstadual(event.target.value)} placeholder="Número da IE" className="mt-1.5 h-10 rounded-xl bg-white" /></div>
+            <div><Label>CNPJ</Label><Input value={cnpj} onChange={event => setCnpj(formatCnpj(event.target.value))} placeholder="00.000.000/0000-00" className="mt-1.5 h-10 rounded-xl bg-card" /></div>
+            <div><Label>Inscrição Estadual</Label><Input value={inscricaoEstadual} onChange={event => setInscricaoEstadual(event.target.value)} placeholder="Número da IE" className="mt-1.5 h-10 rounded-xl bg-card" /></div>
             <div className="sm:col-span-2">
               <Label>Regime tributário</Label>
-              <select value={regimeTributario} onChange={event => setRegimeTributario(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <select value={regimeTributario} onChange={event => setRegimeTributario(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <option value="">Selecione (confirme com seu contador)</option>
                 {Object.entries(REGIME_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
@@ -126,7 +126,7 @@ export default function FiscalSettings() {
           </form>
         </section>
 
-        <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
+        <section className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2"><FileKey className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Certificado digital A1</h2></div>
           <p className="mt-1 text-sm text-muted-foreground">Arquivo .pfx/.p12 emitido no CNPJ do restaurante por uma autoridade certificadora (ICP-Brasil). Fica criptografado no banco — nunca volta pra tela depois de salvo.</p>
           {settings.hasCertificate && (
@@ -135,14 +135,14 @@ export default function FiscalSettings() {
             </div>
           )}
           <form onSubmit={submitCertificate} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div><Label>Arquivo (.pfx ou .p12)</Label><Input type="file" accept=".pfx,.p12" onChange={event => setCertFile(event.target.files?.[0] ?? null)} className="mt-1.5 h-10 rounded-xl bg-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" /></div>
-            <div><Label>Senha do certificado</Label><Input type="password" value={certPassword} onChange={event => setCertPassword(event.target.value)} placeholder={settings.hasCertificate ? "Deixe em branco para manter o atual" : "Senha do arquivo"} className="mt-1.5 h-10 rounded-xl bg-white" /></div>
+            <div><Label>Arquivo (.pfx ou .p12)</Label><Input type="file" accept=".pfx,.p12" onChange={event => setCertFile(event.target.files?.[0] ?? null)} className="mt-1.5 h-10 rounded-xl bg-card file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" /></div>
+            <div><Label>Senha do certificado</Label><Input type="password" value={certPassword} onChange={event => setCertPassword(event.target.value)} placeholder={settings.hasCertificate ? "Deixe em branco para manter o atual" : "Senha do arquivo"} className="mt-1.5 h-10 rounded-xl bg-card" /></div>
             {uploadCert.error && <p className="sm:col-span-2 text-sm text-red-700">{uploadCert.error.message}</p>}
             <Button disabled={uploadCert.isPending} className="sm:col-span-2 h-10 rounded-xl bg-primary hover:bg-primary-hover">{uploadCert.isPending ? "Enviando…" : "Salvar certificado"}</Button>
           </form>
         </section>
 
-        <section className="rounded-2xl border border-[#e4d8c8] bg-[#fffdf8] p-6">
+        <section className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Conta Focus NFe</h2></div>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">Quem realmente conversa com a Receita/SEFAZ pra emitir a nota. Crie uma conta gratuita em <a href="https://focusnfe.com.br" target="_blank" rel="noreferrer" className="font-semibold text-primary underline">focusnfe.com.br</a>, cadastre o CNPJ do restaurante lá e cole o token de acesso abaixo.</p>
           {settings.hasProviderApiToken && (
@@ -151,7 +151,7 @@ export default function FiscalSettings() {
             </div>
           )}
           <form onSubmit={submitProviderToken} className="mt-4 grid gap-3">
-            <div><Label>Token da conta Focus NFe</Label><Input type="password" value={providerToken} onChange={event => setProviderToken(event.target.value)} placeholder={settings.hasProviderApiToken ? "Deixe em branco para manter o atual" : "Token de acesso (homologação ou produção)"} className="mt-1.5 h-10 rounded-xl bg-white" /></div>
+            <div><Label>Token da conta Focus NFe</Label><Input type="password" value={providerToken} onChange={event => setProviderToken(event.target.value)} placeholder={settings.hasProviderApiToken ? "Deixe em branco para manter o atual" : "Token de acesso (homologação ou produção)"} className="mt-1.5 h-10 rounded-xl bg-card" /></div>
             {saveProviderToken.error && <p className="text-sm text-red-700">{saveProviderToken.error.message}</p>}
             <Button disabled={saveProviderToken.isPending} className="h-10 rounded-xl bg-primary hover:bg-primary-hover">{saveProviderToken.isPending ? "Salvando…" : "Salvar token"}</Button>
           </form>
