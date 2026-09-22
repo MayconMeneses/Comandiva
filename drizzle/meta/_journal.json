@@ -281,6 +281,13 @@
       "when": 1790001466142,
       "tag": "0039_pink_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1790074773220,
+      "tag": "0040_nifty_fat_cobra",
+      "breakpoints": true
     }
   ]
 }

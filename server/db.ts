@@ -4,6 +4,7 @@
 export { getDb, cached, CATALOG_CACHE_TTL_MS } from "./db/client";
 export type { Db, DbOrTx } from "./db/client";
 export * from "./db/audit";
+export * from "./db/accountAudit";
 export * from "./db/dataRights";
 export * from "./db/fiscal";
 export * from "./db/fiscalTaxCategories";

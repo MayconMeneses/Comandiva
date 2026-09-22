@@ -4,7 +4,7 @@ import { z } from "zod";
 import { restaurantSettings } from "../../../drizzle/schema";
 import { COLOR_THEME_KEYS } from "../../../shared/colorThemes";
 import { sendOwnerAlert } from "../../_core/alerts";
-import { getDb, getStoreSettings } from "../../db";
+import { getDb, getStoreSettings, recordAccountAudit } from "../../db";
 import { adminOnlyProcedure, adminProcedure, assertFeatureAvailable, router } from "../../_core/trpc";
 import { assertRealImageMatchesDeclaredType, storagePut } from "../../storage";
 
@@ -63,6 +63,13 @@ export const adminSettingsRouter = router({
     if (phone !== undefined) pixUpdates.phone = phone ? phone : null;
     if (aboutText !== undefined) pixUpdates.aboutText = aboutText ? aboutText : null;
     await db.update(restaurantSettings).set({ ...rest, logoUrl: logoUrl ? logoUrl : null, ...pixUpdates, updatedAt: Date.now() }).where(eq(restaurantSettings.id, settings.id));
+    // Só audita a troca da chave Pix em si — nunca o valor dela (mesmo
+    // raciocínio de paymentGateways.ts) e nunca os outros ~15 campos não
+    // sensíveis deste endpoint (horário, taxa de entrega etc.), pra não virar
+    // ruído no log (achado M1 da auditoria).
+    if (ctx.user && (pixKey !== undefined || pixQrCodeUrl !== undefined)) {
+      await recordAccountAudit({ actorUserId: ctx.user.id, actorName: ctx.user.name ?? ctx.user.openId, action: "settings.pixChanged", entityType: "restaurantSettings", entityId: settings.id, after: { pixKeyChanged: pixKey !== undefined, pixQrCodeChanged: pixQrCodeUrl !== undefined }, ip: ctx.req.ip });
+    }
     return { success: true };
   }),
   // Sem "image/svg+xml" — mesmo raciocínio de uploadCategoryImage
