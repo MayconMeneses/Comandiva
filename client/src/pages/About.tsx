@@ -9,7 +9,7 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-[#fffdf8]">
+      <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
           <span className="font-display text-xl font-bold">MM System Creator</span>
@@ -40,20 +40,20 @@ export default function About() {
         </div>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(53,34,17,.06)]">
+          <div className="rounded-2xl bg-[#fffdf8] p-5 text-[#231d18] shadow-[0_8px_22px_rgba(53,34,17,.06)]">
             <Clock3 className="h-5 w-5 text-primary" />
             <h3 className="mt-3 font-semibold">Funcionamento</h3>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">{settings.data?.openingHours || "Consulte a página inicial"}</p>
+            <p className="mt-1 text-sm leading-5 text-[#8a7a68]">{settings.data?.openingHours || "Consulte a página inicial"}</p>
           </div>
-          <div className="rounded-2xl bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(53,34,17,.06)]">
+          <div className="rounded-2xl bg-[#fffdf8] p-5 text-[#231d18] shadow-[0_8px_22px_rgba(53,34,17,.06)]">
             <MapPin className="h-5 w-5 text-primary" />
             <h3 className="mt-3 font-semibold">Onde estamos</h3>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">{settings.data?.address || "Croatá/CE"}</p>
+            <p className="mt-1 text-sm leading-5 text-[#8a7a68]">{settings.data?.address || "Croatá/CE"}</p>
           </div>
-          <div className="rounded-2xl bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(53,34,17,.06)]">
+          <div className="rounded-2xl bg-[#fffdf8] p-5 text-[#231d18] shadow-[0_8px_22px_rgba(53,34,17,.06)]">
             <Phone className="h-5 w-5 text-primary" />
             <h3 className="mt-3 font-semibold">Fale com a gente</h3>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">{settings.data?.phone || "Veja o contato na página inicial"}</p>
+            <p className="mt-1 text-sm leading-5 text-[#8a7a68]">{settings.data?.phone || "Veja o contato na página inicial"}</p>
           </div>
         </div>
       </main>

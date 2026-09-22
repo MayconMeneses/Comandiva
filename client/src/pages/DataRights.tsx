@@ -60,7 +60,7 @@ export default function DataRights() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-[#fffdf8]">
+      <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/politica-de-privacidade")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Política de Privacidade</button>
           <span className="font-display text-xl font-bold">MM System Creator</span>
@@ -74,10 +74,10 @@ export default function DataRights() {
         <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Confirme que o telefone é seu com um código de verificação e veja, baixe ou apague os dados que temos sobre você.</p>
 
         {step === "phone" && (
-          <form onSubmit={submitPhone} noValidate className="mt-7 grid gap-3 rounded-2xl bg-[#fffdf8] p-5 shadow-[0_12px_35px_rgba(53,34,17,.06)] sm:grid-cols-[1fr_auto]">
+          <form onSubmit={submitPhone} noValidate className="mt-7 grid gap-3 rounded-2xl bg-[#fffdf8] p-5 text-[#231d18] shadow-[0_12px_35px_rgba(53,34,17,.06)] sm:grid-cols-[1fr_auto]">
             <div>
               <Label htmlFor="dr-phone">Telefone usado nos seus pedidos</Label>
-              <Input id="dr-phone" value={phone} onChange={event => { setPhone(event.target.value); setPhoneError(null); }} inputMode="tel" autoComplete="tel" placeholder="(85) 99999-9999" className="mt-2 h-10 rounded-xl bg-[#fffdfa]" />
+              <Input id="dr-phone" value={phone} onChange={event => { setPhone(event.target.value); setPhoneError(null); }} inputMode="tel" autoComplete="tel" placeholder="(85) 99999-9999" className="mt-2 h-10 rounded-xl bg-[#fffdfa] text-[#231d18]" />
               {phoneError && <p role="alert" className="mt-2 text-sm font-medium text-[#a43720]">{phoneError}</p>}
               {requestCode.error && <p className="mt-2 text-sm font-medium text-[#a43720]">{requestCode.error.message}</p>}
             </div>
@@ -86,13 +86,13 @@ export default function DataRights() {
         )}
 
         {step === "code" && (
-          <div className="mt-7 rounded-2xl bg-[#fffdf8] p-5 shadow-[0_12px_35px_rgba(53,34,17,.06)]">
+          <div className="mt-7 rounded-2xl bg-[#fffdf8] p-5 text-[#231d18] shadow-[0_12px_35px_rgba(53,34,17,.06)]">
             {smsWarning && <p className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-5 text-amber-900">Não conseguimos confirmar o envio do SMS agora. Se o código não chegar, use o botão de WhatsApp na Política de Privacidade para falar com a gente diretamente.</p>}
-            <p className="text-sm leading-6 text-muted-foreground">Enviamos um código de 6 dígitos por SMS para <strong className="text-foreground">{phone}</strong>. Ele vale por 10 minutos.</p>
+            <p className="text-sm leading-6 text-[#8a7a68]">Enviamos um código de 6 dígitos por SMS para <strong className="text-[#231d18]">{phone}</strong>. Ele vale por 10 minutos.</p>
             <form onSubmit={submitCode} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
               <div>
                 <Label htmlFor="dr-code">Código recebido</Label>
-                <Input id="dr-code" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="mt-2 h-10 rounded-xl bg-[#fffdfa] tracking-[0.3em]" />
+                <Input id="dr-code" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="mt-2 h-10 rounded-xl bg-[#fffdfa] text-[#231d18] tracking-[0.3em]" />
                 {verifyCode.error && <p role="alert" className="mt-2 text-sm font-medium text-[#a43720]">{verifyCode.error.message}</p>}
               </div>
               <Button disabled={code.length !== 6 || verifyCode.isPending} className="h-10 self-end rounded-xl bg-primary hover:bg-primary-hover">{verifyCode.isPending ? "Confirmando…" : "Confirmar código"}</Button>
@@ -109,15 +109,15 @@ export default function DataRights() {
               <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{myData.error.message}</p>
             ) : (
               <>
-                <section className="rounded-2xl bg-[#fffdf8] p-5 shadow-[0_12px_35px_rgba(53,34,17,.06)]">
+                <section className="rounded-2xl bg-[#fffdf8] p-5 text-[#231d18] shadow-[0_12px_35px_rgba(53,34,17,.06)]">
                   <h2 className="font-display text-xl font-bold">Seus dados cadastrados</h2>
                   {myData.data?.customer ? (
-                    <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                      <p><strong className="text-foreground">Nome:</strong> {myData.data.customer.name}</p>
-                      <p><strong className="text-foreground">Telefone:</strong> {phone}</p>
-                      {myData.data.customer.addresses?.[0] && <p><strong className="text-foreground">Endereço mais recente:</strong> {myData.data.customer.addresses[0].street}, {myData.data.customer.addresses[0].number} — {myData.data.customer.addresses[0].neighborhood}, {myData.data.customer.addresses[0].city}/{myData.data.customer.addresses[0].state}</p>}
+                    <div className="mt-3 space-y-1 text-sm text-[#8a7a68]">
+                      <p><strong className="text-[#231d18]">Nome:</strong> {myData.data.customer.name}</p>
+                      <p><strong className="text-[#231d18]">Telefone:</strong> {phone}</p>
+                      {myData.data.customer.addresses?.[0] && <p><strong className="text-[#231d18]">Endereço mais recente:</strong> {myData.data.customer.addresses[0].street}, {myData.data.customer.addresses[0].number} — {myData.data.customer.addresses[0].neighborhood}, {myData.data.customer.addresses[0].city}/{myData.data.customer.addresses[0].state}</p>}
                     </div>
-                  ) : <p className="mt-3 text-sm text-muted-foreground">Não encontramos um cadastro salvo para este telefone.</p>}
+                  ) : <p className="mt-3 text-sm text-[#8a7a68]">Não encontramos um cadastro salvo para este telefone.</p>}
 
                   <h3 className="mt-5 font-semibold">Pedidos ({myData.data?.orders.length ?? 0})</h3>
                   {myData.data?.orders.length ? (
@@ -125,15 +125,15 @@ export default function DataRights() {
                       {myData.data.orders.map(order => (
                         <div key={order.id} className="flex items-center justify-between gap-3 rounded-lg border border-[#eee4d8] px-3 py-1.5 text-xs">
                           <span className="font-semibold">{order.publicCode}</span>
-                          <span className="text-muted-foreground">{new Date(order.createdAt).toLocaleDateString("pt-BR")}</span>
-                          <span className="text-muted-foreground">{STATUS_LABELS[order.status as keyof typeof STATUS_LABELS] ?? order.status}</span>
+                          <span className="text-[#8a7a68]">{new Date(order.createdAt).toLocaleDateString("pt-BR")}</span>
+                          <span className="text-[#8a7a68]">{STATUS_LABELS[order.status as keyof typeof STATUS_LABELS] ?? order.status}</span>
                           <span className="font-semibold">{money(order.totalCents)}</span>
                         </div>
                       ))}
                     </div>
-                  ) : <p className="mt-2 text-sm text-muted-foreground">Nenhum pedido encontrado para este telefone.</p>}
+                  ) : <p className="mt-2 text-sm text-[#8a7a68]">Nenhum pedido encontrado para este telefone.</p>}
 
-                  <Button type="button" variant="outline" onClick={downloadData} className="mt-4 h-9 rounded-lg border-[#d8c7b0] bg-white"><Download className="mr-1.5 h-3.5 w-3.5" />Baixar meus dados (JSON)</Button>
+                  <Button type="button" variant="outline" onClick={downloadData} className="mt-4 h-9 rounded-lg border-[#d8c7b0] bg-white text-[#231d18]"><Download className="mr-1.5 h-3.5 w-3.5" />Baixar meus dados (JSON)</Button>
                 </section>
 
                 <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
@@ -155,10 +155,10 @@ export default function DataRights() {
         )}
 
         {step === "deleted" && (
-          <div className="mt-7 flex flex-col items-center gap-3 rounded-2xl bg-[#fffdf8] p-8 text-center shadow-[0_12px_35px_rgba(53,34,17,.06)]">
+          <div className="mt-7 flex flex-col items-center gap-3 rounded-2xl bg-[#fffdf8] p-8 text-center text-[#231d18] shadow-[0_12px_35px_rgba(53,34,17,.06)]">
             <CheckCircle2 className="h-10 w-10 text-emerald-600" />
             <h2 className="font-display text-2xl font-bold">Dados removidos</h2>
-            <p className="max-w-sm text-sm leading-6 text-muted-foreground">Seu nome, telefone e endereço foram anonimizados. Obrigado por usar o MM System Creator.</p>
+            <p className="max-w-sm text-sm leading-6 text-[#8a7a68]">Seu nome, telefone e endereço foram anonimizados. Obrigado por usar o MM System Creator.</p>
             <Button onClick={() => setLocation("/")} className="mt-2 h-10 rounded-xl bg-primary hover:bg-primary-hover">Voltar ao cardápio</Button>
           </div>
         )}

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { trpc } from "@/lib/trpc";
-import { COLOR_THEME_KEYS, COLOR_THEMES, DEFAULT_COLOR_THEME, type ColorThemeKey } from "@shared/colorThemes";
+import { BACKGROUND_PRESETS, COLOR_THEME_KEYS, COLOR_THEMES, DEFAULT_COLOR_THEME, type ColorThemeKey } from "@shared/colorThemes";
 import { Check, Lock } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -130,21 +130,31 @@ export default function AppearanceSettings({ settings }: AppearanceSettingsProps
       <p className="mt-1 text-xs text-muted-foreground">Muda o fundo do sistema de verdade — texto, superfícies e bordas se ajustam automaticamente pra continuar legíveis.</p>
       {themeLocked
         ? <div className="mt-3"><LockedFeatureCard title="Cor de fundo personalizada" requiredPlanName={themeLocked.requiredPlanName} featureId="custom_theme" /></div>
-        : <div className="mt-3 flex flex-wrap items-center gap-3">
-            <input type="color" value={HEX_PATTERN.test(hexDraft) ? hexDraft : (customBackgroundColor ?? "#f6f1e8")} onChange={event => pickBackground(event.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-border bg-card p-1" aria-label="Selecionar cor de fundo" />
-            <Input
-              value={hexDraft}
-              onChange={event => {
-                const value = event.target.value;
-                setHexDraft(value);
-                if (HEX_PATTERN.test(value)) pickBackground(value.toLowerCase());
-              }}
-              placeholder="#0b1220"
-              className="h-11 w-32 rounded-xl bg-card font-mono uppercase"
-              maxLength={7}
-            />
-            {customBackgroundColor ? <Button type="button" variant="outline" size="sm" onClick={restoreDefault} className="h-9 rounded-lg border-border bg-card text-xs">Restaurar padrão</Button> : null}
-          </div>}
+        : <>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {BACKGROUND_PRESETS.map(preset => {
+                const isSelected = customBackgroundColor?.toLowerCase() === preset.hex;
+                return <button key={preset.key} type="button" title={preset.label} aria-label={preset.label} aria-pressed={isSelected} onClick={() => pickBackground(preset.hex)} className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 transition-transform hover:scale-105 ${isSelected ? "border-[#2c1b14]" : "border-transparent"}`} style={{ backgroundColor: preset.hex }}>
+                  {isSelected ? <Check className="h-4 w-4 text-white" /> : null}
+                </button>;
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <input type="color" value={HEX_PATTERN.test(hexDraft) ? hexDraft : (customBackgroundColor ?? "#f6f1e8")} onChange={event => pickBackground(event.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-border bg-card p-1" aria-label="Selecionar cor de fundo" />
+              <Input
+                value={hexDraft}
+                onChange={event => {
+                  const value = event.target.value;
+                  setHexDraft(value);
+                  if (HEX_PATTERN.test(value)) pickBackground(value.toLowerCase());
+                }}
+                placeholder="#0b1220"
+                className="h-11 w-32 rounded-xl bg-card font-mono uppercase"
+                maxLength={7}
+              />
+              {customBackgroundColor ? <Button type="button" variant="outline" size="sm" onClick={restoreDefault} className="h-9 rounded-lg border-border bg-card text-xs">Restaurar padrão</Button> : null}
+            </div>
+          </>}
     </div>
 
     {update.error && <p className="mt-4 text-sm text-red-700">{update.error.message}</p>}
