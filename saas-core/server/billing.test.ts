@@ -160,8 +160,14 @@ function buildWebhookDbStub(initial: { id: number; restaurantId: number; status:
         if (table === webhookEvents) {
           const key = `${values.gateway}:${values.gatewayEventId}`;
           if (insertedWebhookKeys.has(key)) {
-            const duplicate = new Error("ER_DUP_ENTRY") as Error & { code?: string };
-            duplicate.code = "ER_DUP_ENTRY";
+            // Formato real do drizzle-orm 0.45.x: o `code` do driver mysql2
+            // vem em `error.cause`, não no erro em si (confirmado contra
+            // MySQL de verdade no app principal,
+            // server/order-idempotency-real-db.test.ts). Um mock com
+            // `error.code` direto deixava passar um bug real em
+            // markWebhookEventOnce — nunca detectava duplicata de verdade.
+            const duplicate = new Error("ER_DUP_ENTRY") as Error & { cause?: { code?: string } };
+            duplicate.cause = { code: "ER_DUP_ENTRY" };
             throw duplicate;
           }
           insertedWebhookKeys.add(key);

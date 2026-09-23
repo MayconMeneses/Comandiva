@@ -23,7 +23,14 @@ export async function markWebhookEventOnce(gateway: string, eventKey: string, db
     await db.insert(webhookEvents).values({ gateway, eventKey, createdAt: Date.now() });
     return { alreadyProcessed: false };
   } catch (error) {
-    const code = (error as { code?: string })?.code;
+    // drizzle-orm (0.45.x) embrulha o erro cru do mysql2 num DrizzleQueryError
+    // — o `code` do driver (ER_DUP_ENTRY) fica em `error.cause`, não no erro
+    // que a gente pega direto aqui. Sem isso, TODO webhook duplicado do
+    // Mercado Pago caía no `throw error` abaixo em vez de ser ignorado
+    // graciosamente — achado (e corrigido no mesmo padrão) trabalhando na
+    // chave de idempotência de order.create, testado contra MySQL real
+    // (server/order-idempotency-real-db.test.ts).
+    const code = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
     if (code === "ER_DUP_ENTRY") return { alreadyProcessed: true };
     throw error;
   }
