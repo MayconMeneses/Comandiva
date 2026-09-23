@@ -504,9 +504,16 @@ export const orders = mysqlTable(
     cancelledAt: bigint("cancelledAt", { mode: "number", unsigned: true }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
+    // Chave de idempotência gerada pelo cliente (checkout público, balcão,
+    // rodada de mesa) — nulo pra chamadas que ainda não mandam isso (ex.:
+    // admin.tables.addManualRound). Protege contra clique duplo/resubmit
+    // criando dois pedidos: ver insertPricedOrder em server/routers/order.ts.
+    // Pré-requisito da Fase 3 (Outbox offline) do roadmap offline-first.
+    clientOperationId: varchar("clientOperationId", { length: 64 }),
   },
   table => [
     uniqueIndex("orders_public_code_unique").on(table.publicCode),
+    uniqueIndex("orders_client_operation_id_unique").on(table.clientOperationId),
     index("orders_status_created_idx").on(table.status, table.createdAt),
     // Substitui orders_customer_created_idx (customerId): nenhuma consulta do
     // sistema filtra orders por customerId — todo o fluxo de rastreio de

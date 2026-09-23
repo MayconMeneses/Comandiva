@@ -67,7 +67,15 @@ jobs:
       # push, só valida localmente no runner.
       - name: Build imagem Docker (app principal)
         run: docker build -f infra/Dockerfile .
+      # DATABASE_URL aqui (mesmo serviço mysql:8.4 já de pé pro job inteiro,
+      # já migrado no step acima) é só pro teste de idempotência de pedido
+      # (server/order-idempotency-real-db.test.ts) — precisa de MySQL de
+      # verdade pra provar que um erro de chave duplicada dentro de uma
+      # transação não a invalida (comportamento específico do InnoDB, mock
+      # não prova isso). O resto da suíte não usa banco nenhum.
       - run: pnpm test
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/ci_app_principal
 
   saas-core:
     name: saas-core (billing / Painel Master)

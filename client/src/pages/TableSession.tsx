@@ -6,9 +6,10 @@ import ProductDialog from "@/components/ProductDialog";
 import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
+import { generateClientId } from "@/lib/randomId";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { ArrowLeft, BellRing, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRoute } from "wouter";
 import type { MenuCategory, MenuProduct } from "@/lib/menuTypes";
@@ -71,8 +72,13 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   const [selectedProduct, setSelectedProduct] = useState<MenuProduct | null>(null);
   const [showCart, setShowCart] = useState(false);
 
+  // Uma mesa manda várias rodadas na mesma sessão — regenerar só no sucesso
+  // evita que a rodada seguinte seja tratada como duplicata da anterior (ver
+  // comentário em insertPricedOrder, server/routers/order.ts).
+  const operationIdRef = useRef(generateClientId());
   const addRound = trpc.table.addRound.useMutation({
     onSuccess: () => {
+      operationIdRef.current = generateClientId();
       clearCart();
       setShowCart(false);
       void utils.table.resolve.invalidate({ token });
@@ -98,7 +104,7 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   const billRequested = session.status === "AWAITING_PAYMENT";
   const submitRound = () => {
     if (!items.length) return;
-    addRound.mutate({ token, items: items.map(item => ({ productId: item.productId, quantity: item.quantity, addonOptionIds: item.addons.map(addon => addon.id), note: item.note })) });
+    addRound.mutate({ token, items: items.map(item => ({ productId: item.productId, quantity: item.quantity, addonOptionIds: item.addons.map(addon => addon.id), note: item.note })), operationId: operationIdRef.current });
   };
 
   return <div className="min-h-screen bg-background pb-28" style={marca ? { background: MARCA_GRADIENT } : undefined}>

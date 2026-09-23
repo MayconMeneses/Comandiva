@@ -288,6 +288,13 @@
       "when": 1790074773220,
       "tag": "0040_nifty_fat_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1790158555180,
+      "tag": "0041_kind_naoko",
+      "breakpoints": true
     }
   ]
 }

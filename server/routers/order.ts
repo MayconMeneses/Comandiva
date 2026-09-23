@@ -48,6 +48,11 @@ const checkoutSchema = z.object({
   // handler abaixo) — um cliente anônimo não consegue se marcar como
   // "pedido de balcão" só por mandar esse campo no corpo da requisição.
   origin: z.enum(["SITE", "BALCAO"]).optional(),
+  // Chave de idempotência gerada pelo cliente (client/src/lib/randomId.ts) —
+  // ver comentário em insertPricedOrder. Não usa .uuid() estrito de
+  // propósito: o fallback sem crypto.randomUUID (contexto HTTP sem TLS) não
+  // gera um UUID válido.
+  operationId: z.string().min(8).max(64).regex(/^[a-zA-Z0-9-]+$/),
 }).superRefine((value, context) => {
   if (value.fulfillmentType === "DELIVERY" && !value.address) {
     context.addIssue({ code: "custom", path: ["address"], message: "O endereço é obrigatório para delivery." });
@@ -179,6 +184,20 @@ type PricedOrder = Awaited<ReturnType<typeof priceOrder>>;
  * lógica de gravação — a única diferença entre um checkout público e uma
  * rodada de mesa é *quem* dispara a criação e se existe endereço/comprovante
  * de pagamento próprio, não como o pedido em si é gravado.
+ *
+ * `clientOperationId` (opcional) é a chave de idempotência gerada pelo
+ * cliente — pré-requisito da Fase 3 do roadmap offline-first (ver plano em
+ * C:\Users\maico\.claude\plans\lovely-purring-dusk.md). Um clique duplo ou um
+ * resubmit depois de a resposta se perder no caminho de volta (mas o
+ * servidor já ter commitado) reenvia o MESMO id — em vez de criar um
+ * segundo pedido, o INSERT em `orders` bate na unique constraint
+ * (`orders_client_operation_id_unique`), o erro é capturado e o pedido já
+ * existente é devolvido (`isDuplicate: true`), sem repetir os inserts de
+ * itens/adicionais/histórico. Mesmo padrão já em produção em
+ * `markWebhookEventOnce` (server/payments/repositories/webhookEvents.ts),
+ * inclusive dentro de uma transação já aberta — um erro de chave duplicada
+ * não invalida o resto da transação no MySQL (diferente do Postgres).
+ * Quando `clientOperationId` não é informado, comportamento idêntico a antes.
  */
 export async function insertPricedOrder(params: {
   db: DbOrTx;
@@ -195,40 +214,58 @@ export async function insertPricedOrder(params: {
   address?: CheckoutInput["address"];
   tableSessionId?: number | null;
   historyNote?: string;
+  clientOperationId?: string | null;
   now: number;
-}) {
-  const { db, priced, now } = params;
+}): Promise<{ orderId: number; code: string; isDuplicate: boolean }> {
+  const { db, priced, now, clientOperationId } = params;
   const code = `PX-${publicCode()}`;
-  const orderResult = await db.insert(orders).values({
-    publicCode: code,
-    customerId: params.customerId,
-    customerName: params.customerName,
-    customerPhone: params.customerPhone,
-    fulfillmentType: params.fulfillmentType,
-    origin: params.origin,
-    paymentMethod: params.paymentMethod,
-    subtotalCents: priced.subtotalCents,
-    deliveryFeeCents: priced.deliveryFeeCents,
-    discountCents: priced.discountCents,
-    totalCents: priced.totalCents,
-    termsVersion: CURRENT_TERMS_VERSION,
-    changeForCents: params.changeForCents ?? null,
-    customerNote: params.customerNote ?? null,
-    deliveryRouteId: priced.deliveryRoute?.id ?? null,
-    deliveryRouteName: priced.deliveryRoute?.name ?? null,
-    tableSessionId: params.tableSessionId ?? null,
-    deliveryPostalCode: params.address?.postalCode ?? null,
-    deliveryStreet: params.address?.street ?? null,
-    deliveryNumber: params.address?.number ?? null,
-    deliveryComplement: params.address?.complement ?? null,
-    deliveryNeighborhood: params.address?.neighborhood ?? null,
-    deliveryCity: params.address?.city ?? null,
-    deliveryState: params.address?.state ?? null,
-    deliveryReference: params.address?.reference ?? null,
-    createdAt: now,
-    updatedAt: now,
-  });
-  const orderId = Number(orderResult[0].insertId);
+  let orderId: number;
+  try {
+    const orderResult = await db.insert(orders).values({
+      publicCode: code,
+      customerId: params.customerId,
+      customerName: params.customerName,
+      customerPhone: params.customerPhone,
+      fulfillmentType: params.fulfillmentType,
+      origin: params.origin,
+      paymentMethod: params.paymentMethod,
+      subtotalCents: priced.subtotalCents,
+      deliveryFeeCents: priced.deliveryFeeCents,
+      discountCents: priced.discountCents,
+      totalCents: priced.totalCents,
+      termsVersion: CURRENT_TERMS_VERSION,
+      changeForCents: params.changeForCents ?? null,
+      customerNote: params.customerNote ?? null,
+      deliveryRouteId: priced.deliveryRoute?.id ?? null,
+      deliveryRouteName: priced.deliveryRoute?.name ?? null,
+      tableSessionId: params.tableSessionId ?? null,
+      deliveryPostalCode: params.address?.postalCode ?? null,
+      deliveryStreet: params.address?.street ?? null,
+      deliveryNumber: params.address?.number ?? null,
+      deliveryComplement: params.address?.complement ?? null,
+      deliveryNeighborhood: params.address?.neighborhood ?? null,
+      deliveryCity: params.address?.city ?? null,
+      deliveryState: params.address?.state ?? null,
+      deliveryReference: params.address?.reference ?? null,
+      clientOperationId: clientOperationId ?? null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    orderId = Number(orderResult[0].insertId);
+  } catch (error) {
+    // drizzle-orm (0.45.x) embrulha o erro cru do mysql2 num DrizzleQueryError
+    // — o `code` do driver (ER_DUP_ENTRY) fica em `error.cause`, não no erro
+    // que a gente pega direto (confirmado rodando contra MySQL de verdade;
+    // markWebhookEventOnce, o padrão que copiei, checa só `error.code` e por
+    // isso pode ter o mesmo problema — não mexido aqui, fora do escopo desta
+    // sessão, mas vale revisar).
+    const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
+    if (clientOperationId && errorCode === "ER_DUP_ENTRY") {
+      const [existing] = await db.select({ id: orders.id, publicCode: orders.publicCode }).from(orders).where(eq(orders.clientOperationId, clientOperationId)).limit(1);
+      if (existing) return { orderId: existing.id, code: existing.publicCode, isDuplicate: true };
+    }
+    throw error;
+  }
   for (const pricedItem of priced.items) {
     const inserted = await db.insert(orderItems).values({
       orderId,
@@ -253,7 +290,7 @@ export async function insertPricedOrder(params: {
     }
   }
   await db.insert(orderStatusHistory).values({ orderId, status: "PENDING", note: params.historyNote ?? "Pedido criado pelo cliente", createdAt: now });
-  return { orderId, code };
+  return { orderId, code, isDuplicate: false };
 }
 
 export const orderRouter = router({
@@ -311,17 +348,24 @@ export const orderRouter = router({
         changeForCents: input.changeForCents,
         customerNote: input.customerNote,
         address: input.address,
+        clientOperationId: input.operationId,
         now,
       });
-      await tx.insert(payments).values({
-        orderId: insertedOrder.orderId,
-        method: input.paymentMethod,
-        status: "PENDING",
-        amountCents: priced.totalCents,
-        metadata: JSON.stringify({ changeForCents: input.changeForCents ?? null }),
-        createdAt: now,
-        updatedAt: now,
-      });
+      // Resubmit com o mesmo operationId: o pedido (e o pagamento PENDING
+      // dele) já existem da primeira vez — inserir de novo aqui bateria na
+      // unique constraint de payments_order_unique e derrubaria a transação
+      // com um erro cru, em vez de devolver o pedido já criado.
+      if (!insertedOrder.isDuplicate) {
+        await tx.insert(payments).values({
+          orderId: insertedOrder.orderId,
+          method: input.paymentMethod,
+          status: "PENDING",
+          amountCents: priced.totalCents,
+          metadata: JSON.stringify({ changeForCents: input.changeForCents ?? null }),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
       return insertedOrder;
     });
     return { publicCode: code, orderId, estimatedDeliveryMin: priced.estimatedDeliveryMin, estimatedDeliveryMax: priced.estimatedDeliveryMax };

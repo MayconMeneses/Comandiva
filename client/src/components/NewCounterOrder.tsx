@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import ProductDialog from "@/components/ProductDialog";
 import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
+import { generateClientId } from "@/lib/randomId";
 import { addressMatchesRoute } from "@shared/orderDomain";
 import { Minus, Phone, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { MenuProduct } from "@/lib/menuTypes";
 
@@ -40,8 +41,14 @@ export default function NewCounterOrder() {
     if (customer) { setName(customer.name); if (primary) setAddress({ postalCode: primary.postalCode ?? "", street: primary.street, number: primary.number, complement: primary.complement ?? "", neighborhood: primary.neighborhood, city: primary.city, state: primary.state, reference: primary.reference ?? "" }); }
   }, [lookup.data]);
 
+  // Diálogo fica montado e é reaberto várias vezes ("Novo pedido") sem
+  // recarregar a página — regenerar só no sucesso evita que o SEGUNDO
+  // pedido de balcão do dia seja tratado como duplicata do primeiro (ver
+  // comentário em insertPricedOrder, server/routers/order.ts).
+  const operationIdRef = useRef(generateClientId());
   const createOrder = trpc.order.create.useMutation({
     onSuccess: result => {
+      operationIdRef.current = generateClientId();
       clearCart();
       void utils.admin.orders.invalidate();
       void utils.admin.operationalSnapshot.invalidate();
@@ -71,6 +78,7 @@ export default function NewCounterOrder() {
       address: fulfillmentType === "DELIVERY" ? address : undefined,
       changeForCents: changeForCentsValue,
       origin: "BALCAO",
+      operationId: operationIdRef.current,
     });
   };
 
