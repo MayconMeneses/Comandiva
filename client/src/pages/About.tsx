@@ -1,14 +1,19 @@
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { trpc } from "@/lib/trpc";
+import { applyColorTheme } from "@/lib/applyColorTheme";
+import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { ArrowLeft, Clock3, MapPin, Phone } from "lucide-react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 export default function About() {
   const [, setLocation] = useLocation();
   const settings = trpc.catalog.settings.useQuery();
+  const marca = isMarcaBackground(settings.data?.customBackgroundColor);
+  useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={marca ? { background: MARCA_GRADIENT } : undefined}>
       <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
@@ -27,7 +32,7 @@ export default function About() {
       </section>
 
       <main className="page-shell max-w-3xl py-10">
-        <div className="space-y-6 whitespace-pre-line text-sm leading-7 text-[#3a2f25]">
+        <div className={`space-y-6 whitespace-pre-line text-sm leading-7 ${marca ? "text-[#e4e9f5]" : "text-[#3a2f25]"}`}>
           {settings.data?.aboutText ? settings.data.aboutText : (
             <>
               <p>O <strong>MM System Creator</strong> nasceu da vontade de servir comida boa, feita com atenção aos detalhes, num ambiente descontraído — o tipo de lugar para relaxar depois de um dia cheio, reunir os amigos ou simplesmente pedir aquele hambúrguer que você está com vontade. Estamos em Croatá/CE, preparando cada prato na hora, para chegar até você (ou até a sua mesa) com a mesma qualidade de quem come no salão.</p>

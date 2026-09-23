@@ -9,11 +9,11 @@ const appSource = readFileSync(new URL("../client/src/App.tsx", import.meta.url)
 
 describe("cartões públicos do cardápio", () => {
   it("oferece escolha persistente entre tema claro e escuro abaixo da marca", () => {
-    expect(themeSwitcherSource).toContain("function ThemeSwitcher()");
+    expect(themeSwitcherSource).toContain("function ThemeSwitcher(");
     expect(themeSwitcherSource).toContain("Tema do site");
     expect(themeSwitcherSource).toContain('aria-pressed={theme === "light"}');
     expect(themeSwitcherSource).toContain('aria-pressed={theme === "dark"}');
-    expect(homeSource).toContain("<ThemeSwitcher />");
+    expect(homeSource).toContain("<ThemeSwitcher ");
     expect(appSource).toContain('<ThemeProvider defaultTheme="light" switchable>');
     expect(styleSource).toContain(".mm-theme-option[data-active=\"true\"]");
     expect(styleSource).toContain(".mm-storefront.theme-dark");

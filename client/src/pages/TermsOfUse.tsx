@@ -1,11 +1,18 @@
 import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { CURRENT_TERMS_VERSION } from "@shared/legal";
+import { trpc } from "@/lib/trpc";
+import { applyColorTheme } from "@/lib/applyColorTheme";
+import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 
 export default function TermsOfUse() {
   const [, setLocation] = useLocation();
+  const settings = trpc.catalog.settings.useQuery();
+  const marca = isMarcaBackground(settings.data?.customBackgroundColor);
+  useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={marca ? { background: MARCA_GRADIENT } : undefined}>
       <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
@@ -18,7 +25,7 @@ export default function TermsOfUse() {
         <h1 className="mt-2 font-display text-4xl font-bold">Termos de Uso</h1>
         <p className="mt-2 text-sm text-muted-foreground">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
 
-        <div className="prose prose-sm mt-8 max-w-none space-y-6 text-[#3a2f25]">
+        <div className={`prose prose-sm mt-8 max-w-none space-y-6 ${marca ? "text-[#e4e9f5]" : "text-[#3a2f25]"}`}>
           <section>
             <h2 className="font-display text-xl font-bold">1. Aceitação</h2>
             <p>Ao fazer um pedido pelo site do MM System Creator, você concorda com estes Termos de Uso e com a nossa <a href="/politica-de-privacidade" className="font-semibold text-primary underline">Política de Privacidade</a>.</p>

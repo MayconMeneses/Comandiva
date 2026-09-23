@@ -58,11 +58,11 @@ export function useCategoryScrollSpy(categories: MenuCategory[]) {
 type ScrollSpy = ReturnType<typeof useCategoryScrollSpy>;
 
 /** Barra fixa de categorias (ícone redondo + nome) — fica presa no topo da tela enquanto o cliente rola os produtos. */
-export function CategoryTabBar({ categories, spy }: { categories: MenuCategory[]; spy: ScrollSpy }) {
+export function CategoryTabBar({ categories, spy, marca }: { categories: MenuCategory[]; spy: ScrollSpy; marca?: boolean }) {
   if (!categories.length) return null;
   return <div className="sticky top-0 z-20 -mx-4 border-b border-[#e4d8c8] bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-0 sm:px-1">
     <HorizontalScroller trackClassName="gap-3">
-      {categories.map(category => <button key={category.id} ref={element => { spy.tabRefs.current[category.id] = element; }} type="button" onClick={() => spy.goToCategory(category.id)} className={`flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl p-1 text-center transition ${spy.activeId === category.id ? "bg-[#fdf1eb]" : "hover:bg-[#f3eadf]"}`}><span className={`grid h-12 w-12 place-items-center overflow-hidden rounded-full border-2 ${spy.activeId === category.id ? "border-primary" : "border-[#e4d6c4]"} bg-[#fffdf8]`}><SmartImage src={category.imageUrl || defaultCategoryIcon(category.name)} alt="" className="h-full w-full object-cover" /></span><span className={`line-clamp-2 text-[10px] font-semibold leading-tight ${spy.activeId === category.id ? "text-[#9f3d26]" : "text-[#4a4037]"}`}>{category.name}</span></button>)}
+      {categories.map(category => <button key={category.id} ref={element => { spy.tabRefs.current[category.id] = element; }} type="button" onClick={() => spy.goToCategory(category.id)} className={`flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl p-1 text-center transition ${spy.activeId === category.id ? "bg-[#fdf1eb]" : "hover:bg-[#f3eadf]"}`}><span className={`grid h-12 w-12 place-items-center overflow-hidden rounded-full border-2 ${spy.activeId === category.id ? "border-primary" : "border-[#e4d6c4]"} bg-[#fffdf8]`}><SmartImage src={category.imageUrl || defaultCategoryIcon(category.name)} alt="" className="h-full w-full object-cover" /></span><span className={`line-clamp-2 text-[10px] font-semibold leading-tight ${marca ? "text-[#f5f5f0]" : spy.activeId === category.id ? "text-[#9f3d26]" : "text-[#4a4037]"}`}>{category.name}</span></button>)}
     </HorizontalScroller>
   </div>;
 }

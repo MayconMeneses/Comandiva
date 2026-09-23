@@ -1,6 +1,9 @@
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { trpc } from "@/lib/trpc";
+import { applyColorTheme } from "@/lib/applyColorTheme";
+import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -8,6 +11,8 @@ const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 export default function FAQ() {
   const [, setLocation] = useLocation();
   const settings = trpc.catalog.settings.useQuery();
+  const marca = isMarcaBackground(settings.data?.customBackgroundColor);
+  useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
   const routes = trpc.catalog.deliveryRoutes.useQuery();
   const onlineCard = trpc.order.onlineCardAvailable.useQuery();
   const customFaq = trpc.catalog.faqItems.useQuery();
@@ -16,7 +21,7 @@ export default function FAQ() {
   const paymentMethods = ["Pix", "Dinheiro", "Cartão na entrega ou retirada", ...(onlineCard.data?.available ? ["Cartão online (pago antes, pelo site)"] : [])];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={marca ? { background: MARCA_GRADIENT } : undefined}>
       <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>

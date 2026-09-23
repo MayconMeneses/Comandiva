@@ -2,9 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
+import { applyColorTheme } from "@/lib/applyColorTheme";
+import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { STATUS_LABELS } from "@shared/orderDomain";
 import { ArrowLeft, CheckCircle2, Download, KeyRound, ShieldCheck, Trash2 } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -58,8 +60,11 @@ export default function DataRights() {
     URL.revokeObjectURL(url);
   };
 
+  const settings = trpc.catalog.settings.useQuery();
+  const marca = isMarcaBackground(settings.data?.customBackgroundColor);
+  useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={marca ? { background: MARCA_GRADIENT } : undefined}>
       <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/politica-de-privacidade")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Política de Privacidade</button>
