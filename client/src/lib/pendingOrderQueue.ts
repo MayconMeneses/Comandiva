@@ -87,9 +87,16 @@ export function clearPendingOrder(context: { type: "order.create"; screen: "chec
 export function readValidPendingOrders(now: number = Date.now()): PendingQueueEntry[] {
   const entries: PendingQueueEntry[] = [];
   try {
+    // Coleta as chaves ANTES de remover qualquer uma — localStorage.key(i) é
+    // posicional; remover uma entrada expirada no meio do loop deslocaria os
+    // índices das chaves seguintes e faria a varredura pular entradas
+    // válidas (achado real testando o cenário de mistura válida+expirada).
+    const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith(KEY_PREFIX)) continue;
+      if (key && key.startsWith(KEY_PREFIX)) keys.push(key);
+    }
+    for (const key of keys) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       let parsed: unknown;
@@ -99,11 +106,7 @@ export function readValidPendingOrders(now: number = Date.now()): PendingQueueEn
         localStorage.removeItem(key);
         continue;
       }
-      if (!isEntryValid(parsed)) {
-        localStorage.removeItem(key);
-        continue;
-      }
-      if (isEntryExpired(parsed, now)) {
+      if (!isEntryValid(parsed) || isEntryExpired(parsed, now)) {
         localStorage.removeItem(key);
         continue;
       }
@@ -125,6 +128,10 @@ export function resumeOrCreateOperationId(context: { type: "order.create"; scree
     const entryContext = contextOf(entry);
     return entryContext.type === context.type && keyFor(entryContext) === keyFor(context);
   });
-  if (existing) return existing.payload.operationId;
+  // Uma entrada malformada (localStorage editado manualmente, payload sem
+  // operationId) não pode virar um `operationId: undefined` enviado ao
+  // servidor — isso falharia a validação Zod pra sempre até recarregar a
+  // página. Só reusa quando o id salvo é de fato uma string usável.
+  if (existing && typeof existing.payload.operationId === "string" && existing.payload.operationId.length > 0) return existing.payload.operationId;
   return generateClientId();
 }
