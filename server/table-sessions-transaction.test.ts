@@ -8,11 +8,21 @@ import { getOrOpenSessionForTable } from "./db/tableSessions";
  * escritas soltas (INSERT table_sessions + UPDATE restaurant_tables), então
  * uma falha entre elas podia deixar uma comanda aberta sem a mesa marcada
  * OCCUPIED (ou vice-versa). Fortalecimento pré-offline (Fase 1).
+ *
+ * Fase 4 (auditoria de corrida em mais mutations, depois de updateOrderStatus):
+ * getOrOpenSessionForTable agora TAMBÉM trava a linha da mesa
+ * (lockTableRow/FOR UPDATE) antes de checar "já tem comanda aberta?" — sem
+ * isso, duas chamadas quase simultâneas (dois celulares escaneando o QR da
+ * mesma mesa) liam "nenhuma aberta" ao mesmo tempo e abriam DUAS comandas
+ * pra mesma mesa, dividindo os pedidos (uma ficava órfã, nunca cobrada). O
+ * mock aqui só prova a ORDEM/lógica (trava antes de checar, mesma ressalva
+ * de plan-limits.test.ts: o lock de verdade é garantia do MySQL) — quem
+ * prova o lock contra um banco real é table-sessions-lock-real-db.test.ts.
  */
 const mocks = vi.hoisted(() => ({ getDb: vi.fn() }));
 vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
 
-type Call = { kind: "insert" | "update"; table: unknown; payload: unknown };
+type Call = { kind: "insert" | "update" | "lock"; table: unknown; payload: unknown };
 
 function makeFakeDb(options: { openSession?: Record<string, unknown> | undefined; failAtCall?: number } = {}) {
   const calls: Call[] = [];
@@ -21,14 +31,24 @@ function makeFakeDb(options: { openSession?: Record<string, unknown> | undefined
 
   function queryable() {
     return {
-      // findOpenSessionForTable (chamado ANTES da transação) e o SELECT final
-      // dentro dela usam a mesma forma de encadeamento — devolve a sessão já
-      // aberta (se configurada) ou a recém-criada, conforme o teste precisar.
+      // findOpenSessionForTable (via .orderBy().limit()) e o SELECT final
+      // dentro da transação (via .limit() bare) usam a mesma forma de
+      // encadeamento — devolve a sessão já aberta (se configurada) ou a
+      // recém-criada. .limit() também precisa suportar .for("update")
+      // encadeado (lockTableRow) — por isso devolve algo "thenable" (funciona
+      // com await direto) E com .for() (registra a chamada de lock, sem
+      // afetar o restante do fluxo).
       select: () => ({
         from: () => ({
           where: () => ({
             orderBy: () => ({ limit: async () => (options.openSession ? [options.openSession] : []) }),
-            limit: async () => [createdSession],
+            limit: () => {
+              const rows = [createdSession];
+              return {
+                for: async () => { calls.push({ kind: "lock", table: restaurantTables, payload: undefined }); return rows; },
+                then: (resolve: (value: unknown) => void, reject?: (error: unknown) => void) => Promise.resolve(rows).then(resolve, reject),
+              };
+            },
           }),
         }),
       }),
@@ -62,17 +82,18 @@ function makeFakeDb(options: { openSession?: Record<string, unknown> | undefined
 describe("getOrOpenSessionForTable — transação", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("já existe sessão aberta: devolve ela direto, sem escrever nada (sem regressão no caminho idempotente)", async () => {
+  it("já existe sessão aberta: trava a mesa, confirma, devolve ela direto sem escrever nada (sem regressão no caminho idempotente)", async () => {
     const stub = makeFakeDb({ openSession: { id: 7, tableId: 1, status: "OPEN" } });
     mocks.getDb.mockResolvedValue(stub.db);
 
     const session = await getOrOpenSessionForTable(1);
 
     expect(session).toEqual({ id: 7, tableId: 1, status: "OPEN" });
-    expect(stub.calls).toHaveLength(0);
+    // A trava acontece (mutex), mas nenhuma escrita — o único efeito é ler.
+    expect(stub.calls.map(call => call.kind)).toEqual(["lock"]);
   });
 
-  it("caminho feliz: abre a comanda E ocupa a mesa na mesma transação", async () => {
+  it("caminho feliz: trava a mesa ANTES de checar/abrir a comanda, abre e ocupa a mesa na mesma transação", async () => {
     const stub = makeFakeDb();
     mocks.getDb.mockResolvedValue(stub.db);
 
@@ -80,6 +101,7 @@ describe("getOrOpenSessionForTable — transação", () => {
 
     expect(session).toMatchObject({ id: 42 });
     expect(stub.calls.map(call => ({ kind: call.kind, table: call.table }))).toEqual([
+      { kind: "lock", table: restaurantTables },
       { kind: "insert", table: tableSessions },
       { kind: "update", table: restaurantTables },
     ]);
@@ -90,10 +112,11 @@ describe("getOrOpenSessionForTable — transação", () => {
     mocks.getDb.mockResolvedValue(stub.db);
 
     await expect(getOrOpenSessionForTable(1)).rejects.toThrow("falha simulada");
-    // Só a 1ª escrita (insert da comanda) chegou a ser registrada pelo fake —
-    // o ponto é que, com db.transaction de verdade, o MySQL desfaz esse
-    // insert junto no rollback; aqui provamos que o ERRO se propaga (não é
-    // engolido) e a função nunca devolve uma sessão "de sucesso".
-    expect(stub.calls).toHaveLength(1);
+    // A trava (lock) + só a 1ª escrita (insert da comanda) chegaram a ser
+    // registradas pelo fake — o ponto é que, com db.transaction de verdade,
+    // o MySQL desfaz esse insert junto no rollback; aqui provamos que o ERRO
+    // se propaga (não é engolido) e a função nunca devolve uma sessão "de
+    // sucesso".
+    expect(stub.calls.map(call => call.kind)).toEqual(["lock", "insert"]);
   });
 });

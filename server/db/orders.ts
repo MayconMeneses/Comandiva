@@ -3,7 +3,6 @@ import { orderChangeLogs, orderItemAddons, orderItems, orders, orderStatusHistor
 import { endOfMonthInRestaurantTimezone, startOfDayInRestaurantTimezone, startOfMonthInRestaurantTimezone } from "../../shared/orderDomain";
 import { getDb, type DbOrTx } from "./client";
 
-type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 type OrderRow = typeof orders.$inferSelect;
 
 /**
@@ -81,8 +80,8 @@ export async function getOrderWithDetails(orderId: number, dbOrTx?: DbOrTx) {
   return detailed;
 }
 
-/** Mesma forma de `getOrderWithDetails`, mas para uma lista inteira de pedidos já carregados — ver `attachOrderDetails`. */
-export async function getOrdersWithDetailsBatch(db: Db, orderRows: OrderRow[]) {
+/** Mesma forma de `getOrderWithDetails`, mas para uma lista inteira de pedidos já carregados — ver `attachOrderDetails`. Aceita `DbOrTx` (não só `Db`) pelo mesmo motivo: chamadores que precisam rodar dentro de uma transação já aberta (ver getSessionWithOrders, server/db/tableSessions.ts). */
+export async function getOrdersWithDetailsBatch(db: DbOrTx, orderRows: OrderRow[]) {
   return attachOrderDetails(db, orderRows);
 }
 
