@@ -30,10 +30,16 @@ describe("administradores adicionais", () => {
   it("cria uma conta com acesso administrativo completo", async () => {
     const result = await appRouter.createCaller(adminContext).team.create({ name: "Novo Admin", username: "novo.admin", password: "senha-segura", role: "admin" });
     expect(result.role).toBe("admin");
-    // Segundo argumento (tx) vem da transação de assertWithinPlanLimitAndInsert
-    // (ver auditoria V-24) — undefined aqui porque o restaurante de teste não
-    // tem limite de plano configurado (caminho sem transação nenhuma).
-    expect(mocks.create).toHaveBeenCalledWith({ name: "Novo Admin", username: "novo.admin", password: "senha-segura", role: "admin" }, undefined);
+    // Segundo argumento (tx) vem de assertWithinPlanLimitAndInsert (ver
+    // auditoria V-24): é `undefined` quando o restaurante não tem limite de
+    // plano configurado pra "users", ou uma transação de verdade quando tem
+    // — depende de dado ambiente (o snapshot de licença real), não de nada
+    // que este teste controla, então não fixamos um valor aqui. Esse mesmo
+    // mecanismo (com/sem limite, com/sem tx) já tem cobertura dedicada em
+    // server/plan-limits.test.ts; aqui só interessa que o PAYLOAD certo
+    // chega em createRestaurantAccessAccount.
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+    expect(mocks.create.mock.calls[0]?.[0]).toEqual({ name: "Novo Admin", username: "novo.admin", password: "senha-segura", role: "admin" });
   });
 
   it("autentica o administrador local e cria uma sessão válida", async () => {
