@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { getDeviceId } from "@/lib/deviceId";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { ArrowLeft, ChevronRight, Clock3, Loader2, LogOut, MessageSquareWarning, ShoppingBag } from "lucide-react";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 function Loading() { return <div className="grid min-h-screen place-items-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>; }
@@ -28,13 +29,22 @@ function nextKitchenStep(order: KitchenOrder) {
   return undefined;
 }
 
-function QueueCard({ order, position }: { order: KitchenOrder; position: number }) {
+export function QueueCard({ order, position }: { order: KitchenOrder; position: number }) {
   const utils = trpc.useUtils();
-  // onError também invalida (não só onSuccess) — mesmo motivo de
-  // RestaurantOrders.tsx::OrderCard: num CONFLICT (outro dispositivo já
-  // mudou o pedido), a tela fica desatualizada até o próximo poll se não
-  // recarregar na hora.
-  const updateStatus = trpc.admin.updateOrderStatus.useMutation({ onSuccess: () => void utils.admin.operationalSnapshot.invalidate(), onError: () => void utils.admin.operationalSnapshot.invalidate() });
+  // onError também invalida (não só onSuccess) e mostra toast num CONFLICT —
+  // mesmo motivo de RestaurantOrders.tsx::OrderCard: a fila é filtrada por
+  // status (ACCEPTED/PREPARING), então um pedido que sai desse intervalo some
+  // da lista assim que o snapshot invalida — este QueueCard desmonta antes da
+  // pessoa conseguir ler um texto de erro embaixo do card, então só o toast
+  // (que não depende do ciclo de vida deste componente) garante que a
+  // mensagem seja vista.
+  const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+    onSuccess: () => void utils.admin.operationalSnapshot.invalidate(),
+    onError: error => {
+      void utils.admin.operationalSnapshot.invalidate();
+      if (error.data?.code === "CONFLICT") toast.error("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+    },
+  });
   const next = nextKitchenStep(order);
   const itemNotes = order.items.filter(item => item.note);
   return <article className="flex gap-4 rounded-2xl border border-[#e3d6c6] bg-[#fffdf8] p-4 shadow-[0_8px_20px_rgba(53,34,17,.06)] sm:p-5">

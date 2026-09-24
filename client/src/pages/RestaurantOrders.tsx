@@ -14,6 +14,7 @@ import { getDeviceId } from "@/lib/deviceId";
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, CookingPot, Loader2, LogOut, MapPinned, MessageSquareWarning, PackageCheck, Phone, Plus, Printer, RefreshCw, ShieldCheck, ShoppingBag, UserCog } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -53,12 +54,24 @@ const ORIGIN_TAG: Record<string, string> = { GARCOM: "Garçom", QR_CODE: "QR Cod
 // (TableMapManager) é quem dispara a impressão dela, consolidada.
 const AUTO_PRINT_STATUSES = new Set(["ACCEPTED", "OUT_FOR_DELIVERY", "READY_FOR_PICKUP"]);
 
-function OrderCard({ order }: { order: { id: number; publicCode: string; customerName: string; customerPhone: string; fulfillmentType: "DELIVERY" | "PICKUP" | "DINE_IN"; origin: string; tableLabel: string | null; status: string; totalCents: number; createdAt: number; acceptedAt: number | null; preparingAt: number | null; customerNote: string | null; items: Array<{ id: number; productName: string; quantity: number; note: string | null }> } }) {
+export function OrderCard({ order }: { order: { id: number; publicCode: string; customerName: string; customerPhone: string; fulfillmentType: "DELIVERY" | "PICKUP" | "DINE_IN"; origin: string; tableLabel: string | null; status: string; totalCents: number; createdAt: number; acceptedAt: number | null; preparingAt: number | null; customerNote: string | null; items: Array<{ id: number; productName: string; quantity: number; note: string | null }> } }) {
   // onError também invalida (não só onSuccess): num CONFLICT (outro
   // dispositivo já mudou o pedido — ver updateOrderStatus, server/routers/
   // admin/orders.ts), a tela deste dispositivo ficaria mostrando o status
   // desatualizado até o próximo poll (até 10s) se não recarregasse na hora.
-  const utils = trpc.useUtils(); const updateStatus = trpc.admin.updateOrderStatus.useMutation({ onSuccess: () => void utils.admin.operationalSnapshot.invalidate(), onError: () => void utils.admin.operationalSnapshot.invalidate() }); const meta = statusMeta[order.status as ActiveStatus]; if (!meta) return null;
+  // O toast (não só o texto de erro embaixo do card) é necessário aqui: assim
+  // que o snapshot é invalidado e o pedido muda de status/coluna, este
+  // OrderCard desmonta (o card do pedido "pula" pra outra coluna do kanban) —
+  // um card novo monta no lugar, sem o estado de erro da mutation antiga, e o
+  // texto embaixo do card some antes da pessoa conseguir ler. O toast
+  // (sonner) não depende do ciclo de vida deste componente, então sobrevive.
+  const utils = trpc.useUtils(); const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+    onSuccess: () => void utils.admin.operationalSnapshot.invalidate(),
+    onError: error => {
+      void utils.admin.operationalSnapshot.invalidate();
+      if (error.data?.code === "CONFLICT") toast.error("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+    },
+  }); const meta = statusMeta[order.status as ActiveStatus]; if (!meta) return null;
   const next = order.status === "PREPARING"
     ? order.fulfillmentType === "DELIVERY" ? { status: "OUT_FOR_DELIVERY" as const, label: "Enviar para entrega" }
     : order.fulfillmentType === "DINE_IN" ? { status: "READY_FOR_PICKUP" as const, label: "Pronto para servir" }
