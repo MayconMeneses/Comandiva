@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
+import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION } from "@/lib/pendingOrderQueue";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { addressMatchesRoute, findBestRouteMatch } from "@shared/orderDomain";
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, MapPin, PackageCheck, Phone, ShoppingBag } from "lucide-react";
@@ -86,8 +87,19 @@ export default function Checkout() {
   // Chave de idempotência: estável entre cliques repetidos do MESMO pedido
   // (retry seguro se a resposta se perder no caminho), regenerada só depois
   // de um sucesso — ver comentário em insertPricedOrder (server/routers/order.ts).
-  const operationIdRef = useRef(generateClientId());
-  const createOrder = trpc.order.create.useMutation({ retry: shouldRetryOrderMutation, retryDelay: orderMutationRetryDelay, onSuccess: result => {
+  // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
+  // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
+  const operationIdRef = useRef(resumeOrCreateOperationId({ type: "order.create", screen: "checkout" }));
+  const createOrder = trpc.order.create.useMutation({
+    retry: shouldRetryOrderMutation,
+    retryDelay: orderMutationRetryDelay,
+    // onMutate roda sempre, síncrono, antes do React Query decidir se a
+    // mutation sai ou pausa por estar offline — grava o suficiente pra
+    // sobreviver fechar a aba, sem depender de beforeunload (não confiável
+    // em mobile). onSettled (sucesso OU erro definitivo) limpa a entrada.
+    onMutate: variables => persistPendingOrder({ type: "order.create", screen: "checkout", payload: variables, createdAt: Date.now(), itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION }),
+    onSettled: () => clearPendingOrder({ type: "order.create", screen: "checkout" }),
+    onSuccess: result => {
     operationIdRef.current = generateClientId();
     clearCart();
     // onSuccess roda mesmo se o cliente já tiver navegado pra outra tela

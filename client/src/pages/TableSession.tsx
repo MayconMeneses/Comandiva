@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
+import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION } from "@/lib/pendingOrderQueue";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { ArrowLeft, BellRing, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -75,11 +76,15 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
 
   // Uma mesa manda várias rodadas na mesma sessão — regenerar só no sucesso
   // evita que a rodada seguinte seja tratada como duplicata da anterior (ver
-  // comentário em insertPricedOrder, server/routers/order.ts).
-  const operationIdRef = useRef(generateClientId());
+  // comentário em insertPricedOrder, server/routers/order.ts). A semente
+  // reusa uma pendência salva (F5 com rodada pausada) em vez de sempre gerar
+  // um id novo — ver client/src/lib/pendingOrderQueue.ts.
+  const operationIdRef = useRef(resumeOrCreateOperationId({ type: "table.addRound", token }));
   const addRound = trpc.table.addRound.useMutation({
     retry: shouldRetryOrderMutation,
     retryDelay: orderMutationRetryDelay,
+    onMutate: variables => persistPendingOrder({ type: "table.addRound", token, payload: variables, createdAt: Date.now(), itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION }),
+    onSettled: () => clearPendingOrder({ type: "table.addRound", token }),
     onSuccess: () => {
       operationIdRef.current = generateClientId();
       clearCart();

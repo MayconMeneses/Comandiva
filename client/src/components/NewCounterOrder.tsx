@@ -8,6 +8,7 @@ import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
+import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION } from "@/lib/pendingOrderQueue";
 import { addressMatchesRoute } from "@shared/orderDomain";
 import { Minus, Phone, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -46,10 +47,14 @@ export default function NewCounterOrder() {
   // recarregar a página — regenerar só no sucesso evita que o SEGUNDO
   // pedido de balcão do dia seja tratado como duplicata do primeiro (ver
   // comentário em insertPricedOrder, server/routers/order.ts).
-  const operationIdRef = useRef(generateClientId());
+  // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
+  // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
+  const operationIdRef = useRef(resumeOrCreateOperationId({ type: "order.create", screen: "counter" }));
   const createOrder = trpc.order.create.useMutation({
     retry: shouldRetryOrderMutation,
     retryDelay: orderMutationRetryDelay,
+    onMutate: variables => persistPendingOrder({ type: "order.create", screen: "counter", payload: variables, createdAt: Date.now(), itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION }),
+    onSettled: () => clearPendingOrder({ type: "order.create", screen: "counter" }),
     onSuccess: result => {
       operationIdRef.current = generateClientId();
       clearCart();

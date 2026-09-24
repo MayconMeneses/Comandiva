@@ -11,6 +11,7 @@ import OrderTracking from "@/pages/OrderTracking";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfUse from "@/pages/TermsOfUse";
 import PwaInstallButton from "@/components/PwaInstallButton";
+import PendingOrderBanner from "@/components/PendingOrderBanner";
 import { lazy, Suspense } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -35,7 +36,7 @@ function Router() {
 }
 
 function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><CartProvider><Toaster /><PwaInstallButton /><Router /></CartProvider></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><CartProvider><Toaster /><PendingOrderBanner /><PwaInstallButton /><Router /></CartProvider></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }
 
 export default App;
