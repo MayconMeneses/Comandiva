@@ -295,6 +295,13 @@
       "when": 1790158555180,
       "tag": "0041_kind_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1790208717142,
+      "tag": "0042_parched_shotgun",
+      "breakpoints": true
     }
   ]
 }

@@ -567,6 +567,14 @@ export const orderStatusHistory = mysqlTable(
     status: mysqlEnum("status", orderStatusValues).notNull(),
     note: varchar("note", { length: 500 }),
     changedByUserId: int("changedByUserId"),
+    // Id do NAVEGADOR (gerado em client/src/lib/deviceId.ts, persistido em
+    // localStorage), não da pessoa/conta — nulo pra chamadas antigas que
+    // ainda não mandam isso. Só usado pra atribuição/depuração de conflito
+    // no painel da equipe (Fase 4 offline-first) quando dois dispositivos
+    // mexem no mesmo pedido; changedByUserId já cobre "qual conta", este
+    // cobre "qual aparelho" — necessário porque contas de equipe são
+    // compartilhadas por várias pessoas/dispositivos de propósito.
+    deviceId: varchar("deviceId", { length: 64 }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
   },
   table => [

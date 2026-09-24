@@ -10,6 +10,7 @@ import TableMapManager from "@/components/TableMapManager";
 import TeamLoginCard from "@/components/TeamLoginCard";
 import { LockedFeatureFullPage } from "@/components/admin/LockedFeature";
 import { trpc } from "@/lib/trpc";
+import { getDeviceId } from "@/lib/deviceId";
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, CookingPot, Loader2, LogOut, MapPinned, MessageSquareWarning, PackageCheck, Phone, Plus, Printer, RefreshCw, ShieldCheck, ShoppingBag, UserCog } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
@@ -53,7 +54,11 @@ const ORIGIN_TAG: Record<string, string> = { GARCOM: "Garçom", QR_CODE: "QR Cod
 const AUTO_PRINT_STATUSES = new Set(["ACCEPTED", "OUT_FOR_DELIVERY", "READY_FOR_PICKUP"]);
 
 function OrderCard({ order }: { order: { id: number; publicCode: string; customerName: string; customerPhone: string; fulfillmentType: "DELIVERY" | "PICKUP" | "DINE_IN"; origin: string; tableLabel: string | null; status: string; totalCents: number; createdAt: number; acceptedAt: number | null; preparingAt: number | null; customerNote: string | null; items: Array<{ id: number; productName: string; quantity: number; note: string | null }> } }) {
-  const utils = trpc.useUtils(); const updateStatus = trpc.admin.updateOrderStatus.useMutation({ onSuccess: () => void utils.admin.operationalSnapshot.invalidate() }); const meta = statusMeta[order.status as ActiveStatus]; if (!meta) return null;
+  // onError também invalida (não só onSuccess): num CONFLICT (outro
+  // dispositivo já mudou o pedido — ver updateOrderStatus, server/routers/
+  // admin/orders.ts), a tela deste dispositivo ficaria mostrando o status
+  // desatualizado até o próximo poll (até 10s) se não recarregasse na hora.
+  const utils = trpc.useUtils(); const updateStatus = trpc.admin.updateOrderStatus.useMutation({ onSuccess: () => void utils.admin.operationalSnapshot.invalidate(), onError: () => void utils.admin.operationalSnapshot.invalidate() }); const meta = statusMeta[order.status as ActiveStatus]; if (!meta) return null;
   const next = order.status === "PREPARING"
     ? order.fulfillmentType === "DELIVERY" ? { status: "OUT_FOR_DELIVERY" as const, label: "Enviar para entrega" }
     : order.fulfillmentType === "DINE_IN" ? { status: "READY_FOR_PICKUP" as const, label: "Pronto para servir" }
@@ -69,7 +74,7 @@ function OrderCard({ order }: { order: { id: number; publicCode: string; custome
     // pelo navegador por não contar mais como gesto do usuário (mesmo
     // problema já visto com pop-up do Modo Suporte no Painel Master).
     const printTab = AUTO_PRINT_STATUSES.has(next.status) ? window.open("", "_blank") : null;
-    updateStatus.mutate({ orderId: order.id, status: next.status }, {
+    updateStatus.mutate({ orderId: order.id, status: next.status, expectedStatus: order.status as ActiveStatus, deviceId: getDeviceId() }, {
       onSuccess: () => { if (printTab) printTab.location.href = `/admin/comprovante/${order.id}?autoprint=1`; },
       onError: () => printTab?.close(),
     });

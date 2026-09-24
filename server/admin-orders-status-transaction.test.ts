@@ -10,6 +10,14 @@ import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from
  * inconsistentes entre si. Fortalecimento pré-offline (Fase 1) — qualquer
  * motor de sincronização futuro que reenviar esses mesmos comandos herdaria
  * o mesmo risco se isso não fosse corrigido primeiro.
+ *
+ * Fase 4 (painel da equipe): updateOrderStatus também passou a travar a
+ * linha do pedido (SELECT...FOR UPDATE) e a rejeitar com CONFLICT quando
+ * `expectedStatus` diverge do status real — fecha a corrida de dois
+ * dispositivos mudando o mesmo pedido quase ao mesmo tempo. O mock aqui só
+ * prova a ORDEM/lógica (mesma ressalva de plan-limits.test.ts: o lock de
+ * verdade é garantia do MySQL, não de mock) — quem prova o lock contra um
+ * banco real é admin-orders-status-lock-real-db.test.ts.
  */
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
@@ -54,7 +62,14 @@ function makeFakeDb(options: { currentOrder?: Record<string, unknown>; failAtCal
 
   function queryable() {
     return {
-      select: () => ({ from: () => ({ where: () => ({ limit: async () => (options.currentOrder ? [options.currentOrder] : []) }) }) }),
+      // `.limit(n)` devolve algo "thenable" (funciona com `await` direto,
+      // como o resto dos testes deste arquivo já fazia) E com `.for("update")`
+      // encadeável (usado por updateOrderStatus agora, ver comentário na
+      // describe abaixo) — as duas formas resolvem pras mesmas linhas.
+      select: () => ({ from: () => ({ where: () => ({ limit: () => {
+        const rows = options.currentOrder ? [options.currentOrder] : [];
+        return { for: async () => rows, then: (resolve: (value: unknown) => void, reject?: (error: unknown) => void) => Promise.resolve(rows).then(resolve, reject) };
+      } }) }) }),
       update: (table: unknown) => ({
         set: (payload: unknown) => ({
           where: async () => {
@@ -150,13 +165,61 @@ describe("admin.updateOrderStatus — transação", () => {
     expect(mocks.getOrderWithDetails).toHaveBeenCalledTimes(1);
   });
 
-  it("rejeita transição ilegal antes mesmo de abrir a transação (validação já existente, sem regressão)", async () => {
+  it("rejeita transição ilegal antes de qualquer escrita (validação já existente, sem regressão — agora dentro da transação travada)", async () => {
     const stub = makeFakeDb({ currentOrder: { ...BASE_ORDER, status: "COMPLETED" } });
     mocks.getDb.mockResolvedValue(stub.db);
 
     const caller = adminOrdersRouter.createCaller(adminContext);
     await expect(caller.updateOrderStatus({ orderId: 10, status: "ACCEPTED" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(stub.calls).toHaveLength(0);
+  });
+
+  it("expectedStatus divergente do status real rejeita com CONFLICT, sem escrever nada — outro dispositivo já mudou o pedido", async () => {
+    const stub = makeFakeDb({ currentOrder: BASE_ORDER }); // status real: PENDING
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const caller = adminOrdersRouter.createCaller(adminContext);
+    // A tela deste dispositivo ainda acha que o pedido está ACCEPTED (ficou
+    // pra trás — na simulação, outro dispositivo já tinha mexido antes).
+    await expect(caller.updateOrderStatus({ orderId: 10, status: "PREPARING", expectedStatus: "ACCEPTED" })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(stub.calls).toHaveLength(0);
+  });
+
+  it("expectedStatus IGUAL ao status real segue normal (não é conflito — a tela do dispositivo está em dia)", async () => {
+    const stub = makeFakeDb({ currentOrder: BASE_ORDER }); // status real: PENDING
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getOrderWithDetails.mockResolvedValue({ ...BASE_ORDER, status: "ACCEPTED" });
+
+    const caller = adminOrdersRouter.createCaller(adminContext);
+    await expect(caller.updateOrderStatus({ orderId: 10, status: "ACCEPTED", expectedStatus: "PENDING" })).resolves.toMatchObject({ status: "ACCEPTED" });
+  });
+
+  it("sem expectedStatus, comportamento idêntico a antes — retrocompatível com quem ainda não manda o campo", async () => {
+    const stub = makeFakeDb({ currentOrder: BASE_ORDER });
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getOrderWithDetails.mockResolvedValue({ ...BASE_ORDER, status: "ACCEPTED" });
+
+    const caller = adminOrdersRouter.createCaller(adminContext);
+    await expect(caller.updateOrderStatus({ orderId: 10, status: "ACCEPTED" })).resolves.toMatchObject({ status: "ACCEPTED" });
+  });
+
+  it("grava o deviceId recebido em order_status_history (nulo quando o chamador não manda)", async () => {
+    const stub = makeFakeDb({ currentOrder: BASE_ORDER });
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getOrderWithDetails.mockResolvedValue({ ...BASE_ORDER, status: "ACCEPTED" });
+
+    const caller = adminOrdersRouter.createCaller(adminContext);
+    await caller.updateOrderStatus({ orderId: 10, status: "ACCEPTED", deviceId: "device-abc123" });
+    const historyInsert = stub.calls.find(call => call.table === orderStatusHistory);
+    expect((historyInsert?.payload as { deviceId?: string }).deviceId).toBe("device-abc123");
+
+    vi.clearAllMocks();
+    const stub2 = makeFakeDb({ currentOrder: BASE_ORDER });
+    mocks.getDb.mockResolvedValue(stub2.db);
+    mocks.getOrderWithDetails.mockResolvedValue({ ...BASE_ORDER, status: "ACCEPTED" });
+    await caller.updateOrderStatus({ orderId: 10, status: "ACCEPTED" });
+    const historyInsert2 = stub2.calls.find(call => call.table === orderStatusHistory);
+    expect((historyInsert2?.payload as { deviceId?: string | null }).deviceId).toBeNull();
   });
 });
 
