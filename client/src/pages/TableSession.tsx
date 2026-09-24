@@ -8,7 +8,8 @@ import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
-import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { ArrowLeft, BellRing, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -80,20 +81,27 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   // reusa uma pendência salva (F5 com rodada pausada) em vez de sempre gerar
   // um id novo — ver client/src/lib/pendingOrderQueue.ts.
   const operationIdRef = useRef(resumeOrCreateOperationId({ type: "table.addRound", token }));
+  // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
+  const startedAtRef = useRef<number | null>(null);
   const addRound = trpc.table.addRound.useMutation({
     retry: shouldRetryOrderMutation,
     retryDelay: orderMutationRetryDelay,
-    onMutate: variables => persistPendingOrder({ type: "table.addRound", token, payload: variables, createdAt: Date.now(), itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION }),
-    onSettled: () => clearPendingOrder({ type: "table.addRound", token }),
+    onMutate: variables => {
+      const now = Date.now();
+      startedAtRef.current = now;
+      persistPendingOrder({ type: "table.addRound", token, payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "table.addRound", token }); },
     onSuccess: () => {
       operationIdRef.current = generateClientId();
       clearCart();
       setShowCart(false);
       void utils.table.resolve.invalidate({ token });
-      toast.success("Pedido enviado para a cozinha!");
+      toast.success(startedAtRef.current !== null && Date.now() - startedAtRef.current > PENDING_ORDER_WINDOW_MS ? "Pedido enviado após uma queda de conexão longa — confira a comanda, o valor pode ter mudado." : "Pedido enviado para a cozinha!");
     },
     onError: error => toast.error(error.message),
   });
+  const addRoundStale = useStaleRetryWarning(isRetryingOffline(addRound), startedAtRef.current);
   const requestBill = trpc.table.requestBill.useMutation({
     onSuccess: () => { void utils.table.resolve.invalidate({ token }); toast.success("Conta solicitada. A equipe já foi avisada."); },
     onError: error => toast.error(error.message),
@@ -135,7 +143,7 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
 
     {items.length > 0 && <div className="fixed inset-x-0 bottom-0 border-t border-[#3e3025] bg-[#17120e] p-4 text-[#fffaf3]"><div className="page-shell flex items-center justify-between gap-3"><button type="button" onClick={() => setShowCart(true)} className="flex items-center gap-2 text-sm font-semibold"><ShoppingBag className="h-4 w-4 text-[#e9c98f]" />{items.reduce((sum, item) => sum + item.quantity, 0)} item(ns) · {money(subtotalCents)}</button><Button disabled={addRound.isPending} onClick={submitRound} className="h-10 rounded-xl bg-primary hover:bg-primary-hover">{roundLabel}</Button></div></div>}
 
-    {showCart && <div className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center" onClick={() => setShowCart(false)}><div className="max-h-[80vh] w-full overflow-y-auto rounded-t-2xl bg-[#fffdf8] p-5 text-[#231d18] sm:max-w-md sm:rounded-2xl" onClick={event => event.stopPropagation()}><h2 className="font-display text-xl font-bold">Seu pedido</h2><div className="mt-4 space-y-2">{items.map(item => { const unit = item.basePriceCents + item.addons.reduce((sum, addon) => sum + addon.priceCents, 0); return <div key={item.id} className="flex items-center gap-2 border-b border-[#f1e9dc] pb-2 last:border-0 last:pb-0"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.name}</p>{item.addons.map(addon => <p key={addon.id} className="text-xs text-[#8a7a68]">+ {addon.name}</p>)}</div><div className="flex items-center gap-1.5"><button type="button" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Minus className="h-3 w-3" /></button><span className="w-5 text-center text-sm">{item.quantity}</span><button type="button" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Plus className="h-3 w-3" /></button></div><span className="w-16 shrink-0 text-right text-sm font-semibold">{money(unit * item.quantity)}</span><button type="button" onClick={() => removeItem(item.id)} className="shrink-0 text-red-600 hover:text-red-800" aria-label="Remover item"><Trash2 className="h-3.5 w-3.5" /></button></div>; })}</div><div className="mt-4 flex items-center justify-between"><span className="text-sm font-bold">Subtotal: {money(subtotalCents)}</span><Button disabled={addRound.isPending} onClick={submitRound} className="h-10 rounded-xl bg-primary hover:bg-primary-hover">{roundLabel}</Button></div>{isRetryingOffline(addRound) ? <p className="mt-2 text-xs text-amber-700">Sem conexão. Tentando de novo…</p> : addRound.error && <p className="mt-2 text-xs text-red-700">{addRound.error.message}</p>}</div></div>}
+    {showCart && <div className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center" onClick={() => setShowCart(false)}><div className="max-h-[80vh] w-full overflow-y-auto rounded-t-2xl bg-[#fffdf8] p-5 text-[#231d18] sm:max-w-md sm:rounded-2xl" onClick={event => event.stopPropagation()}><h2 className="font-display text-xl font-bold">Seu pedido</h2><div className="mt-4 space-y-2">{items.map(item => { const unit = item.basePriceCents + item.addons.reduce((sum, addon) => sum + addon.priceCents, 0); return <div key={item.id} className="flex items-center gap-2 border-b border-[#f1e9dc] pb-2 last:border-0 last:pb-0"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.name}</p>{item.addons.map(addon => <p key={addon.id} className="text-xs text-[#8a7a68]">+ {addon.name}</p>)}</div><div className="flex items-center gap-1.5"><button type="button" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Minus className="h-3 w-3" /></button><span className="w-5 text-center text-sm">{item.quantity}</span><button type="button" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Plus className="h-3 w-3" /></button></div><span className="w-16 shrink-0 text-right text-sm font-semibold">{money(unit * item.quantity)}</span><button type="button" onClick={() => removeItem(item.id)} className="shrink-0 text-red-600 hover:text-red-800" aria-label="Remover item"><Trash2 className="h-3.5 w-3.5" /></button></div>; })}</div><div className="mt-4 flex items-center justify-between"><span className="text-sm font-bold">Subtotal: {money(subtotalCents)}</span><Button disabled={addRound.isPending} onClick={submitRound} className="h-10 rounded-xl bg-primary hover:bg-primary-hover">{roundLabel}</Button></div>{isRetryingOffline(addRound) ? <p className="mt-2 text-xs text-amber-700">{addRoundStale ? "Conexão perdida há muito tempo — os preços podem ter mudado. Recarregue a página antes de continuar." : "Sem conexão. Tentando de novo…"}</p> : addRound.error && <p className="mt-2 text-xs text-red-700">{addRound.error.message}</p>}</div></div>}
     <ProductDialog product={selectedProduct} open={Boolean(selectedProduct)} onOpenChange={value => { if (!value) setSelectedProduct(null); }} />
   </div>;
 }

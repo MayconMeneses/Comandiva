@@ -8,7 +8,8 @@ import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
-import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { addressMatchesRoute } from "@shared/orderDomain";
 import { Minus, Phone, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -50,11 +51,17 @@ export default function NewCounterOrder() {
   // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
   // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
   const operationIdRef = useRef(resumeOrCreateOperationId({ type: "order.create", screen: "counter" }));
+  // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
+  const startedAtRef = useRef<number | null>(null);
   const createOrder = trpc.order.create.useMutation({
     retry: shouldRetryOrderMutation,
     retryDelay: orderMutationRetryDelay,
-    onMutate: variables => persistPendingOrder({ type: "order.create", screen: "counter", payload: variables, createdAt: Date.now(), itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION }),
-    onSettled: () => clearPendingOrder({ type: "order.create", screen: "counter" }),
+    onMutate: variables => {
+      const now = Date.now();
+      startedAtRef.current = now;
+      persistPendingOrder({ type: "order.create", screen: "counter", payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "order.create", screen: "counter" }); },
     onSuccess: result => {
       operationIdRef.current = generateClientId();
       clearCart();
@@ -64,10 +71,11 @@ export default function NewCounterOrder() {
       setOpen(false);
       setPhone(""); setName(""); setChangeFor(""); setFulfillmentType("PICKUP"); setDeliveryRouteId(undefined);
       setAddress({ postalCode: "", street: "", number: "", complement: "", neighborhood: "", city: "Croatá", state: "CE", reference: "" });
-      toast.success(`Pedido ${result.publicCode} criado com sucesso.`);
+      toast.success(startedAtRef.current !== null && Date.now() - startedAtRef.current > PENDING_ORDER_WINDOW_MS ? `Pedido ${result.publicCode} confirmado após uma queda de conexão longa — confira os detalhes, o valor pode ter mudado.` : `Pedido ${result.publicCode} criado com sucesso.`);
     },
     onError: error => toast.error(error.message),
   });
+  const createOrderStale = useStaleRetryWarning(isRetryingOffline(createOrder), startedAtRef.current);
 
   const total = subtotalCents + deliveryFee;
   const changeForCentsValue = paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor.replace(",", ".")) * 100) : undefined;
@@ -116,7 +124,7 @@ export default function NewCounterOrder() {
             <div><Label>Pagamento</Label><div className="mt-1.5 grid grid-cols-3 gap-2">{([["PIX", "Pix"], ["CASH", "Dinheiro"], ["CARD_ON_DELIVERY", "Cartão"]] as const).map(([method, label]) => <button type="button" key={method} onClick={() => setPaymentMethod(method)} className={`rounded-xl border px-2 py-2.5 text-xs font-semibold transition ${paymentMethod === method ? "border-primary bg-[#fdf1eb] text-[#9f3d26]" : "border-[#e0d5c5]"}`}>{label}</button>)}</div></div>
             {paymentMethod === "CASH" && <div><Label>Troco para quanto?</Label><Input inputMode="decimal" value={changeFor} onChange={event => setChangeFor(event.target.value)} placeholder="Ex.: 50,00" className="mt-1.5 h-10 rounded-xl bg-white" />{changeForInsufficient && <p className="mt-1 text-xs text-[#a43720]">O valor precisa ser igual ou maior que o total do pedido ({money(total)}).</p>}</div>}
             <div className="rounded-xl bg-[#17120e] p-4 text-[#fffaf3]"><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Subtotal</span><span>{money(subtotalCents)}</span></div><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Entrega</span><span>{deliveryFee ? money(deliveryFee) : "Grátis"}</span></div><div className="mt-2 flex justify-between border-t border-[#4a3d30] pt-2 text-base font-bold"><span>Total</span><span className="text-[#e9c98f]">{money(total)}</span></div></div>
-            {isRetryingOffline(createOrder) ? <p className="text-sm text-amber-700">Sem conexão. Tentando de novo…</p> : createOrder.error && <p className="text-sm text-red-700">{createOrder.error.message}</p>}
+            {isRetryingOffline(createOrder) ? <p className="text-sm text-amber-700">{createOrderStale ? "Conexão perdida há muito tempo — os preços podem ter mudado. Recarregue a página antes de continuar." : "Sem conexão. Tentando de novo…"}</p> : createOrder.error && <p className="text-sm text-red-700">{createOrder.error.message}</p>}
             <Button disabled={!canSubmit || createOrder.isPending} className="h-11 w-full rounded-xl bg-primary hover:bg-primary-hover"><ShoppingBag className="mr-2 h-4 w-4" />{isRetryingOffline(createOrder) ? "Tentando de novo…" : createOrder.isPending ? "Criando pedido…" : "Criar pedido"}</Button>
           </div>
         </form>
