@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { advanceOrderStatus, getNextOrderStatus } from "@/lib/orderStatus";
 import { compressImageFile } from "@/lib/imageCompression";
+import { getDeviceId } from "@/lib/deviceId";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { trpc } from "@/lib/trpc";
 import { Archive, CheckCircle2, ChevronRight, CookingPot, ImagePlus, Loader2, MapPin, MapPinned, PackageCheck, Pencil, Phone, ReceiptText, ShoppingBag, Trash2, X } from "lucide-react";
 import React, { ChangeEvent, FormEvent, useState } from "react";
+import { toast } from "sonner";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const label: Record<string, string> = { PENDING: "Aguardando aceite", ACCEPTED: "Aceito", PREPARING: "Em preparo", OUT_FOR_DELIVERY: "Saiu para entrega", READY_FOR_PICKUP: "Pronto para retirada", COMPLETED: "Concluído", CANCELLED: "Cancelado" };
@@ -21,9 +23,20 @@ type OrderRecord = { id: number; publicCode: string; customerName: string; custo
 
 export function OrderStatusActions({ order }: { order: Pick<OrderRecord, "id" | "status" | "fulfillmentType"> }) {
   const utils = trpc.useUtils();
-  const updateStatus = trpc.admin.updateOrderStatus.useMutation({ onSuccess: () => { void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate(); } });
+  // onError também invalida (não só onSuccess) e mostra toast num CONFLICT —
+  // mesma proteção de RestaurantOrders.tsx::OrderCard/Kitchen.tsx::QueueCard:
+  // outro dispositivo da equipe (/painel-pedidos, /cozinha) pode ter mudado
+  // este pedido enquanto esta tela (/admin/pedidos) ainda mostrava o status
+  // antigo.
+  const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+    onSuccess: () => { void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate(); },
+    onError: error => {
+      void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate();
+      if (error.data?.code === "CONFLICT") toast.error("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+    },
+  });
   const action = getNextOrderStatus(order); const Icon = action ? (action.status === "ACCEPTED" || action.status === "COMPLETED" ? CheckCircle2 : action.status === "PREPARING" ? CookingPot : action.status === "OUT_FOR_DELIVERY" ? MapPinned : PackageCheck) : null;
-  return <div className="mt-3 border-t border-[#eee5d9] pt-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#806f61]">Próxima etapa</span>{action && Icon ? <Button size="sm" disabled={updateStatus.isPending} onClick={() => advanceOrderStatus(order, input => updateStatus.mutate(input))} className="h-9 rounded-lg bg-primary px-3 text-xs hover:bg-primary-hover">{updateStatus.isPending ? "Atualizando…" : action.label}<Icon className="ml-1.5 h-3.5 w-3.5" /><ChevronRight className="h-3.5 w-3.5" /></Button> : <span className="text-xs text-muted-foreground">Sem novas ações</span>}</div>{updateStatus.error ? <p className="mt-2 text-xs text-red-700">{updateStatus.error.message}</p> : null}</div>;
+  return <div className="mt-3 border-t border-[#eee5d9] pt-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#806f61]">Próxima etapa</span>{action && Icon ? <Button size="sm" disabled={updateStatus.isPending} onClick={() => advanceOrderStatus(order, input => updateStatus.mutate({ ...input, deviceId: getDeviceId() }))} className="h-9 rounded-lg bg-primary px-3 text-xs hover:bg-primary-hover">{updateStatus.isPending ? "Atualizando…" : action.label}<Icon className="ml-1.5 h-3.5 w-3.5" /><ChevronRight className="h-3.5 w-3.5" /></Button> : <span className="text-xs text-muted-foreground">Sem novas ações</span>}</div>{updateStatus.error ? <p className="mt-2 text-xs text-red-700">{updateStatus.error.message}</p> : null}</div>;
 }
 
 function EditOrderDialog({ order, onClose }: { order: OrderRecord; onClose: () => void }) {

@@ -161,7 +161,6 @@ export const adminOrdersRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
-    const now = Date.now();
     // Toda a leitura+validação+escrita roda dentro de UMA transação, com a
     // linha do pedido travada (SELECT...FOR UPDATE, mesmo padrão de
     // lockLicenseSingletonRow em server/db/license.ts) — antes, o SELECT que
@@ -195,6 +194,12 @@ export const adminOrdersRouter = router({
       // Numa mesa isso não vale: servir um prato não fecha a comanda, então o pagamento dela
       // só é marcado quando a conta é de fato fechada (ver server/db/tables.ts, closeTableSession).
       const autoMarksPaid = input.status === "COMPLETED" && row.fulfillmentType !== "DINE_IN";
+      // Capturado só aqui (depois do lock), não antes de entrar na transação —
+      // mesmo padrão de todas as funções de server/db/tableSessions.ts. Sob
+      // contenção real (o cenário que este lock existe pra fechar), uma
+      // chamada que ficou esperando o lock não deve carimbar o registro com
+      // um instante anterior a quando ela de fato escreveu.
+      const now = Date.now();
       await tx.update(orders).set({
         status: input.status,
         updatedAt: now,

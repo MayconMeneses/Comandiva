@@ -5,12 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Prova o comportamento novo do onError de updateOrderStatus em OrderCard
- * (RestaurantOrders.tsx) e QueueCard (Kitchen.tsx): um erro CONFLICT (outro
- * dispositivo já mudou o pedido — ver updateOrderStatus, server/routers/
- * admin/orders.ts) precisa virar um toast específico, não o texto de erro
- * genérico — o card em si desmonta assim que o snapshot invalida (o pedido
+ * (RestaurantOrders.tsx), QueueCard (Kitchen.tsx), OrderStatusActions
+ * (OrderManagement.tsx, /admin e /admin/pedidos) e OrderActions
+ * (OrdersTable.tsx, Visão Geral): um erro CONFLICT (outro dispositivo já
+ * mudou o pedido — ver updateOrderStatus, server/routers/admin/orders.ts)
+ * precisa virar um toast específico, não só o texto de erro genérico — nos
+ * dois primeiros o card desmonta assim que o snapshot invalida (o pedido
  * muda de coluna/sai do filtro da fila), então só o toast sobrevive pra
- * pessoa realmente ver a mensagem.
+ * pessoa realmente ver a mensagem; nos outros dois a lista não é filtrada
+ * por status, mas a mesma proteção (expectedStatus/deviceId/toast) foi
+ * estendida por consistência — são as duas outras telas que também mexem
+ * no mesmo `orders` e podem estar abertas em outro dispositivo da equipe.
  */
 const { invalidateMock, mutateMocks, toastErrorMock } = vi.hoisted(() => ({
   invalidateMock: vi.fn(),
@@ -26,7 +31,7 @@ vi.mock("sonner", () => ({ toast: { error: toastErrorMock, success: vi.fn() } })
 let capturedOnError: ((error: { message: string; data?: { code?: string } }) => void) | undefined;
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    useUtils: () => ({ admin: { operationalSnapshot: { invalidate: invalidateMock } } }),
+    useUtils: () => ({ admin: { operationalSnapshot: { invalidate: invalidateMock }, orders: { invalidate: invalidateMock }, dashboard: { invalidate: invalidateMock } } }),
     admin: {
       updateOrderStatus: {
         useMutation: (opts: { onSuccess?: () => void; onError?: (error: { message: string; data?: { code?: string } }) => void }) => {
@@ -41,6 +46,8 @@ vi.mock("@/lib/deviceId", () => ({ getDeviceId: () => "device-test-123" }));
 
 import { OrderCard } from "../client/src/pages/RestaurantOrders";
 import { QueueCard } from "../client/src/pages/Kitchen";
+import { OrderStatusActions } from "../client/src/components/OrderManagement";
+import { OrderActions } from "../client/src/components/admin/OrdersTable";
 
 const BASE_ORDER = { id: 1, publicCode: "PX-TEST01", customerName: "Cliente Teste", customerPhone: "85999990000", fulfillmentType: "PICKUP" as const, origin: "SITE", tableLabel: null, status: "PENDING", totalCents: 1000, createdAt: Date.now(), acceptedAt: null, preparingAt: null, customerNote: null, items: [{ id: 1, productName: "Produto", quantity: 1, note: null }] };
 
@@ -82,5 +89,43 @@ describe("toast de conflito em updateOrderStatus (painel da equipe)", () => {
     render(createElement(OrderCard, { order: BASE_ORDER }));
     fireEvent.click(screen.getByRole("button", { name: /Aceitar pedido/i }));
     expect(mutateMocks.current).toHaveBeenCalledWith(expect.objectContaining({ orderId: 1, status: "ACCEPTED", expectedStatus: "PENDING", deviceId: "device-test-123" }));
+  });
+
+  it("OrderStatusActions (OrderManagement.tsx, /admin/pedidos): erro CONFLICT mostra o mesmo toast específico", () => {
+    render(createElement(OrderStatusActions, { order: { id: 1, status: "PENDING", fulfillmentType: "PICKUP" } }));
+    fireEvent.click(screen.getByRole("button", { name: /Aceitar pedido/i }));
+    expect(capturedOnError).toBeTypeOf("function");
+
+    capturedOnError!({ message: "erro genérico qualquer", data: { code: "CONFLICT" } });
+    expect(invalidateMock).toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+  });
+
+  it("OrderStatusActions: manda expectedStatus e deviceId na mutation", () => {
+    mutateMocks.current = vi.fn();
+    render(createElement(OrderStatusActions, { order: { id: 1, status: "PENDING", fulfillmentType: "PICKUP" } }));
+    fireEvent.click(screen.getByRole("button", { name: /Aceitar pedido/i }));
+    expect(mutateMocks.current).toHaveBeenCalledWith(expect.objectContaining({ orderId: 1, status: "ACCEPTED", expectedStatus: "PENDING", deviceId: "device-test-123" }));
+  });
+
+  it("OrderActions (OrdersTable.tsx, Visão Geral): erro CONFLICT mostra o mesmo toast específico", () => {
+    render(createElement(OrderActions, { order: { id: 1, status: "PENDING", fulfillmentType: "PICKUP" } }));
+    fireEvent.click(screen.getByRole("button", { name: /Aceitar pedido/i }));
+    expect(capturedOnError).toBeTypeOf("function");
+
+    capturedOnError!({ message: "erro genérico qualquer", data: { code: "CONFLICT" } });
+    expect(invalidateMock).toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+  });
+
+  it("OrderActions: manda expectedStatus e deviceId tanto no botão de ação quanto no Cancelar", () => {
+    mutateMocks.current = vi.fn();
+    render(createElement(OrderActions, { order: { id: 1, status: "PREPARING", fulfillmentType: "DELIVERY" } }));
+    fireEvent.click(screen.getByRole("button", { name: /Saiu para entrega/i }));
+    expect(mutateMocks.current).toHaveBeenCalledWith(expect.objectContaining({ orderId: 1, status: "OUT_FOR_DELIVERY", expectedStatus: "PREPARING", deviceId: "device-test-123" }));
+
+    mutateMocks.current = vi.fn();
+    fireEvent.click(screen.getByText("Cancelar"));
+    expect(mutateMocks.current).toHaveBeenCalledWith(expect.objectContaining({ orderId: 1, status: "CANCELLED", expectedStatus: "PREPARING", deviceId: "device-test-123" }));
   });
 });
