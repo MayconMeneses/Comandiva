@@ -7,6 +7,7 @@ import ProductDialog from "@/components/ProductDialog";
 import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { generateClientId } from "@/lib/randomId";
+import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
 import { addressMatchesRoute } from "@shared/orderDomain";
 import { Minus, Phone, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -47,6 +48,8 @@ export default function NewCounterOrder() {
   // comentário em insertPricedOrder, server/routers/order.ts).
   const operationIdRef = useRef(generateClientId());
   const createOrder = trpc.order.create.useMutation({
+    retry: shouldRetryOrderMutation,
+    retryDelay: orderMutationRetryDelay,
     onSuccess: result => {
       operationIdRef.current = generateClientId();
       clearCart();
@@ -108,8 +111,8 @@ export default function NewCounterOrder() {
             <div><Label>Pagamento</Label><div className="mt-1.5 grid grid-cols-3 gap-2">{([["PIX", "Pix"], ["CASH", "Dinheiro"], ["CARD_ON_DELIVERY", "Cartão"]] as const).map(([method, label]) => <button type="button" key={method} onClick={() => setPaymentMethod(method)} className={`rounded-xl border px-2 py-2.5 text-xs font-semibold transition ${paymentMethod === method ? "border-primary bg-[#fdf1eb] text-[#9f3d26]" : "border-[#e0d5c5]"}`}>{label}</button>)}</div></div>
             {paymentMethod === "CASH" && <div><Label>Troco para quanto?</Label><Input inputMode="decimal" value={changeFor} onChange={event => setChangeFor(event.target.value)} placeholder="Ex.: 50,00" className="mt-1.5 h-10 rounded-xl bg-white" />{changeForInsufficient && <p className="mt-1 text-xs text-[#a43720]">O valor precisa ser igual ou maior que o total do pedido ({money(total)}).</p>}</div>}
             <div className="rounded-xl bg-[#17120e] p-4 text-[#fffaf3]"><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Subtotal</span><span>{money(subtotalCents)}</span></div><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Entrega</span><span>{deliveryFee ? money(deliveryFee) : "Grátis"}</span></div><div className="mt-2 flex justify-between border-t border-[#4a3d30] pt-2 text-base font-bold"><span>Total</span><span className="text-[#e9c98f]">{money(total)}</span></div></div>
-            {createOrder.error && <p className="text-sm text-red-700">{createOrder.error.message}</p>}
-            <Button disabled={!canSubmit || createOrder.isPending} className="h-11 w-full rounded-xl bg-primary hover:bg-primary-hover"><ShoppingBag className="mr-2 h-4 w-4" />{createOrder.isPending ? "Criando pedido…" : "Criar pedido"}</Button>
+            {isRetryingOffline(createOrder) ? <p className="text-sm text-amber-700">Sem conexão. Tentando de novo…</p> : createOrder.error && <p className="text-sm text-red-700">{createOrder.error.message}</p>}
+            <Button disabled={!canSubmit || createOrder.isPending} className="h-11 w-full rounded-xl bg-primary hover:bg-primary-hover"><ShoppingBag className="mr-2 h-4 w-4" />{isRetryingOffline(createOrder) ? "Tentando de novo…" : createOrder.isPending ? "Criando pedido…" : "Criar pedido"}</Button>
           </div>
         </form>
       </DialogContent>
