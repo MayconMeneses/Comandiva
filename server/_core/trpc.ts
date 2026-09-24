@@ -234,3 +234,39 @@ export function requireFeature(featureId: FeatureId) {
 
 /** Açúcar pro caso público (mesa/QR): equivalente a publicProcedure.use(requireFeature(...)). */
 export const featureProcedure = (featureId: FeatureId) => t.procedure.use(requireFeature(featureId));
+
+/**
+ * Igual `assertFeatureAvailable`, mas passa se QUALQUER uma das features
+ * estiver no plano — usado quando um endpoint é lido por telas gateadas por
+ * features DIFERENTES (ex.: operationalSnapshot, consultado tanto pelo
+ * painel/cozinha, gateados por "kitchen", quanto pelo mapa de mesas do admin,
+ * gateado por "tables_qr" — hoje sempre vendidos juntos no mesmo plano, mas
+ * são eixos de plano distintos; exigir só um deles bastando evita travar um
+ * consumidor legítimo caso um dia sejam vendidos separados). Reporta a
+ * PRIMEIRA feature da lista como motivo do bloqueio — é a mais representativa
+ * pro endpoint que a estiver chamando.
+ */
+export async function assertAnyFeatureAvailable(featureIds: FeatureId[]) {
+  const snapshot = await getLicenseSnapshot();
+  if (featureIds.some(featureId => snapshot.features.includes(featureId))) return;
+  const featureId = featureIds[0];
+  const required = snapshot.lockedFeatures[featureId];
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: `Este recurso não está disponível no plano ${snapshot.planKey}.`,
+    cause: {
+      featureLocked: {
+        featureId,
+        requiredPlanKey: required?.requiredPlanKey ?? null,
+        requiredPlanName: required?.requiredPlanName ?? null,
+      } satisfies FeatureLockedInfo,
+    },
+  });
+}
+
+export function requireAnyFeature(featureIds: FeatureId[]) {
+  return t.middleware(async ({ next }) => {
+    await assertAnyFeatureAvailable(featureIds);
+    return next();
+  });
+}
