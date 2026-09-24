@@ -107,6 +107,35 @@ describe.skipIf(!process.env.DATABASE_URL)("admin.updateOrderStatus — trava de
     expect(acceptedHistory).toHaveLength(1);
   });
 
+  it("5 dispositivos concorrentes, mesmo expectedStatus (não só 2): continua exatamente UMA transição aplicada e UM registro de histórico — Fase 6 (teste de caos)", async () => {
+    const orderId = await createTestOrder(); // criado como PENDING
+    const caller = adminOrdersRouter.createCaller(adminContext);
+
+    // Mesmo cenário do teste acima (todas as telas desatualizadas mostrando
+    // PENDING), mas com 5 "dispositivos" em vez de 2 — prova que a garantia
+    // não é um artefato de só existirem 2 concorrentes (ex.: um lock que só
+    // serializasse corretamente o PRIMEIRO par, mas deixasse passar mais de
+    // uma escrita com 3+ disputando a mesma linha ao mesmo tempo).
+    const deviceIds = ["device-1", "device-2", "device-3", "device-4", "device-5"];
+    const outcomes = await Promise.allSettled(deviceIds.map(deviceId => caller.updateOrderStatus({ orderId, status: "ACCEPTED", expectedStatus: "PENDING", deviceId })));
+
+    const fulfilled = outcomes.filter(outcome => outcome.status === "fulfilled");
+    const rejected = outcomes.filter(outcome => outcome.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(4);
+    for (const outcome of rejected) expect((outcome as PromiseRejectedResult).reason).toMatchObject({ code: "CONFLICT" });
+
+    const db = await getDb();
+    if (!db) throw new Error("getDb() retornou null inesperadamente.");
+    const [finalOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+    expect(finalOrder?.status).toBe("ACCEPTED");
+    const acceptedHistory = (await db.select().from(orderStatusHistory).where(eq(orderStatusHistory.orderId, orderId))).filter(entry => entry.status === "ACCEPTED");
+    expect(acceptedHistory).toHaveLength(1);
+    // O deviceId gravado é de UM dos 5 dispositivos (o que de fato venceu a
+    // corrida) — não fica vazio nem com um valor de outro que perdeu.
+    expect(deviceIds).toContain(acceptedHistory[0]?.deviceId);
+  });
+
   it("sem expectedStatus (chamador antigo/retrocompatível), duas chamadas concorrentes pro mesmo pedido continuam serializadas pelo lock — a segunda vê o status já mudado e é rejeitada por transição inválida, não corrompe o pedido", async () => {
     const orderId = await createTestOrder(); // criado como PENDING
 

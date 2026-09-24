@@ -185,6 +185,23 @@ describe("admin.updateOrderStatus — transação", () => {
     expect(stub.calls).toHaveLength(0);
   });
 
+  it("expectedStatus MUITO desatualizado (pedido já passou por várias transições reais desde então) ainda rejeita com CONFLICT e a mensagem nomeia o status ATUAL, não o antigo — Fase 6 (teste de caos)", async () => {
+    // Simula um dispositivo que ficou com a tela aberta desde PENDING, sem
+    // nenhum refresh, enquanto o pedido de verdade já andou 3 transições
+    // (PENDING→ACCEPTED→PREPARING→OUT_FOR_DELIVERY) por outros dispositivos.
+    // O check de conflito só compara contra o status REAL travado agora —
+    // não importa quantos hops de diferença existem, então o comportamento
+    // é idêntico ao caso de 1 hop já coberto acima; este teste prova que a
+    // mensagem de erro continua correta (nomeia OUT_FOR_DELIVERY, não
+    // PENDING nem qualquer estado intermediário) mesmo bem desatualizada.
+    const stub = makeFakeDb({ currentOrder: { ...BASE_ORDER, status: "OUT_FOR_DELIVERY" } });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const caller = adminOrdersRouter.createCaller(adminContext);
+    await expect(caller.updateOrderStatus({ orderId: 10, status: "ACCEPTED", expectedStatus: "PENDING" })).rejects.toMatchObject({ code: "CONFLICT", message: expect.stringContaining("Saiu para entrega") });
+    expect(stub.calls).toHaveLength(0);
+  });
+
   it("expectedStatus IGUAL ao status real segue normal (não é conflito — a tela do dispositivo está em dia)", async () => {
     const stub = makeFakeDb({ currentOrder: BASE_ORDER }); // status real: PENDING
     mocks.getDb.mockResolvedValue(stub.db);
