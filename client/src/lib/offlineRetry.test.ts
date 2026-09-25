@@ -1,6 +1,6 @@
 import { TRPCClientError } from "@trpc/client";
 import { describe, expect, it } from "vitest";
-import { isNetworkError, isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "./offlineRetry";
+import { isNetworkError, isRetryingOffline, offlineResilienceMutationOptions, orderMutationRetryDelay, shouldRetryOrderMutation } from "./offlineRetry";
 
 // Constrói os dois formatos REAIS que TRPCClientError.from produz (confirmado
 // lendo node_modules/@trpc/client/dist/TRPCClientError-*.mjs): quando a causa
@@ -76,6 +76,18 @@ describe("offlineRetry", () => {
     });
     it("ocioso (nem pausada nem pendente): false", () => {
       expect(isRetryingOffline({ isPaused: false, isPending: false, failureCount: 0 })).toBe(false);
+    });
+  });
+
+  describe("offlineResilienceMutationOptions (offline_resilience é recurso de plano)", () => {
+    it("habilitado: devolve retry/retryDelay de verdade (os mesmos helpers)", () => {
+      const options = offlineResilienceMutationOptions(true);
+      expect(options).toEqual({ retry: shouldRetryOrderMutation, retryDelay: orderMutationRetryDelay });
+    });
+    it("desabilitado: força networkMode 'always' — sem isso, a pausa nativa do React Query (networkMode:'online' padrão) ainda daria o benefício de graça", () => {
+      const options = offlineResilienceMutationOptions(false);
+      expect(options).toEqual({ networkMode: "always" });
+      expect(options).not.toHaveProperty("retry");
     });
   });
 });

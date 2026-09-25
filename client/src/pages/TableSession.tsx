@@ -7,7 +7,7 @@ import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
-import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
 import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
@@ -67,6 +67,7 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   const resolve = trpc.table.resolve.useQuery({ token }, { refetchInterval: 12000 });
   const catalog = trpc.catalog.list.useQuery();
   const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const marca = isMarcaBackground(settings.data?.customBackgroundColor);
   useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
   const categories = (catalog.data ?? []) as MenuCategory[];
@@ -80,18 +81,18 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   // comentário em insertPricedOrder, server/routers/order.ts). A semente
   // reusa uma pendência salva (F5 com rodada pausada) em vez de sempre gerar
   // um id novo — ver client/src/lib/pendingOrderQueue.ts.
-  const operationIdRef = useRef(resumeOrCreateOperationId({ type: "table.addRound", token }));
+  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "table.addRound", token }) : generateClientId());
   // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
   const startedAtRef = useRef<number | null>(null);
   const addRound = trpc.table.addRound.useMutation({
-    retry: shouldRetryOrderMutation,
-    retryDelay: orderMutationRetryDelay,
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
     onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
       const now = Date.now();
       startedAtRef.current = now;
       persistPendingOrder({ type: "table.addRound", token, payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
     },
-    onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "table.addRound", token }); },
+    onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "table.addRound", token }); },
     onSuccess: () => {
       operationIdRef.current = generateClientId();
       clearCart();

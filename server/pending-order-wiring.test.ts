@@ -23,38 +23,37 @@ const appSource = readFileSync(resolve(import.meta.dirname, "../client/src/App.t
 const STALE_MESSAGE = "Conexão perdida há muito tempo — os preços podem ter mudado. Recarregue a página antes de continuar.";
 
 describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", () => {
-  it("Checkout.tsx: onMutate persiste com screen \"checkout\", onSettled limpa", () => {
+  it("Checkout.tsx: onMutate persiste com screen \"checkout\" (só quando offlineResilienceEnabled), onSettled limpa", () => {
     expect(checkoutSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[^}]*persistPendingOrder\(\{[^}]*screen:\s*"checkout"/s);
-    expect(checkoutSource).toContain('onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "order.create", screen: "checkout" }); }');
+    expect(checkoutSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "checkout" }); }');
   });
 
-  it("Checkout.tsx: a semente do operationIdRef usa resumeOrCreateOperationId, não generateClientId direto", () => {
-    expect(checkoutSource).toContain('useRef(resumeOrCreateOperationId({ type: "order.create", screen: "checkout" }))');
-    // generateClientId ainda é usado, mas só dentro do onSuccess (regenerar pro PRÓXIMO pedido) — não como semente do useRef.
-    expect(checkoutSource).not.toContain("useRef(generateClientId())");
+  it("Checkout.tsx: a semente do operationIdRef usa resumeOrCreateOperationId condicional, não generateClientId direto", () => {
+    // generateClientId ainda é usado como semente quando offlineResilienceEnabled é false
+    // (ver describe "offline_resilience" abaixo), e sempre dentro do onSuccess (regenerar
+    // pro PRÓXIMO pedido) — só não pode ser a chamada INCONDICIONAL de antes.
+    expect(checkoutSource).toContain('useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "checkout" }) : generateClientId())');
   });
 
-  it("NewCounterOrder.tsx: onMutate persiste com screen \"counter\", onSettled limpa", () => {
+  it("NewCounterOrder.tsx: onMutate persiste com screen \"counter\" (só quando offlineResilienceEnabled), onSettled limpa", () => {
     expect(counterSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[^}]*persistPendingOrder\(\{[^}]*screen:\s*"counter"/s);
-    expect(counterSource).toContain('onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "order.create", screen: "counter" }); }');
+    expect(counterSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "counter" }); }');
   });
 
-  it("NewCounterOrder.tsx: a semente do operationIdRef usa resumeOrCreateOperationId", () => {
-    expect(counterSource).toContain('useRef(resumeOrCreateOperationId({ type: "order.create", screen: "counter" }))');
-    expect(counterSource).not.toContain("useRef(generateClientId())");
+  it("NewCounterOrder.tsx: a semente do operationIdRef usa resumeOrCreateOperationId condicional", () => {
+    expect(counterSource).toContain('useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "counter" }) : generateClientId())');
   });
 
-  it("TableSession.tsx: onMutate persiste com type \"table.addRound\" e o token da mesa, onSettled limpa", () => {
+  it("TableSession.tsx: onMutate persiste com type \"table.addRound\" e o token da mesa (só quando offlineResilienceEnabled), onSettled limpa", () => {
     expect(tableSessionSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[^}]*persistPendingOrder\(\{\s*type:\s*"table\.addRound",\s*token,/s);
-    expect(tableSessionSource).toContain('onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "table.addRound", token }); }');
+    expect(tableSessionSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "table.addRound", token }); }');
   });
 
-  it("TableSession.tsx: a semente do operationIdRef usa resumeOrCreateOperationId com o token", () => {
-    expect(tableSessionSource).toContain('useRef(resumeOrCreateOperationId({ type: "table.addRound", token }))');
-    expect(tableSessionSource).not.toContain("useRef(generateClientId())");
+  it("TableSession.tsx: a semente do operationIdRef usa resumeOrCreateOperationId condicional com o token", () => {
+    expect(tableSessionSource).toContain('useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "table.addRound", token }) : generateClientId())');
   });
 
-  it("App.tsx: PendingOrderBanner está montado (fora do gate de admin do PwaInstallButton)", () => {
+  it("App.tsx: PendingOrderBanner está montado logo após o Toaster, antes do Router (em qualquer rota)", () => {
     expect(appSource).toContain("<PendingOrderBanner />");
     // Precisa estar ANTES do <Router/> pra funcionar em qualquer rota, e dentro do CartProvider é irrelevante — só confirma presença no JSX raiz.
     expect(appSource).toMatch(/<Toaster \/><PendingOrderBanner \/>/);
@@ -86,6 +85,26 @@ describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", 
       for (const source of [checkoutSource, counterSource, tableSessionSource]) {
         expect(source).toContain("PENDING_ORDER_WINDOW_MS");
         expect(source).toMatch(/queda de conexão longa/);
+      }
+    });
+  });
+
+  describe("offline_resilience é recurso de plano (Profissional+, 2026-09-24)", () => {
+    it("as 3 telas derivam offlineResilienceEnabled de catalog.settings", () => {
+      for (const source of [checkoutSource, counterSource, tableSessionSource]) {
+        expect(source).toMatch(/const offlineResilienceEnabled = Boolean\(settings\.data\?\.offlineResilienceEnabled\);/);
+      }
+    });
+
+    it("as 3 telas usam offlineResilienceMutationOptions em vez de retry/retryDelay fixos", () => {
+      for (const source of [checkoutSource, counterSource, tableSessionSource]) {
+        expect(source).toContain("offlineResilienceMutationOptions(offlineResilienceEnabled)");
+      }
+    });
+
+    it("as 3 telas só persistem a fila pendente (onMutate) quando offlineResilienceEnabled", () => {
+      for (const source of [checkoutSource, counterSource, tableSessionSource]) {
+        expect(source).toMatch(/if \(!offlineResilienceEnabled\) return;/);
       }
     });
   });

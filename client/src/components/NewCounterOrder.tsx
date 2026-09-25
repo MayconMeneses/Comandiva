@@ -7,7 +7,7 @@ import ProductDialog from "@/components/ProductDialog";
 import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { generateClientId } from "@/lib/randomId";
-import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
 import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { addressMatchesRoute } from "@shared/orderDomain";
@@ -30,6 +30,10 @@ export default function NewCounterOrder() {
   const [deliveryRouteId, setDeliveryRouteId] = useState<number | undefined>();
   const [address, setAddress] = useState({ postalCode: "", street: "", number: "", complement: "", neighborhood: "", city: "Croatá", state: "CE", reference: "" });
 
+  // Dedupe com a mesma query já feita em RestaurantOrders.tsx (tela que monta
+  // este diálogo) — React Query compartilha o cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const normalizedPhone = digits(phone);
   const lookup = trpc.customer.lookupByPhone.useQuery({ phone: normalizedPhone }, { enabled: (normalizedPhone.length === 10 || normalizedPhone.length === 11) && open, retry: false });
   const deliveryRoutes = trpc.catalog.deliveryRoutes.useQuery(undefined, { enabled: open });
@@ -50,18 +54,18 @@ export default function NewCounterOrder() {
   // comentário em insertPricedOrder, server/routers/order.ts).
   // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
   // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
-  const operationIdRef = useRef(resumeOrCreateOperationId({ type: "order.create", screen: "counter" }));
+  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "counter" }) : generateClientId());
   // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
   const startedAtRef = useRef<number | null>(null);
   const createOrder = trpc.order.create.useMutation({
-    retry: shouldRetryOrderMutation,
-    retryDelay: orderMutationRetryDelay,
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
     onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
       const now = Date.now();
       startedAtRef.current = now;
       persistPendingOrder({ type: "order.create", screen: "counter", payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
     },
-    onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "order.create", screen: "counter" }); },
+    onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "counter" }); },
     onSuccess: result => {
       operationIdRef.current = generateClientId();
       clearCart();

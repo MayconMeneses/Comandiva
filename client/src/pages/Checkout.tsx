@@ -7,7 +7,7 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
-import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
+import { isRetryingOffline, offlineResilienceMutationOptions, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
 import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
@@ -26,6 +26,9 @@ const cpfMask = (value: string) => { const digitsOnly = value.replace(/\D/g, "")
 export default function Checkout() {
   const [, setLocation] = useLocation(); const { items, subtotalCents, clearCart } = useCart();
   const [fulfillmentType, setFulfillmentType] = useState<"DELIVERY" | "PICKUP">("DELIVERY"); const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE">("PIX"); const settings = trpc.catalog.settings.useQuery(); const marca = isMarcaBackground(settings.data?.customBackgroundColor); useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
+  // Retry automático/fila de pedido pendente é recurso de plano (Profissional+,
+  // ver catalog.settings) — client/src/lib/offlineRetry.ts::offlineResilienceMutationOptions.
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   // Checkout dinâmico (nunca oferecer uma forma de pagamento que o gateway
   // configurado não sabe processar de verdade — ver PaymentProvider.getCapabilities).
   const capabilities = trpc.order.paymentCapabilities.useQuery();
@@ -90,7 +93,7 @@ export default function Checkout() {
   // de um sucesso — ver comentário em insertPricedOrder (server/routers/order.ts).
   // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
   // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
-  const operationIdRef = useRef(resumeOrCreateOperationId({ type: "order.create", screen: "checkout" }));
+  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "checkout" }) : generateClientId());
   // Teto de tempo pro retry em memória da Fase 3 estrita (mutations do React
   // Query não suportam cancelamento — só dá pra avisar, não matar a
   // tentativa). Mesmo Date.now() usado no onMutate abaixo pro
@@ -98,18 +101,21 @@ export default function Checkout() {
   // tentativa começou — ver client/src/hooks/useStaleRetryWarning.ts.
   const startedAtRef = useRef<number | null>(null);
   const createOrder = trpc.order.create.useMutation({
-    retry: shouldRetryOrderMutation,
-    retryDelay: orderMutationRetryDelay,
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
     // onMutate roda sempre, síncrono, antes do React Query decidir se a
     // mutation sai ou pausa por estar offline — grava o suficiente pra
     // sobreviver fechar a aba, sem depender de beforeunload (não confiável
-    // em mobile). onSettled (sucesso OU erro definitivo) limpa a entrada.
+    // em mobile). onSettled (sucesso OU erro definitivo) limpa a entrada. Só
+    // persiste quando o plano tem o recurso — sem isso, quem não tem o
+    // recurso gravaria uma fila que nunca vai adiantar (a mutation nem pausa
+    // mais, networkMode:'always').
     onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
       const now = Date.now();
       startedAtRef.current = now;
       persistPendingOrder({ type: "order.create", screen: "checkout", payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
     },
-    onSettled: () => { startedAtRef.current = null; clearPendingOrder({ type: "order.create", screen: "checkout" }); },
+    onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "checkout" }); },
     onSuccess: result => {
     operationIdRef.current = generateClientId();
     clearCart();

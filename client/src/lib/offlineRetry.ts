@@ -34,3 +34,13 @@ export function orderMutationRetryDelay(failureCount: number): number {
 export function isRetryingOffline(mutation: { isPaused: boolean; isPending: boolean; failureCount: number }): boolean {
   return mutation.isPaused || (mutation.isPending && mutation.failureCount > 0);
 }
+
+// offline_resilience é recurso de plano (Profissional+, ver catalog.settings).
+// Só desligar retry/retryDelay NÃO bastaria: networkMode:'online' (padrão do
+// React Query, sem nenhum código nosso) já pausa e retoma sozinho qualquer
+// mutation disparada offline — desligado, precisa forçar networkMode:'always'
+// pra restaurar o comportamento de antes de hoje (tenta na hora, falha se
+// estiver offline, sem pausar).
+export function offlineResilienceMutationOptions(enabled: boolean): { retry: typeof shouldRetryOrderMutation; retryDelay: typeof orderMutationRetryDelay } | { networkMode: "always" } {
+  return enabled ? { retry: shouldRetryOrderMutation, retryDelay: orderMutationRetryDelay } : { networkMode: "always" };
+}

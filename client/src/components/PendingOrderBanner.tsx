@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { isRetryingOffline, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
 import { clearPendingOrder, readValidPendingOrders, type PendingQueueEntry } from "@/lib/pendingOrderQueue";
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle } from "lucide-react";
@@ -21,10 +21,16 @@ function contextOf(entry: PendingQueueEntry) {
 export default function PendingOrderBanner() {
   const [entry, setEntry] = useState<PendingQueueEntry | null>(null);
   const utils = trpc.useUtils();
+  // offline_resilience é recurso de plano — se o restaurante foi rebaixado
+  // depois de uma pendência ter sido salva num plano anterior, o banner não
+  // deve aparecer (ver client/src/lib/offlineRetry.ts).
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
 
   useEffect(() => {
+    if (!offlineResilienceEnabled) return;
     setEntry(readValidPendingOrders()[0] ?? null);
-  }, []);
+  }, [offlineResilienceEnabled]);
 
   const discard = () => {
     if (!entry) return;
@@ -33,8 +39,7 @@ export default function PendingOrderBanner() {
   };
 
   const createOrder = trpc.order.create.useMutation({
-    retry: shouldRetryOrderMutation,
-    retryDelay: orderMutationRetryDelay,
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
     onSuccess: result => {
       toast.success(`Pedido ${result.publicCode} confirmado.`);
       void utils.admin.orders.invalidate();
@@ -45,8 +50,7 @@ export default function PendingOrderBanner() {
   });
 
   const addRound = trpc.table.addRound.useMutation({
-    retry: shouldRetryOrderMutation,
-    retryDelay: orderMutationRetryDelay,
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
     onSuccess: () => {
       toast.success("Pedido enviado para a cozinha!");
       if (entry?.type === "table.addRound") void utils.table.resolve.invalidate({ token: entry.token });
