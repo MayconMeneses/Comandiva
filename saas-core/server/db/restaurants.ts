@@ -7,7 +7,7 @@ import { getSubscriptionForRestaurant, listBillingPaymentsForSubscription } from
 import { listPlatformAuditLog } from "./auditLog";
 import { sendEmailAsync } from "../_core/emailService";
 import { buildRestaurantDeliveredMessage, sendTelegramMessageAsync } from "../_core/telegramService";
-import { ENV } from "../_core/env";
+import { commercialHomeUrl } from "../_core/env";
 
 // O teste grátis só começa a contar quando a equipe marca o restaurante como
 // entregue (menu/config organizados) — nunca no momento do cadastro. Ver
@@ -140,7 +140,7 @@ export async function markRestaurantDelivered(restaurantId: number, actor: strin
     sendEmailAsync(restaurant.contactEmail, "restaurantReady", {
       customerName: restaurant.contactName || restaurant.name,
       restaurantName: restaurant.name,
-      actionUrl: restaurant.deploymentUrl || ENV.commercialSiteUrl,
+      actionUrl: restaurant.deploymentUrl || commercialHomeUrl,
     });
   }
 

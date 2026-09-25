@@ -62,3 +62,10 @@ export const ENV = {
   // produção fora de uma janela de teste deliberada.
   implementationFeeCents: Number(process.env.IMPLEMENTATION_FEE_CENTS) || 15000,
 };
+
+// `ENV.commercialSiteUrl` é só a origem, compartilhada com o Painel Master —
+// usar ela sozinha como link de e-mail pro CLIENTE cai em "/" (Dashboard do
+// Painel Master, exige login de super-admin). Isto aponta pra home pública
+// de fato (rota /comercial, ver client/src/App.tsx), pro fallback de
+// `actionUrl` quando o restaurante ainda não tem `deploymentUrl` cadastrado.
+export const commercialHomeUrl = ENV.commercialSiteUrl ? `${ENV.commercialSiteUrl}/comercial` : "";

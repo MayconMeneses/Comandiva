@@ -2,7 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "./client";
 import { billingPayments, features, planFeatures, planLimits, plans, restaurants, subscriptionEvents, subscriptions, type SubscriptionStatus } from "../../drizzle/schema";
 import { createSubscriptionPreapproval, updateSubscriptionPreapproval } from "../_core/mercadoPagoBilling";
-import { ENV } from "../_core/env";
+import { ENV, commercialHomeUrl } from "../_core/env";
 import { getPlanByKey } from "./plans";
 import { PLATFORM_NAME } from "../../shared/branding";
 import { sendEmailAsync } from "../_core/emailService";
@@ -19,7 +19,7 @@ import {
 export async function getRestaurantContact(restaurantId: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const [row] = await db.select({ name: restaurants.name, contactName: restaurants.contactName, contactEmail: restaurants.contactEmail }).from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
+  const [row] = await db.select({ name: restaurants.name, contactName: restaurants.contactName, contactEmail: restaurants.contactEmail, deploymentUrl: restaurants.deploymentUrl }).from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
   return row;
 }
 
@@ -179,7 +179,7 @@ export async function applyPreapprovalStatus(input: { preapprovalId: string; mpS
     sendTelegramMessageAsync(buildSubscriptionRecoveredMessage({ restaurantId: subscription.restaurantId, restaurantName }));
     if (contact?.contactEmail) {
       const [plan] = await db.select().from(plans).where(eq(plans.id, updates.planId ?? subscription.planId)).limit(1);
-      sendEmailAsync(contact.contactEmail, "paymentRecovered", { customerName: contact.contactName || contact.name, restaurantName, amountCents: plan?.priceCents ?? 0, actionUrl: ENV.commercialSiteUrl });
+      sendEmailAsync(contact.contactEmail, "paymentRecovered", { customerName: contact.contactName || contact.name, restaurantName, amountCents: plan?.priceCents ?? 0, actionUrl: contact.deploymentUrl || commercialHomeUrl });
     }
   } else if (nextStatus === "canceled" && subscription.status !== "canceled") {
     sendTelegramMessageAsync(buildSubscriptionCanceledMessage({ restaurantId: subscription.restaurantId, restaurantName }));
@@ -216,7 +216,7 @@ export async function markSubscriptionPastDue(subscriptionId: number): Promise<v
       amountCents: plan?.priceCents ?? 0,
       dueDate: now,
       graceDays: PAST_DUE_GRACE_DAYS,
-      actionUrl: ENV.commercialSiteUrl,
+      actionUrl: contact.deploymentUrl || commercialHomeUrl,
     });
   }
 }
@@ -246,7 +246,7 @@ export async function isPastDueGraceExpired(subscription: { id: number; status: 
         customerName: contact.contactName || contact.name,
         restaurantName: contact.name,
         graceDaysUsed: PAST_DUE_GRACE_DAYS,
-        actionUrl: ENV.commercialSiteUrl,
+        actionUrl: contact.deploymentUrl || commercialHomeUrl,
       });
     }
   }
@@ -276,7 +276,7 @@ export async function notifySubscriptionRenewed(subscriptionId: number, amountCe
       amountCents,
       renewalDate: Date.now(),
       nextBillingDate: subscription.currentPeriodEnd,
-      actionUrl: ENV.commercialSiteUrl,
+      actionUrl: contact.deploymentUrl || commercialHomeUrl,
     });
   }
 }
@@ -307,7 +307,7 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
       sendEmailAsync(contact.contactEmail, "subscriptionCancelEffective", {
         customerName: contact.contactName || contact.name,
         restaurantName: contact.name,
-        actionUrl: ENV.commercialSiteUrl,
+        actionUrl: commercialHomeUrl,
       });
     }
     return;
@@ -447,7 +447,7 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
         restaurantName: contact.name,
         previousPlanName: current.plan.name,
         newPlanName: targetPlan.name,
-        actionUrl: ENV.commercialSiteUrl,
+        actionUrl: contact.deploymentUrl || commercialHomeUrl,
       });
     }
     return { applied: true };
@@ -463,7 +463,7 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
       previousPlanName: current.plan.name,
       newPlanName: targetPlan.name,
       effectiveDate: current.subscription.currentPeriodEnd,
-      actionUrl: ENV.commercialSiteUrl,
+      actionUrl: downgradeContact.deploymentUrl || commercialHomeUrl,
     });
   }
   return { scheduled: true, effectiveAt: current.subscription.currentPeriodEnd, planKey: targetPlan.key };
@@ -484,7 +484,7 @@ export async function scheduleCancellation(input: { restaurantId: number; reason
       customerName: contact.contactName || contact.name,
       restaurantName: contact.name,
       accessUntil: current.subscription.currentPeriodEnd,
-      actionUrl: ENV.commercialSiteUrl,
+      actionUrl: contact.deploymentUrl || commercialHomeUrl,
     });
   }
   return { effectiveAt: current.subscription.currentPeriodEnd };
