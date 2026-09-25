@@ -17,7 +17,7 @@ export default function Sucesso() {
             restaurante — em até 10 dias úteis, podendo ser antes.
           </p>
           <p className="mt-3 rounded-lg bg-paper p-3 text-sm font-medium text-ink">
-            Assim que tudo estiver pronto, seu teste grátis de <strong>30 dias</strong> começa a valer —
+            Assim que tudo estiver pronto, seu teste grátis de <strong>7 dias</strong> começa a valer —
             sem cartão de crédito.
           </p>
 

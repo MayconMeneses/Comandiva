@@ -318,7 +318,7 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
   }
 
   // Trial vencido — sem isso, o restaurante ficava com acesso completo
-  // indefinidamente após os 30 dias grátis, porque nada mais reavaliava esse
+  // indefinidamente após os 7 dias grátis, porque nada mais reavaliava esse
   // estado (ver auditoria que motivou esta mudança). Reaproveita 'ended',
   // valor do enum que antes nunca era atribuído por nenhum código —
   // computeSnapshotForRestaurant abaixo zera as features quando vê esse

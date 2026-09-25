@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Cobre o gap apontado diretamente pelo usuário: cancelar e cadastrar de
- * novo com o mesmo e-mail/telefone dava um teste grátis de 30 dias novo,
+ * novo com o mesmo e-mail/telefone dava um teste grátis de 7 dias novo,
  * indefinidamente. hasRestaurantForContact (qualquer status, inclusive
  * cancelado/encerrado) + grantTrial:false em createRestaurantWithSubscription
  * fecham essa lacuna — só no cadastro público (confirmSignupPaymentAndCreateRestaurant),

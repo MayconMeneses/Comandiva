@@ -142,7 +142,7 @@ export function buildNewPaidSignupMessage(params: {
   contactPhone?: string;
   amountCents: number;
   apiKey: string;
-  // true = este e-mail/telefone já teve restaurante antes — trial de 30
+  // true = este e-mail/telefone já teve restaurante antes — trial de 7
   // dias NÃO foi concedido (ver hasRestaurantForContact/achado da auditoria
   // de segurança). Sinalizado aqui pra nunca ficar invisível: um bloqueio
   // automático que ninguém vê pode esconder um falso positivo (duas pessoas
@@ -157,7 +157,7 @@ export function buildNewPaidSignupMessage(params: {
     `Contato: ${escapeHtml(params.contactName || "-")} · ${escapeHtml(params.contactEmail)}${params.contactPhone ? ` · ${escapeHtml(params.contactPhone)}` : ""}`,
     `Taxa de implementação paga: ${amount}`,
     `API key: <code>${escapeHtml(params.apiKey)}</code>`,
-    ...(params.repeatContact ? ["⚠️ <b>Contato repetido</b> — já teve restaurante antes, teste grátis de 30 dias NÃO foi concedido desta vez."] : []),
+    ...(params.repeatContact ? ["⚠️ <b>Contato repetido</b> — já teve restaurante antes, teste grátis de 7 dias NÃO foi concedido desta vez."] : []),
   ].join("\n");
 }
 
@@ -166,7 +166,7 @@ export function buildRestaurantDeliveredMessage(params: { restaurantId: number; 
   return [
     "✅ <b>Ambiente entregue</b>",
     `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
-    `Teste grátis de 30 dias começou a valer — termina em ${trialEndsAtLabel}.`,
+    `Teste grátis de 7 dias começou a valer — termina em ${trialEndsAtLabel}.`,
   ].join("\n");
 }
 

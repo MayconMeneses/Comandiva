@@ -11,8 +11,9 @@ import { ENV } from "../_core/env";
 
 // O teste grátis só começa a contar quando a equipe marca o restaurante como
 // entregue (menu/config organizados) — nunca no momento do cadastro. Ver
-// markRestaurantDelivered abaixo.
-const TRIAL_DAYS = 30;
+// markRestaurantDelivered abaixo. Mudado de 30 pra 7 dias (pedido do dono,
+// 2026-09-24).
+const TRIAL_DAYS = 7;
 const DELIVERY_SLA_BUSINESS_DAYS = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -40,7 +41,7 @@ export type CreateRestaurantInput = {
   contactEmail?: string;
   contactPhone?: string;
   actor?: string;
-  // false = pula o trial de 30 dias, assinatura nasce direto em "ended"
+  // false = pula o trial de 7 dias, assinatura nasce direto em "ended"
   // (bloqueada, precisa assinar de verdade pra usar) — usado pelo cadastro
   // público quando o mesmo contato já teve restaurante antes (ver
   // hasRestaurantForContact/achado da auditoria: sem isso, cancelar e
@@ -54,7 +55,7 @@ export type CreateRestaurantInput = {
  * Existe algum restaurante (qualquer status, inclusive cancelado/encerrado)
  * com este e-mail ou telefone de contato? Usado só pelo cadastro público
  * pra decidir se concede um novo trial — nunca bloqueia o cadastro em si,
- * só a gratuidade dos 30 dias.
+ * só a gratuidade dos 7 dias.
  */
 export async function hasRestaurantForContact(contactEmail?: string, contactPhone?: string): Promise<boolean> {
   const email = contactEmail?.trim().toLowerCase();
@@ -135,7 +136,7 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
 
 /**
  * Marca a configuração do restaurante como concluída e é só NESSE momento
- * que o teste grátis de 30 dias passa a contar de verdade — regra de
+ * que o teste grátis de 7 dias passa a contar de verdade — regra de
  * negócio central: o cliente não pode ter o tempo de trial consumido
  * enquanto a equipe ainda está organizando cardápio/config dele.
  */

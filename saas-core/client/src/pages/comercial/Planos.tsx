@@ -28,6 +28,7 @@ const FEATURE_DESCRIPTIONS: Record<string, string> = {
   promotions: "Criar promoções e combos com preço promocional no cardápio.",
   kitchen: "Tela de fila da cozinha e o kanban de pedidos.",
   team_app: "Instalar o painel no celular/tablet da equipe pra acesso rápido.",
+  offline_resilience: "Se a conexão do cliente cair no meio do pedido, o sistema tenta enviar de novo sozinho — sem duplicar e sem perder a venda.",
   reports_complete: "Faturamento por dia/hora/forma de pagamento, produtos e categorias mais vendidos.",
   custom_theme: "Escolha a cor de marca do cardápio público e do painel, entre 7 opções.",
   events: "Divulgar eventos com imagem grande direto no cardápio.",
@@ -66,7 +67,7 @@ export default function Planos() {
   usePageMeta({
     title: "Planos e Preços — Sistema para Restaurante a partir de R$ 99,99/mês | MM System Creator",
     description:
-      "Compare os planos do MM System Creator: cardápio digital, pedidos online, mesas com QR Code, cozinha e relatórios. A partir de R$ 99,99/mês, sem comissão por pedido. 30 dias grátis.",
+      "Compare os planos do MM System Creator: cardápio digital, pedidos online, mesas com QR Code, cozinha e relatórios. A partir de R$ 99,99/mês, sem comissão por pedido. 7 dias grátis.",
     path: "/comercial/planos",
   });
   const plansQuery = trpc.public.plans.useQuery();
@@ -86,7 +87,8 @@ export default function Planos() {
         <div
           className="pointer-events-none absolute inset-0 -z-20"
           style={{
-            backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 45%, transparent) 1.5px, transparent 1.5px)",
+            // var(--accent) raw, não --color-accent — ver comentário no card destacado abaixo.
+            backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent) 1.5px, transparent 1.5px)",
             backgroundSize: "26px 26px",
             maskImage: "linear-gradient(to bottom, black, transparent)",
             WebkitMaskImage: "linear-gradient(to bottom, black, transparent)",
@@ -97,7 +99,7 @@ export default function Planos() {
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[42rem]"
           style={{
             background:
-              "radial-gradient(50% 55% at 50% 0%, color-mix(in srgb, var(--color-accent) 35%, transparent), transparent), radial-gradient(38% 38% at 88% 8%, color-mix(in srgb, #3b82f6 22%, transparent), transparent), radial-gradient(32% 32% at 8% 18%, color-mix(in srgb, #3b82f6 14%, transparent), transparent)",
+              "radial-gradient(50% 55% at 50% 0%, color-mix(in srgb, var(--accent) 35%, transparent), transparent), radial-gradient(38% 38% at 88% 8%, color-mix(in srgb, #3b82f6 22%, transparent), transparent), radial-gradient(32% 32% at 8% 18%, color-mix(in srgb, #3b82f6 14%, transparent), transparent)",
           }}
         />
 
@@ -108,7 +110,7 @@ export default function Planos() {
           </span>
           <h1 className="mt-4 text-3xl font-bold text-ink sm:text-4xl">Escolha o plano do seu restaurante</h1>
           <p className="mt-4 text-ink-soft">
-            <strong>30 dias de teste grátis</strong> assim que seu sistema estiver pronto (em até 10 dias
+            <strong>7 dias de teste grátis</strong> assim que seu sistema estiver pronto (em até 10 dias
             úteis), sem cartão de crédito. Sem comissão por pedido — a mensalidade cobre o aluguel do
             sistema e a hospedagem, ponto final.
           </p>
@@ -142,7 +144,7 @@ export default function Planos() {
                   {highlighted && (
                     <div
                       className="pointer-events-none absolute -inset-3 -z-10 rounded-[2rem] opacity-60 blur-2xl"
-                      style={{ background: "color-mix(in srgb, var(--color-accent) 45%, transparent)" }}
+                      style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}
                     />
                   )}
                   <div
@@ -151,7 +153,14 @@ export default function Planos() {
                     }`}
                     style={
                       highlighted
-                        ? { background: "color-mix(in srgb, var(--color-accent) 4%, var(--color-paper-raised))" }
+                        // Variáveis RAW (--accent/--paper-raised), não os aliases --color-*
+                        // do @theme inline: confirmado ao vivo (2026-09-24) que o alias, ao
+                        // ser usado dentro de color-mix() num inline style, não acompanha a
+                        // sobrescrita de .comercial-dark (fica preso no valor claro de :root,
+                        // #fff) — deixava este card com fundo branco e texto quase invisível
+                        // (cor de texto clara, herdada corretamente via --color-ink em
+                        // qualquer outro lugar). A variável raw não tem esse problema.
+                        ? { background: "color-mix(in srgb, var(--accent) 4%, var(--paper-raised))" }
                         : undefined
                     }
                   >
@@ -166,7 +175,7 @@ export default function Planos() {
                       </span>
                     )}
                     <span className="w-fit rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
-                      30 dias grátis
+                      7 dias grátis
                     </span>
                     <h2 className="mt-3 text-xl font-semibold text-ink">{plan.name}</h2>
                     <p className="mt-1 text-sm text-ink-soft">{TAGLINES[plan.key]}</p>

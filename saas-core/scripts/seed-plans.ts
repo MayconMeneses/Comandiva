@@ -37,7 +37,7 @@ const FEATURES: { featureId: string; name: string; category: string; minPlan: Pl
   // Adicionado 2026-09-24 (pedido do dono): retry automático de pedido em
   // queda de conexão + fila de pedido pendente no checkout público — antes
   // rodava igual em todo plano, agora vira diferencial comercial.
-  { featureId: "offline_resilience", name: "Pedido resiliente offline (retry automático)", category: "operacao", minPlan: "profissional" },
+  { featureId: "offline_resilience", name: "Pedido resistente a conexão instável", category: "operacao", minPlan: "profissional" },
   // Eventos, relatórios avançados, gestão avançada de equipe e auditoria
   // ficam reservados pro topo — diferenciais do plano mais completo.
   { featureId: "events", name: "Eventos", category: "marketing", minPlan: "premium" },

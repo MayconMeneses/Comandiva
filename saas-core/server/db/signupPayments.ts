@@ -60,7 +60,7 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
 
   const payload = row.payload as SignupPayload;
   // E-mail/telefone que já teve restaurante antes (mesmo cancelado/encerrado)
-  // não ganha um novo trial de 30 dias — sem isso, cancelar e cadastrar de
+  // não ganha um novo trial de 7 dias — sem isso, cancelar e cadastrar de
   // novo dava teste grátis indefinidamente (achado da auditoria de
   // segurança). Só se aplica ao cadastro público — criação manual via
   // Painel Master/CLI continua concedendo trial normalmente, um operador

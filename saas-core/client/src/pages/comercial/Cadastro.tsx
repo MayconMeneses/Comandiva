@@ -63,7 +63,7 @@ export default function Cadastro() {
           <h1 className="mt-2 text-2xl font-bold text-ink">Cadastre seu restaurante</h1>
           <p className="mt-1 text-sm text-ink-soft">
             Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis — podendo ser
-            antes. Só depois de tudo pronto é que seu teste grátis de 30 dias começa a valer.
+            antes. Só depois de tudo pronto é que seu teste grátis de 7 dias começa a valer.
           </p>
 
           <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3 text-sm">
