@@ -12,6 +12,7 @@ import Receipt from "@/components/admin/Receipt";
 import ReportsByPeriod from "@/components/admin/ReportsByPeriod";
 import { Loading } from "@/components/admin/shared";
 import PlanAdmin from "@/components/admin/PlanAdmin";
+import PwaInstallAdmin from "@/components/admin/PwaInstallAdmin";
 import SiteConfig from "@/components/admin/SiteConfig";
 import TablesAdmin from "@/components/admin/TablesAdmin";
 import TeamLoginCard from "@/components/TeamLoginCard";
@@ -38,6 +39,7 @@ function AdminContent() {
   if (page === "eventos") return <EventManager />;
   if (page === "configuracao") return <SiteConfig />;
   if (page === "plano") return <PlanAdmin />;
+  if (page === "instalador") return <PwaInstallAdmin />;
   // Página raiz (Visão geral) precisa da permissão "reports" (tem receita do
   // restaurante) — uma conta staff liberada só pra outra área (ex.: só
   // Cardápio) cai em Pedidos em vez de esbarrar num erro de permissão aqui.

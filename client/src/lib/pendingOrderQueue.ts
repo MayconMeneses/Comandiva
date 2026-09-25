@@ -65,7 +65,7 @@ function isEntryValid(entry: unknown): entry is PendingQueueEntry {
 
 // localStorage pode falhar (modo privado antigo, quota) — nesses casos só se
 // perde o lembrete de recuperação, nunca o pedido em si (mesmo padrão de
-// degradação segura já usado em PwaInstallButton.tsx).
+// degradação segura já usado em client/src/lib/deviceId.ts).
 export function persistPendingOrder(entry: PendingQueueEntry): void {
   try {
     localStorage.setItem(keyFor(contextOf(entry)), JSON.stringify(entry));

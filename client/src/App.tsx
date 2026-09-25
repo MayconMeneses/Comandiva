@@ -10,11 +10,11 @@ import NotFound from "@/pages/NotFound";
 import OrderTracking from "@/pages/OrderTracking";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfUse from "@/pages/TermsOfUse";
-import PwaInstallButton from "@/components/PwaInstallButton";
 import PendingOrderBanner from "@/components/PendingOrderBanner";
 import { lazy, Suspense } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { PwaInstallProvider } from "./contexts/PwaInstallContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Telas de uso exclusivo da equipe (admin/operação/QR Code de mesa/handoff de
@@ -32,11 +32,11 @@ function RouteFallback() {
 }
 
 function Router() {
-  return <Suspense fallback={<RouteFallback />}><Switch><Route path="/" component={Home} /><Route path="/checkout" component={Checkout} /><Route path="/acompanhar" component={OrderTracking} /><Route path="/sobre" component={About} /><Route path="/faq" component={FAQ} /><Route path="/politica-de-privacidade" component={PrivacyPolicy} /><Route path="/termos-de-uso" component={TermsOfUse} /><Route path="/meus-dados" component={DataRights} /><Route path="/painel-pedidos" component={RestaurantOrders} /><Route path="/cozinha" component={Kitchen} /><Route path="/mesa/:token" component={TableSession} /><Route path="/suporte/entrar" component={SupportEntry} /><Route path="/admin" component={Admin} /><Route path="/admin/pedidos" component={Admin} /><Route path="/admin/rotas" component={Admin} /><Route path="/admin/comprovante/:id" component={Admin} /><Route path="/admin/cardapio" component={Admin} /><Route path="/admin/mesas" component={Admin} /><Route path="/admin/clientes" component={Admin} /><Route path="/admin/relatorios" component={Admin} /><Route path="/admin/auditoria" component={Admin} /><Route path="/admin/fiscal" component={Admin} /><Route path="/admin/conta" component={Admin} /><Route path="/admin/eventos" component={Admin} /><Route path="/admin/configuracao" component={Admin} /><Route path="/admin/plano" component={Admin} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch></Suspense>;
+  return <Suspense fallback={<RouteFallback />}><Switch><Route path="/" component={Home} /><Route path="/checkout" component={Checkout} /><Route path="/acompanhar" component={OrderTracking} /><Route path="/sobre" component={About} /><Route path="/faq" component={FAQ} /><Route path="/politica-de-privacidade" component={PrivacyPolicy} /><Route path="/termos-de-uso" component={TermsOfUse} /><Route path="/meus-dados" component={DataRights} /><Route path="/painel-pedidos" component={RestaurantOrders} /><Route path="/cozinha" component={Kitchen} /><Route path="/mesa/:token" component={TableSession} /><Route path="/suporte/entrar" component={SupportEntry} /><Route path="/admin" component={Admin} /><Route path="/admin/pedidos" component={Admin} /><Route path="/admin/rotas" component={Admin} /><Route path="/admin/comprovante/:id" component={Admin} /><Route path="/admin/cardapio" component={Admin} /><Route path="/admin/mesas" component={Admin} /><Route path="/admin/clientes" component={Admin} /><Route path="/admin/relatorios" component={Admin} /><Route path="/admin/auditoria" component={Admin} /><Route path="/admin/fiscal" component={Admin} /><Route path="/admin/conta" component={Admin} /><Route path="/admin/eventos" component={Admin} /><Route path="/admin/configuracao" component={Admin} /><Route path="/admin/plano" component={Admin} /><Route path="/admin/instalador" component={Admin} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch></Suspense>;
 }
 
 function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><CartProvider><Toaster /><PendingOrderBanner /><PwaInstallButton /><Router /></CartProvider></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><CartProvider><PwaInstallProvider><Toaster /><PendingOrderBanner /><Router /></PwaInstallProvider></CartProvider></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }
 
 export default App;

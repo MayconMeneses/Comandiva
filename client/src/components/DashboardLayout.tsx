@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
 import type { StaffPermissionArea } from "@shared/permissions";
-import { BarChart3, CalendarDays, ClipboardList, CreditCard, ExternalLink, FileText, History, LayoutDashboard, LayoutGrid, LogOut, MapPinned, PanelLeft, Settings2, Users, UtensilsCrossed, Wallet } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, CreditCard, Download, ExternalLink, FileText, History, LayoutDashboard, LayoutGrid, LogOut, MapPinned, PanelLeft, Settings2, Users, UtensilsCrossed, Wallet } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -64,6 +64,10 @@ const menuItems: { icon: typeof LayoutDashboard; label: string; path: string; fe
   { icon: CalendarDays, label: "Eventos", path: "/admin/eventos", featureId: "events", areas: ["events"] },
   { icon: Settings2, label: "Configuração", path: "/admin/configuracao", adminOnly: true },
   { icon: CreditCard, label: "Meu plano", path: "/admin/plano", adminOnly: true },
+  // Sem `adminOnly` nem `areas` de propósito — item básico, igual "Pedidos"
+  // acima: qualquer staff que chegue até a barra lateral também vê (quem
+  // atende mesa/balcão se beneficia de instalar o app tanto quanto o admin).
+  { icon: Download, label: "Instalador do app", path: "/admin/instalador" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
