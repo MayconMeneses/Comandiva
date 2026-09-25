@@ -15,6 +15,24 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { buildSystemErrorMessage, sendTelegramMessage } from "./telegramService";
 
+// Sem storage de imagem própria nem fonte externa aqui (Painel Master +
+// site comercial não guardam dado operacional de restaurante, ver
+// CLAUDE.md) — diferente do app principal, essa política pode ser estática.
+// 'unsafe-inline' só em style-src: o client usa `style={{...}}` em alguns
+// componentes; script-src continua estrito (nenhum <script> inline/externo).
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
+  "img-src 'self' data: blob:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+].join("; ");
+
 const APP_VERSION = (() => {
   try {
     return (JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf-8")) as { version?: string }).version ?? "unknown";
@@ -83,11 +101,17 @@ async function startServer() {
   const server = createServer(app);
   if (ENV.trustProxy) app.set("trust proxy", 1);
   app.disable("x-powered-by");
+  // `npm run dev` (NODE_ENV=development, ver setupVite/serveStatic abaixo)
+  // serve o preamble do React Fast Refresh como <script> inline, que a CSP
+  // bloquearia — só existe nesse modo (testado no app principal, mesma
+  // configuração de Vite; o build de produção não tem script inline nenhum).
+  const isDevServer = process.env.NODE_ENV === "development";
   app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (!isDevServer) res.setHeader("Content-Security-Policy", CONTENT_SECURITY_POLICY);
     if (req.secure) res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
     next();
   });
