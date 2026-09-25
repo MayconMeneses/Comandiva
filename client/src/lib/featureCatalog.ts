@@ -64,4 +64,9 @@ export const FEATURE_CATALOG: Record<string, FeatureCatalogEntry> = {
     description: "Escolha a cor de marca do cardápio público e do painel administrativo, entre 7 opções.",
     benefits: ["7 paletas prontas, testadas pra boa leitura", "Aplica no site público e no admin ao mesmo tempo", "Troque quando quiser, sem custo extra"],
   },
+  offline_resilience: {
+    name: "Pedido resistente a conexão instável",
+    description: "Se a conexão do cliente cair no meio do pedido — no checkout, no balcão ou na mesa — o sistema tenta enviar de novo sozinho, sem duplicar e sem perder a venda.",
+    benefits: ["Retry automático quando a internet do cliente falha", "Nunca duplica o pedido, mesmo reenviando", "Menos venda perdida por Wi-Fi fraco ou sinal instável"],
+  },
 };
