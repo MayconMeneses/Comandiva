@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { generateApiKey, hashApiKey } from "../_core/apiKey";
 import { getDb } from "./client";
 import { plans, restaurants, subscriptionEvents, subscriptions, type PlanKey, type RestaurantStatus } from "../../drizzle/schema";
@@ -271,37 +271,65 @@ export function restaurantSortPriority(restaurant: { status: RestaurantStatus },
   return 0;
 }
 
-export async function listRestaurantsForPanel(filters: { status?: RestaurantStatus; planKey?: PlanKey; includeHidden?: boolean } = {}) {
+const DEFAULT_PAGE_SIZE = 25;
+// Trava de segurança pra chamadas sem paginação de UI (ex.: o assistente de
+// manutenção, que precisa do retrato completo) — nunca puxa a tabela
+// inteira pra memória mesmo se pageSize não for informado.
+const MAX_PAGE_SIZE = 1000;
+
+export async function listRestaurantsForPanel(
+  filters: { status?: RestaurantStatus; planKey?: PlanKey; includeHidden?: boolean; page?: number; pageSize?: number } = {},
+) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return { restaurants: [], total: 0 };
+
+  const now = Date.now();
+  const hiddenCutoff = now - HIDE_CANCELLED_AFTER_DAYS * DAY_MS;
+
   const conditions = [
     filters.status ? eq(restaurants.status, filters.status) : undefined,
     filters.planKey ? eq(plans.key, filters.planKey) : undefined,
+    // Cancelados somem da lista sozinhos N dias depois — replica em SQL a
+    // mesma regra que antes era filtrada em memória, pra a paginação bater
+    // com a contagem total.
+    filters.includeHidden ? undefined : sql`(${restaurants.status} != 'cancelled' OR ${restaurants.cancelledAt} IS NULL OR ${restaurants.cancelledAt} > ${hiddenCutoff})`,
   ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+  const whereClause = conditions.length ? and(...conditions) : undefined;
 
-  // Sem paginação de verdade ainda (tela do Painel Master não tem "carregar
-  // mais") — esse limite é só uma trava de segurança pra nunca puxar a
-  // tabela inteira pra memória caso a base de restaurantes-cliente cresça
-  // muito; mais recentes primeiro, pra nunca cortar quem acabou de entrar.
-  // Se algum dia passar de 500 restaurantes ativos, isso precisa virar
-  // paginação de verdade (backend + UI).
-  const rows = await db
-    .select({ restaurant: restaurants, subscription: subscriptions, plan: plans })
-    .from(restaurants)
-    .innerJoin(subscriptions, eq(subscriptions.restaurantId, restaurants.id))
-    .innerJoin(plans, eq(subscriptions.planId, plans.id))
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(restaurants.id))
-    .limit(500);
+  // Mesma regra de prioridade de restaurantSortPriority (ativos, depois
+  // pagamento em atraso/suspenso, depois cancelados), só que em SQL — precisa
+  // rodar antes do LIMIT/OFFSET pra paginação ficar correta.
+  const priorityRank = sql`CASE
+    WHEN ${restaurants.status} = 'cancelled' THEN 2
+    WHEN ${restaurants.status} = 'suspended' OR ${subscriptions.status} IN ('payment_pending', 'past_due', 'cancel_at_period_end') THEN 1
+    ELSE 0
+  END`;
 
-  const now = Date.now();
-  const visible = filters.includeHidden
-    ? rows
-    : rows.filter(({ restaurant }) => !(restaurant.status === "cancelled" && restaurant.cancelledAt != null && now - restaurant.cancelledAt > HIDE_CANCELLED_AFTER_DAYS * DAY_MS));
+  const pageSize = Math.min(Math.max(filters.pageSize ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  const page = Math.max(filters.page ?? 1, 1);
 
-  return visible
-    .map(({ restaurant: { apiKeyHash: _apiKeyHash, ...restaurant }, subscription, plan }) => ({ ...restaurant, subscription, plan }))
-    .sort((a, b) => restaurantSortPriority(a, a.subscription) - restaurantSortPriority(b, b.subscription));
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({ restaurant: restaurants, subscription: subscriptions, plan: plans })
+      .from(restaurants)
+      .innerJoin(subscriptions, eq(subscriptions.restaurantId, restaurants.id))
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(whereClause)
+      .orderBy(priorityRank, desc(restaurants.id))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    db
+      .select({ total: count() })
+      .from(restaurants)
+      .innerJoin(subscriptions, eq(subscriptions.restaurantId, restaurants.id))
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(whereClause),
+  ]);
+
+  return {
+    restaurants: rows.map(({ restaurant: { apiKeyHash: _apiKeyHash, ...restaurant }, subscription, plan }) => ({ ...restaurant, subscription, plan })),
+    total: Number(total),
+  };
 }
 
 /** Detalhe completo pro Painel Master: Dados + Plano + Pagamentos + últimas ações de auditoria envolvendo este restaurante. */

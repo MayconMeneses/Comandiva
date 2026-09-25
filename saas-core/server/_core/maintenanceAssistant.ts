@@ -21,7 +21,7 @@ const SYSTEM_PROMPT = `Você é o assistente de manutenção do Painel Master de
  * externo só pra responder "quantos restaurantes estão sem deployment" etc.
  */
 async function buildSnapshot() {
-  const restaurants = await listRestaurantsForPanel({ includeHidden: true });
+  const { restaurants } = await listRestaurantsForPanel({ includeHidden: true, pageSize: 1000 });
   const recentAuditLog = await listPlatformAuditLog({ limit: 30 });
   return {
     restaurants: restaurants.map(restaurant => ({

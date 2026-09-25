@@ -22,7 +22,7 @@ const { askMaintenanceAssistant } = await import("./maintenanceAssistant");
 describe("askMaintenanceAssistant", () => {
   beforeEach(() => {
     mocks.env.anthropicApiKey = "";
-    mocks.listRestaurantsForPanel.mockReset().mockResolvedValue([]);
+    mocks.listRestaurantsForPanel.mockReset().mockResolvedValue({ restaurants: [], total: 0 });
     mocks.listPlatformAuditLog.mockReset().mockResolvedValue([]);
     global.fetch = vi.fn();
   });
@@ -46,19 +46,22 @@ describe("askMaintenanceAssistant", () => {
 
   it("manda os dados agregados no corpo da requisição, sem contactEmail/contactPhone", async () => {
     mocks.env.anthropicApiKey = "sk-ant-teste";
-    mocks.listRestaurantsForPanel.mockResolvedValue([
-      {
-        id: 1,
-        name: "Restaurante Teste",
-        contactEmail: "dono@teste.com",
-        contactPhone: "11999990000",
-        status: "active",
-        deploymentUrl: "https://x.exemplo.com",
-        cancelledAt: null,
-        subscription: { status: "active", currentPeriodEnd: 123 },
-        plan: { key: "profissional" },
-      },
-    ]);
+    mocks.listRestaurantsForPanel.mockResolvedValue({
+      restaurants: [
+        {
+          id: 1,
+          name: "Restaurante Teste",
+          contactEmail: "dono@teste.com",
+          contactPhone: "11999990000",
+          status: "active",
+          deploymentUrl: "https://x.exemplo.com",
+          cancelledAt: null,
+          subscription: { status: "active", currentPeriodEnd: 123 },
+          plan: { key: "profissional" },
+        },
+      ],
+      total: 1,
+    });
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => ({ content: [{ type: "text", text: "ok" }] }) });
 
     await askMaintenanceAssistant("pergunta de teste");
