@@ -6,6 +6,10 @@ patchedDependencies:
 
 overrides:
   tailwindcss>nanoid: "3.3.7"
+  # CVE moderado (ReDoS), vite-plugin-pwa > tinyglobby pinava picomatch
+  # <4.0.4; sem override direto porque tinyglobby não expõe isso como range
+  # ajustável de fora.
+  picomatch: "4.0.4"
   # CVEs conhecidos nas versões antigas puxadas por dependências transitivas
   # (AWS SDK e Express) — presos na mesma linha maior pra não quebrar nada.
   # Espelhado também em package.json > pnpm.overrides por precaução, mas o

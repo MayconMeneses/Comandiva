@@ -35,3 +35,4 @@ desktop.ini
 
 # Testes/cobertura
 coverage/
+.claude/scheduled_tasks.lock
