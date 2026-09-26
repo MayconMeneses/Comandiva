@@ -19,6 +19,7 @@ export const FEATURE_IDS = [
   "reports_advanced",
   "advanced_team",
   "custom_theme",
+  "offline_resilience",
 ] as const;
 export type FeatureId = (typeof FEATURE_IDS)[number];
 

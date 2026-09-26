@@ -3,20 +3,39 @@
 /* Paleta neutra própria do Painel Master — deliberadamente distinta da
    identidade visual do MM System Creator (client/index principal), pra nunca confundir
    visualmente "estou no painel de UM restaurante" com "estou vendo TODOS os
-   restaurantes". */
-@theme {
-  --color-ink: #0f172a;
-  --color-ink-soft: #475569;
-  --color-paper: #f8fafc;
-  --color-paper-raised: #ffffff;
-  --color-border: #e2e8f0;
-  --color-accent: #4338ca;
-  --color-accent-hover: #3730a3;
+   restaurantes".
+
+   `@theme inline` + indireção via `:root` (em vez de valores literais direto
+   dentro de `@theme`) — necessário pra Aparência (Painel Master → fundo
+   personalizado) poder sobrescrever essas variáveis em runtime via
+   `document.documentElement.style.setProperty`; um `@theme {}` literal vira
+   valor fixo no CSS final e não é reescrevível. Mesmo padrão já usado no app
+   principal (client/src/index.css). Puro refatoro dos mesmos 7 tokens de
+   sempre — `.comercial-dark` abaixo continua idêntico, só passou a
+   sobrescrever a variável em vez do literal. */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+}
+
+:root {
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --paper: #f8fafc;
+  --paper-raised: #ffffff;
+  --border: #e2e8f0;
+  --accent: #4338ca;
+  --accent-hover: #3730a3;
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--paper);
+  color: var(--ink);
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
@@ -28,11 +47,11 @@ body {
    automaticamente sem precisar duplicar nada.  */
 .comercial-dark {
   color-scheme: dark;
-  --color-ink: #f8fafc;
-  --color-ink-soft: #94a3b8;
-  --color-paper: #080b16;
-  --color-paper-raised: #10172a;
-  --color-border: #1e293b;
-  --color-accent: #4f46e5;
-  --color-accent-hover: #6366f1;
+  --ink: #f8fafc;
+  --ink-soft: #94a3b8;
+  --paper: #080b16;
+  --paper-raised: #10172a;
+  --border: #1e293b;
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
 }

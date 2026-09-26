@@ -9,9 +9,15 @@ const mocks = vi.hoisted(() => ({
   markOrderPaymentPaidByPublicCode: vi.fn(),
   markOrderPaymentFailedByPublicCode: vi.fn(),
   markWebhookEventOnce: vi.fn(),
+  sendOwnerAlert: vi.fn(),
 }));
 
 vi.mock("./db", () => ({ getDb: mocks.getDb, markOrderPaymentPaidByPublicCode: mocks.markOrderPaymentPaidByPublicCode, markOrderPaymentFailedByPublicCode: mocks.markOrderPaymentFailedByPublicCode }));
+// Alerta do dono (Telegram/e-mail) — mockado pra provar que uma falha real
+// no processamento do webhook (não os retornos 200 esperados) dispara o
+// aviso, em vez de só sumir no console (ver server/_core/trpc.ts:5 pro
+// mesmo raciocínio aplicado a erro interno de requisição tRPC).
+vi.mock("./_core/alerts", () => ({ sendOwnerAlert: mocks.sendOwnerAlert }));
 vi.mock("./_core/mercadoPago", async importOriginal => ({
   ...(await importOriginal<typeof import("./_core/mercadoPago")>()),
   getMercadoPagoPayment: mocks.getMercadoPagoPayment,
@@ -198,6 +204,24 @@ describe("webhook do Mercado Pago", () => {
     const { req, res, getResult } = fakeReqRes({ type: "payment", data: { id: "123" } });
     await handleMercadoPagoWebhook(req, res);
     expect(getResult().statusCode).not.toBe(200);
+    // Falha real (não os retornos 200 esperados) precisa avisar o dono — sem
+    // isso, um pagamento aprovado que falha ao ser gravado fica invisível até
+    // alguém notar o pedido "sumido" no operacional.
+    expect(mocks.sendOwnerAlert).toHaveBeenCalledWith(
+      "Falha no webhook de pagamento (Mercado Pago)",
+      expect.stringContaining("conexão com o banco perdida"),
+      "mercadoPagoWebhook",
+      undefined,
+      "Pagamento de pedido (webhook Mercado Pago)",
+    );
+  });
+
+  it("caminho feliz não dispara alerta nenhum (sem ruído pra falha que não aconteceu)", async () => {
+    mocks.getDb.mockResolvedValue(gatewayDb(ACTIVE_MP_GATEWAY));
+    mocks.getMercadoPagoPayment.mockResolvedValue({ id: 123, status: "approved", statusDetail: null, externalReference: "PX-ABC1234" });
+    const { req, res } = fakeReqRes({ type: "payment", data: { id: "123" } });
+    await handleMercadoPagoWebhook(req, res);
+    expect(mocks.sendOwnerAlert).not.toHaveBeenCalled();
   });
 
   it("notificação referenciando um pedido inexistente não trava nem finge sucesso", async () => {

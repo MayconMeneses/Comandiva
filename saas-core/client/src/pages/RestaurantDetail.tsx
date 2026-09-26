@@ -184,7 +184,7 @@ export default function RestaurantDetail() {
           <div className="mt-3 rounded-lg border border-border bg-paper p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Entrega / teste grátis</p>
             <p className="mt-1 text-xs text-ink-soft">
-              O teste grátis de 30 dias só começa a contar quando o restaurante é marcado como entregue aqui — nunca
+              O teste grátis de 7 dias só começa a contar quando o restaurante é marcado como entregue aqui — nunca
               no cadastro. Prazo combinado: até {restaurant.deliveryDueAt ? new Date(restaurant.deliveryDueAt).toLocaleDateString("pt-BR") : "—"}
               {" "}(10 dias úteis do cadastro, podendo ser antes).
             </p>
@@ -419,7 +419,7 @@ export default function RestaurantDetail() {
       <ConfirmDialog
         open={pendingMarkDelivered}
         title="Marcar como entregue"
-        description="Confirma que a configuração deste restaurante (cardápio, config geral) está pronta? A partir de agora, o teste grátis de 30 dias passa a contar — essa ação não pode ser desfeita."
+        description="Confirma que a configuração deste restaurante (cardápio, config geral) está pronta? A partir de agora, o teste grátis de 7 dias passa a contar — essa ação não pode ser desfeita."
         confirmLabel="Marcar como entregue"
         pending={markDelivered.isPending}
         onCancel={() => setPendingMarkDelivered(false)}

@@ -17,8 +17,15 @@ function dbWithUniqueConstraint() {
       values: async (row: { gateway: string; eventKey: string }) => {
         const key = `${row.gateway}:${row.eventKey}`;
         if (seen.has(key)) {
-          const error = new Error("Duplicate entry") as Error & { code: string };
-          error.code = "ER_DUP_ENTRY";
+          // Formato real do drizzle-orm 0.45.x: o `code` do driver mysql2 vem
+          // em `error.cause`, não no erro em si (confirmado rodando contra
+          // MySQL de verdade — ver server/order-idempotency-real-db.test.ts).
+          // Um mock com `error.code` direto (formato antigo deste teste)
+          // deixava passar um bug real: markWebhookEventOnce nunca detectava
+          // duplicata de verdade, então todo webhook duplicado do Mercado
+          // Pago lançava um erro cru em vez de ser ignorado graciosamente.
+          const error = new Error("Duplicate entry") as Error & { cause?: { code: string } };
+          error.cause = { code: "ER_DUP_ENTRY" };
           throw error;
         }
         seen.add(key);

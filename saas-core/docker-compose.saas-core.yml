@@ -17,6 +17,13 @@ services:
       - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
     volumes:
       - saas_core_mysql_data:/var/lib/mysql
+    # Sem limite, um restaurante provisionado automaticamente na mesma
+    # máquina (ver server/_core/systemProvisioning.ts) pode consumir toda a
+    # memória/CPU e derrubar o saas-core — que hospeda TODOS os tenants,
+    # não só um (achado M3 da auditoria). Valores conservadores, ajustáveis
+    # por env var conforme o tamanho real da VPS.
+    mem_limit: ${DB_MEM_LIMIT:-1g}
+    cpus: ${DB_CPU_LIMIT:-1.0}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
@@ -50,6 +57,8 @@ services:
       # Mesmo raciocínio do app principal — sem isso, o backup local some no
       # próximo rebuild. Ver docker-compose.independent.yml.
       - saas_core_backups:/app/backups
+    mem_limit: ${APP_MEM_LIMIT:-768m}
+    cpus: ${APP_CPU_LIMIT:-1.0}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s

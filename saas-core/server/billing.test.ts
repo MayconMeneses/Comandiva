@@ -25,7 +25,9 @@ describe("verifyMercadoPagoWebhookSignature (saas-core)", () => {
 });
 
 const mocks = vi.hoisted(() => ({ getDb: vi.fn(), getSubscriptionPreapproval: vi.fn(), getAuthorizedPayment: vi.fn() }));
-vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
+// cached: passthrough (sem memoização de verdade) — evita que o cache real (30s de TTL,
+// num closure só por módulo) vaze estado entre testes.
+vi.mock("./db/client", () => ({ getDb: mocks.getDb, cached: (_ttlMs: number, fn: () => unknown) => fn, PLANS_CACHE_TTL_MS: 30_000 }));
 vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "TEST-token", mercadoPagoWebhookSecret: "" } }));
 // Mantém verifyMercadoPagoWebhookSignature e o resto REAIS (usados no describe
 // acima) — só troca getSubscriptionPreapproval/getAuthorizedPayment por mocks
@@ -158,8 +160,14 @@ function buildWebhookDbStub(initial: { id: number; restaurantId: number; status:
         if (table === webhookEvents) {
           const key = `${values.gateway}:${values.gatewayEventId}`;
           if (insertedWebhookKeys.has(key)) {
-            const duplicate = new Error("ER_DUP_ENTRY") as Error & { code?: string };
-            duplicate.code = "ER_DUP_ENTRY";
+            // Formato real do drizzle-orm 0.45.x: o `code` do driver mysql2
+            // vem em `error.cause`, não no erro em si (confirmado contra
+            // MySQL de verdade no app principal,
+            // server/order-idempotency-real-db.test.ts). Um mock com
+            // `error.code` direto deixava passar um bug real em
+            // markWebhookEventOnce — nunca detectava duplicata de verdade.
+            const duplicate = new Error("ER_DUP_ENTRY") as Error & { cause?: { code?: string } };
+            duplicate.cause = { code: "ER_DUP_ENTRY" };
             throw duplicate;
           }
           insertedWebhookKeys.add(key);

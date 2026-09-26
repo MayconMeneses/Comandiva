@@ -6,13 +6,23 @@ patchedDependencies:
 
 overrides:
   tailwindcss>nanoid: "3.3.7"
+  # CVE moderado (ReDoS), vite-plugin-pwa > tinyglobby pinava picomatch
+  # <4.0.4; sem override direto porque tinyglobby não expõe isso como range
+  # ajustável de fora.
+  picomatch: "4.0.4"
   # CVEs conhecidos nas versões antigas puxadas por dependências transitivas
   # (AWS SDK e Express) — presos na mesma linha maior pra não quebrar nada.
-  # Espelhado também em package.json > pnpm.overrides: nesta versão do pnpm
-  # (10.4.1), só o campo em package.json aplicou a resolução de forma
-  # confiável em teste real; este aqui fica como reforço/futuro, já que a
-  # própria CLI avisa que vai migrar a leitura pra cá.
+  # Espelhado também em package.json > pnpm.overrides por precaução, mas o
+  # pnpm (10.4.1+) agora ignora esse campo e só lê daqui — confirmado pelo
+  # próprio aviso do CLI ("pnpm field ... no longer read"), exatamente a
+  # migração que o comentário anterior já previa.
   fast-xml-parser: "5.11.1"
   body-parser: "1.20.8"
   express>path-to-regexp: "0.1.13"
-  qs: "6.14.0"
+  # 6.14.0 (fixado aqui até 2026-09-24) ainda era vulnerável a 3 CVEs
+  # moderados/baixos do qs (DoS via array-limit bypass e via isBuffer
+  # controlado pelo atacante — ver `pnpm audit`), só corrigidos a partir de
+  # 6.16.0. O mesmo CVE já tinha sido corrigido no saas-core (commit
+  # 5a69153) — aquele commit já registrava que o app principal ficava de
+  # fora porque usa um express mais antigo; fechando isso agora.
+  qs: "6.16.0"

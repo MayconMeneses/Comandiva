@@ -61,6 +61,14 @@ export const ENV = {
   // branco = R$150,00 (padrão real). NUNCA deixar configurada baixa em
   // produção fora de uma janela de teste deliberada.
   implementationFeeCents: Number(process.env.IMPLEMENTATION_FEE_CENTS) || 15000,
+  // Restaurante(s) de uso interno/demonstração do dono da plataforma (ex.:
+  // Pub X) — nunca perdem acesso por fim de trial: em vez de "ended",
+  // applyDueScheduledChanges renova o período de 30 dias a partir de agora,
+  // então o aviso "faltam N dias" continua aparecendo (útil pra mostrar a
+  // clientes em potencial) mas nunca vira o bloqueio total. Lista separada
+  // por vírgula de restaurantId; em branco = nenhum restaurante tem esse
+  // tratamento especial.
+  internalDemoRestaurantIds: (process.env.INTERNAL_DEMO_RESTAURANT_IDS ?? "").split(",").map(id => Number(id.trim())).filter(id => Number.isInteger(id) && id > 0),
 };
 
 // `ENV.commercialSiteUrl` é só a origem, compartilhada com o Painel Master —

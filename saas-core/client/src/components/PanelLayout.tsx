@@ -1,4 +1,6 @@
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
+import { applyPanelTheme } from "@/lib/applyPanelTheme";
+import { trpc } from "@/lib/trpc";
 import { useNoIndex } from "@/lib/useNoIndex";
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -10,6 +12,7 @@ const NAV_ITEMS = [
   { label: "Auditoria", path: "/auditoria", area: "auditoria" },
   { label: "Equipe", path: "/equipe", area: "equipe" },
   { label: "Manutenção", path: "/manutencao", area: "manutencao" },
+  { label: "Aparência", path: "/aparencia", area: "aparencia" },
 ] as const;
 
 export function PanelLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +27,12 @@ export function PanelLayout({ children }: { children: React.ReactNode }) {
     // qualquer outra rota do Painel Master, mantém o comportamento normal.
     if (!loading && !admin) setLocation(location === "/" ? "/comercial" : "/login");
   }, [loading, admin, location, setLocation]);
+
+  // Único ponto de montagem pra todas as páginas do Painel Master — aplica a
+  // aparência salva assim que carrega (sem chamada nenhuma se não estiver
+  // logado, `enabled: Boolean(admin)` evita um 401 desnecessário).
+  const appearance = trpc.masterPanel.settings.getAppearance.useQuery(undefined, { enabled: Boolean(admin) });
+  useEffect(() => { if (admin) applyPanelTheme(appearance.data?.backgroundColor); }, [admin, appearance.data?.backgroundColor]);
 
   if (loading) return <div className="grid min-h-screen place-items-center text-ink-soft">Carregando…</div>;
   if (!admin) return null;

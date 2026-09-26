@@ -1,7 +1,25 @@
 import { Link } from "wouter";
 import type { ReactNode, SVGProps } from "react";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "MM System Creator",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do seu restaurante.",
+  offers: {
+    "@type": "Offer",
+    price: "99.99",
+    priceCurrency: "BRL",
+    url: "https://mmsystem.tech/comercial/planos",
+  },
+  author: { "@type": "Person", name: "Maycon Meneses" },
+};
 
 const PRIMARY_LINK_CLASSES =
   "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-6 text-sm font-semibold text-white shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110";
@@ -136,8 +154,8 @@ const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title
   },
   {
     icon: IconGift,
-    title: "30 dias grátis, sem cartão",
-    description: "Organizamos seu cardápio e sua configuração em até 10 dias úteis — só depois disso, com tudo pronto, o teste grátis de 30 dias começa a contar.",
+    title: "7 dias grátis, sem cartão",
+    description: "Organizamos seu cardápio e sua configuração em até 10 dias úteis — só depois disso, com tudo pronto, o teste grátis de 7 dias começa a contar.",
   },
 ];
 
@@ -228,20 +246,31 @@ const STEPS = [
   {
     number: "3",
     title: "Comece a vender",
-    description: "Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis. Pronto, seu teste grátis de 30 dias começa a valer.",
+    description: "Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis. Pronto, seu teste grátis de 7 dias começa a valer.",
   },
 ];
 
 export default function Home() {
+  usePageMeta({
+    title: "Sistema para Restaurante sem Comissão — Cardápio Digital e Pedidos Online | MM System Creator",
+    description:
+      "Sistema completo para restaurante: cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por venda. 7 dias grátis, sem cartão de crédito.",
+    path: "/comercial",
+  });
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
       <ComercialHeader />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] opacity-70"
-          style={{ background: "radial-gradient(60% 60% at 50% 0%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent)" }}
+          // var(--accent)/var(--paper) raw, não os aliases --color-* do @theme inline: o
+          // alias não acompanha a sobrescrita de .comercial-dark quando usado dentro de um
+          // inline style (achado real corrigindo o card "Mais escolhido" de Planos.tsx,
+          // 2026-09-24) — a variável raw não tem esse problema.
+          style={{ background: "radial-gradient(60% 60% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent)" }}
         />
         <div className="relative w-full">
           <img
@@ -259,7 +288,7 @@ export default function Home() {
         <div
           className="h-20 w-full sm:h-28"
           style={{
-            background: "linear-gradient(to bottom, #00081a 0%, #1e1b6e 40%, var(--color-accent) 70%, var(--color-paper) 100%)",
+            background: "linear-gradient(to bottom, #00081a 0%, #1e1b6e 40%, var(--accent) 70%, var(--paper) 100%)",
           }}
         />
 
@@ -285,7 +314,7 @@ export default function Home() {
           </div>
           <p className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-ink-soft">
             <span className="inline-flex items-center gap-1.5">
-              <IconCheck className="h-4 w-4 text-emerald-400" /> 30 dias grátis
+              <IconCheck className="h-4 w-4 text-emerald-400" /> 7 dias grátis
             </span>
             <span className="inline-flex items-center gap-1.5">
               <IconCheck className="h-4 w-4 text-emerald-400" /> Sem cartão de crédito
@@ -468,7 +497,7 @@ export default function Home() {
           style={{ background: "linear-gradient(135deg, #008cfe, #6146fd)" }}
         >
           <h2 className="text-2xl font-bold sm:text-3xl">Pronto pra vender sem depender de aplicativo de terceiro?</h2>
-          <p className="mx-auto mt-3 max-w-xl text-white/85">30 dias grátis assim que seu sistema estiver pronto — sem cartão de crédito. Cancele quando quiser.</p>
+          <p className="mx-auto mt-3 max-w-xl text-white/85">7 dias grátis assim que seu sistema estiver pronto — sem cartão de crédito. Cancele quando quiser.</p>
           <div className="mt-8">
             <Link
               href="/comercial/planos"

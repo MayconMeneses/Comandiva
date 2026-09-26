@@ -12,8 +12,12 @@ export const subscriptionStatusValues = [
 ] as const;
 export type SubscriptionStatus = (typeof subscriptionStatusValues)[number];
 
-// MANUAL = atribuído à mão pelo operador (todo caso desta milestone); um
-// gateway real só passa a existir na Milestone 2 (Mercado Pago).
+// MANUAL = atribuído à mão pelo operador (ex.: cortesia, ajuste manual de
+// suporte) — o fluxo real de cobrança hoje é MERCADO_PAGO (checkout,
+// webhook e renovação automática já implementados, ver
+// server/_core/mercadoPagoBilling.ts/mercadoPagoCheckout.ts/
+// mercadoPagoWebhook.ts), não mais o único caso previsto quando este
+// comentário foi escrito.
 export const subscriptionGatewayValues = ["MANUAL", "MERCADO_PAGO"] as const;
 export type SubscriptionGateway = (typeof subscriptionGatewayValues)[number];
 

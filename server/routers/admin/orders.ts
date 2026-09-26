@@ -3,7 +3,8 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from "../../../drizzle/schema";
 import { ALLOWED_STATUS_TRANSITIONS, STATUS_LABELS, endOfDayInRestaurantTimezone, startOfDayInRestaurantTimezone } from "../../../shared/orderDomain";
-import { getAdminOrders, getDashboardMetrics, getDb, getOrderWithDetails, getRevenueTrend, getStoreSettings } from "../../db";
+import { getAdminOrders, getDashboardMetrics, getDb, getFiscalDocumentByOrderId, getOrderWithDetails, getRevenueTrend, getStoreSettings } from "../../db";
+import { emitNfceForOrder, retryNfceForOrder } from "../../_core/nfceEmission";
 import { adminProcedure, restaurantProcedure, restaurantProcedureFor, router } from "../../_core/trpc";
 import { assertRealImageMatchesDeclaredType, keyFromPublicUrl, storageGetSignedUrl, storagePut } from "../../storage";
 import { orderInfoSchema, statusSchema } from "./shared";
@@ -128,8 +129,10 @@ export const adminOrdersRouter = router({
     if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Pagamento não encontrado para este pedido." });
     if (payment.status !== "PAID") throw new TRPCError({ code: "BAD_REQUEST", message: `Só é possível marcar como reembolsado um pagamento com status "Pago" (status atual: ${payment.status}).` });
     const now = Date.now();
-    await db.update(payments).set({ status: "REFUNDED", refundedAt: now, refundedByUserId: ctx.user?.id ?? null, refundReason: input.reason, updatedAt: now }).where(eq(payments.id, payment.id));
-    await db.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "PAYMENT_REFUNDED", details: JSON.stringify({ amountCents: payment.amountCents, reason: input.reason }), createdAt: now });
+    await db.transaction(async tx => {
+      await tx.update(payments).set({ status: "REFUNDED", refundedAt: now, refundedByUserId: ctx.user?.id ?? null, refundReason: input.reason, updatedAt: now }).where(eq(payments.id, payment.id));
+      await tx.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "PAYMENT_REFUNDED", details: JSON.stringify({ amountCents: payment.amountCents, reason: input.reason }), createdAt: now });
+    });
     return getOrderWithDetails(input.orderId);
   }),
   archiveOrder: adminProcedure.input(z.object({ orderId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
@@ -139,40 +142,101 @@ export const adminOrdersRouter = router({
     if (!current || current.archivedAt) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
     if (current.status !== "COMPLETED" && current.status !== "CANCELLED") throw new TRPCError({ code: "BAD_REQUEST", message: "Conclua ou cancele o pedido antes de removê-lo da lista." });
     const now = Date.now();
-    await db.update(orders).set({ archivedAt: now, updatedAt: now }).where(eq(orders.id, input.orderId));
-    await db.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "ORDER_ARCHIVED", details: JSON.stringify({ status: current.status }), createdAt: now });
+    await db.transaction(async tx => {
+      await tx.update(orders).set({ archivedAt: now, updatedAt: now }).where(eq(orders.id, input.orderId));
+      await tx.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "ORDER_ARCHIVED", details: JSON.stringify({ status: current.status }), createdAt: now });
+    });
     return { success: true };
   }),
-  updateOrderStatus: restaurantProcedure.input(z.object({ orderId: z.number().int().positive(), status: statusSchema, note: z.string().max(500).optional() })).mutation(async ({ input, ctx }) => {
+  updateOrderStatus: restaurantProcedure.input(z.object({
+    orderId: z.number().int().positive(),
+    status: statusSchema,
+    note: z.string().max(500).optional(),
+    // Os dois campos abaixo são opcionais de propósito (retrocompatíveis —
+    // nenhum chamador antigo/externo quebra por não enviá-los). Fase 4
+    // offline-first (painel da equipe): ver auditoria de corrida de escrita
+    // logo abaixo.
+    expectedStatus: statusSchema.optional(),
+    deviceId: z.string().min(8).max(64).regex(/^[a-zA-Z0-9-]+$/).optional(),
+  })).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
-    const [current] = await db.select().from(orders).where(eq(orders.id, input.orderId)).limit(1);
-    if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-    if (!ALLOWED_STATUS_TRANSITIONS[current.status].includes(input.status)) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: `Não é possível alterar de “${STATUS_LABELS[current.status]}” para “${STATUS_LABELS[input.status]}”.` });
-    }
-    const now = Date.now();
-    // Pra delivery/retirada, "concluído" e "pago" costumam coincidir (recebe = paga na hora).
-    // Numa mesa isso não vale: servir um prato não fecha a comanda, então o pagamento dela
-    // só é marcado quando a conta é de fato fechada (ver server/db/tables.ts, closeTableSession).
-    const autoMarksPaid = input.status === "COMPLETED" && current.fulfillmentType !== "DINE_IN";
-    await db.update(orders).set({
-      status: input.status,
-      updatedAt: now,
-      paymentStatus: autoMarksPaid ? "PAID" : current.paymentStatus,
-      acceptedAt: input.status === "ACCEPTED" ? now : current.acceptedAt,
-      preparingAt: input.status === "PREPARING" ? now : current.preparingAt,
-      completedAt: input.status === "COMPLETED" ? now : current.completedAt,
-      cancelledAt: input.status === "CANCELLED" ? now : current.cancelledAt,
-    }).where(eq(orders.id, input.orderId));
-    if (input.status === "COMPLETED") await db.update(payments).set({ status: "PAID", paidAt: now, updatedAt: now }).where(eq(payments.orderId, input.orderId));
-    if (input.status === "CANCELLED") await db.update(payments).set({ status: "CANCELLED", updatedAt: now }).where(eq(payments.orderId, input.orderId));
-    await db.insert(orderStatusHistory).values({ orderId: input.orderId, status: input.status, note: input.note ?? null, changedByUserId: ctx.user?.id ?? null, createdAt: now });
-    if (input.status === "ACCEPTED") {
-      const fullOrder = await getOrderWithDetails(input.orderId);
-      await db.insert(printJobs).values({ orderId: input.orderId, status: "PENDING", receiptPayload: JSON.stringify(fullOrder), attempts: 0, createdAt: now, updatedAt: now });
+    // Toda a leitura+validação+escrita roda dentro de UMA transação, com a
+    // linha do pedido travada (SELECT...FOR UPDATE, mesmo padrão de
+    // lockLicenseSingletonRow em server/db/license.ts) — antes, o SELECT que
+    // determinava `current` rodava FORA da transação, então duas chamadas
+    // quase simultâneas (dois dispositivos da equipe no mesmo pedido, ex.:
+    // celular na cozinha + tablet no balcão) liam o mesmo status "atual",
+    // ambas validavam a transição contra ele, e ambas escreviam — a última
+    // vencia silenciosamente. Cenário real: dispositivo A aceita e já inicia
+    // o preparo (PENDING→ACCEPTED→PREPARING); dispositivo B, com a tela
+    // ainda desatualizada mostrando PENDING, manda CANCELLED — como CANCELLED
+    // é alcançável de PENDING/ACCEPTED/PREPARING, o cancelamento passava e
+    // cancelava silenciosamente um pedido que já estava em preparo.
+    const current = await db.transaction(async tx => {
+      const [row] = await tx.select().from(orders).where(eq(orders.id, input.orderId)).limit(1).for("update");
+      if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+      // expectedStatus é o status que a TELA do dispositivo achava que o
+      // pedido tinha antes de mandar a mutação. Se divergir do que está
+      // travado agora no banco, outro dispositivo já mudou o pedido nesse
+      // meio-tempo — rejeita como conflito em vez de aplicar a transição
+      // cegamente em cima de uma tela desatualizada. Só rejeita quando o
+      // chamador manda o campo (retrocompatível) e quando o divergente é de
+      // fato OUTRO valor — um resubmit do mesmo dispositivo com o mesmo
+      // expectedStatus, se ainda não tiver sido processado, segue normal.
+      if (input.expectedStatus && input.expectedStatus !== row.status) {
+        throw new TRPCError({ code: "CONFLICT", message: `Esse pedido já foi atualizado por outra pessoa — o status atual é "${STATUS_LABELS[row.status]}".` });
+      }
+      if (!ALLOWED_STATUS_TRANSITIONS[row.status].includes(input.status)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Não é possível alterar de “${STATUS_LABELS[row.status]}” para “${STATUS_LABELS[input.status]}”.` });
+      }
+      // Pra delivery/retirada, "concluído" e "pago" costumam coincidir (recebe = paga na hora).
+      // Numa mesa isso não vale: servir um prato não fecha a comanda, então o pagamento dela
+      // só é marcado quando a conta é de fato fechada (ver server/db/tables.ts, closeTableSession).
+      const autoMarksPaid = input.status === "COMPLETED" && row.fulfillmentType !== "DINE_IN";
+      // Capturado só aqui (depois do lock), não antes de entrar na transação —
+      // mesmo padrão de todas as funções de server/db/tableSessions.ts. Sob
+      // contenção real (o cenário que este lock existe pra fechar), uma
+      // chamada que ficou esperando o lock não deve carimbar o registro com
+      // um instante anterior a quando ela de fato escreveu.
+      const now = Date.now();
+      await tx.update(orders).set({
+        status: input.status,
+        updatedAt: now,
+        paymentStatus: autoMarksPaid ? "PAID" : row.paymentStatus,
+        acceptedAt: input.status === "ACCEPTED" ? now : row.acceptedAt,
+        preparingAt: input.status === "PREPARING" ? now : row.preparingAt,
+        completedAt: input.status === "COMPLETED" ? now : row.completedAt,
+        cancelledAt: input.status === "CANCELLED" ? now : row.cancelledAt,
+      }).where(eq(orders.id, input.orderId));
+      if (input.status === "COMPLETED") await tx.update(payments).set({ status: "PAID", paidAt: now, updatedAt: now }).where(eq(payments.orderId, input.orderId));
+      if (input.status === "CANCELLED") await tx.update(payments).set({ status: "CANCELLED", updatedAt: now }).where(eq(payments.orderId, input.orderId));
+      await tx.insert(orderStatusHistory).values({ orderId: input.orderId, status: input.status, note: input.note ?? null, changedByUserId: ctx.user?.id ?? null, deviceId: input.deviceId ?? null, createdAt: now });
+      if (input.status === "ACCEPTED") {
+        const fullOrder = await getOrderWithDetails(input.orderId, tx);
+        await tx.insert(printJobs).values({ orderId: input.orderId, status: "PENDING", receiptPayload: JSON.stringify(fullOrder), attempts: 0, createdAt: now, updatedAt: now });
+      }
+      return row;
+    });
+    // Dinheiro/cartão na entrega: o valor já está fechado desde o aceite
+    // (não muda mais), então emite a NFC-e aqui — no momento em que o pedido
+    // sai fisicamente do restaurante — em vez de esperar o "concluído" que só
+    // acontece quando volta/confirma a entrega (tarde demais pro DANFE viajar
+    // junto com o entregador). Pix/cartão online já emite antes disso, no
+    // pagamento (ver paymentService.ts); chamar de novo aqui não duplica —
+    // emitNfceForOrder é idempotente pra pedido já AUTHORIZED. Ver "Quando
+    // emitir" no plano de emissão de NFC-e.
+    if ((input.status === "OUT_FOR_DELIVERY" || input.status === "READY_FOR_PICKUP") && (current.paymentMethod === "CASH" || current.paymentMethod === "CARD_ON_DELIVERY")) {
+      void emitNfceForOrder(input.orderId).catch(error => console.warn("[nfce] Falha ao emitir NFC-e ao sair para entrega/retirada:", error));
     }
     return getOrderWithDetails(input.orderId);
+  }),
+  // Usadas pela tela de comprovante (Receipt.tsx) pra mostrar/imprimir o
+  // DANFE quando pronto, e pelo botão "Tentar emitir nota de novo".
+  fiscalDocumentForOrder: restaurantProcedure.input(z.object({ orderId: z.number().int().positive() })).query(({ input }) => getFiscalDocumentByOrderId(input.orderId)),
+  retryNfceForOrder: adminProcedure.input(z.object({ orderId: z.number().int().positive() })).mutation(async ({ input }) => {
+    await retryNfceForOrder(input.orderId);
+    return getFiscalDocumentByOrderId(input.orderId);
   }),
   pendingPrintJobs: adminProcedure.query(async () => {
     const db = await getDb();

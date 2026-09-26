@@ -1,4 +1,4 @@
-import { listPlansWithFeaturesAndLimits } from "../db/plans";
+import { listPlansWithFeaturesAndLimitsCached } from "../db/plans";
 import { computeSnapshotForRestaurant } from "../db/subscriptions";
 import { restaurantProcedure, router } from "../_core/trpc";
 
@@ -8,5 +8,5 @@ export const syncRouter = router({
   // Catálogo público de planos (preço/features/limites de todos, não só o
   // atual) — usado pela tela "Meu Plano" de cada restaurante pra montar a
   // comparação. Mesma informação pra todo mundo, sem dado sensível.
-  plans: restaurantProcedure.query(() => listPlansWithFeaturesAndLimits()),
+  plans: restaurantProcedure.query(() => listPlansWithFeaturesAndLimitsCached()),
 });

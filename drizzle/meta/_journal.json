@@ -267,6 +267,41 @@
       "when": 1789586883660,
       "tag": "0037_kind_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1789778882581,
+      "tag": "0038_square_zarek",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "5",
+      "when": 1790001466142,
+      "tag": "0039_pink_jubilee",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1790074773220,
+      "tag": "0040_nifty_fat_cobra",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1790158555180,
+      "tag": "0041_kind_naoko",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1790208717142,
+      "tag": "0042_parched_shotgun",
+      "breakpoints": true
     }
   ]
 }

@@ -84,6 +84,11 @@ export const restaurantSettings = mysqlTable("restaurant_settings", {
   // que um tema novo for adicionado ao catálogo). "classico" é sempre o valor
   // que reproduz a aparência original (pré-seletor de tema).
   colorTheme: varchar("colorTheme", { length: 20 }).notNull().default("classico"),
+  // Fundo personalizado (hex #rrggbb), sobrepõe só a família fundo/superfície/
+  // texto do tema acima — NULL usa o `background` do tema escolhido, sem
+  // mudança nenhuma (mesmo comportamento de sempre). Também recurso pago
+  // "custom_theme", mesma trava de colorTheme. Ver shared/deriveSurfacePalette.ts.
+  customBackgroundColor: varchar("customBackgroundColor", { length: 7 }),
   createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
   updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
 });
@@ -110,6 +115,12 @@ export const fiscalSettings = mysqlTable("fiscal_settings", {
   nfceNextNumber: int("nfceNextNumber").notNull().default(1),
   cscId: varchar("cscId", { length: 40 }),
   cscTokenEncrypted: text("cscTokenEncrypted"),
+  // Token da conta do restaurante no provedor de emissão (Focus NFe) — ver
+  // server/_core/nfceEmission.ts. Substitui cscId/cscTokenEncrypted (pensados
+  // pra integração direta com a SEFAZ, que este projeto não faz) como
+  // credencial de emissão; os dois campos antigos ficam sem uso mas não são
+  // removidos (dado já gravado não quebra nada continuando ali).
+  providerApiTokenEncrypted: text("providerApiTokenEncrypted"),
   certificateEncrypted: text("certificateEncrypted"),
   certificatePasswordEncrypted: text("certificatePasswordEncrypted"),
   certificateFilename: varchar("certificateFilename", { length: 255 }),
@@ -120,12 +131,23 @@ export const fiscalSettings = mysqlTable("fiscal_settings", {
 
 export const fiscalDocumentStatusValues = ["PENDING", "AUTHORIZED", "REJECTED", "CANCELLED", "CONTINGENCY", "ERROR"] as const;
 
-/** Uma NFC-e por pedido. Nunca UPDATE em cima de um documento já autorizado — cancelamento/inutilização são eventos novos, não edição (mesmo raciocínio de order_status_history ser append-only). */
+/**
+ * Uma NFC-e por pedido AVULSO (delivery/retirada/balcão) OU uma por COMANDA
+ * DE MESA fechada (consolidando todas as rodadas) — nunca as duas coisas ao
+ * mesmo tempo. Exatamente um entre `orderId`/`tableSessionId` é preenchido
+ * (regra de aplicação, não expressável como CHECK simples no MySQL); pra
+ * mesa, `consolidatedOrderIds` guarda quais pedidos entraram naquela nota.
+ * Nunca UPDATE em cima de um documento já autorizado — cancelamento/
+ * inutilização são eventos novos, não edição (mesmo raciocínio de
+ * order_status_history ser append-only).
+ */
 export const fiscalDocuments = mysqlTable(
   "fiscal_documents",
   {
     id: int("id").autoincrement().primaryKey(),
-    orderId: int("orderId").notNull(),
+    orderId: int("orderId"),
+    tableSessionId: int("tableSessionId"),
+    consolidatedOrderIds: text("consolidatedOrderIds"),
     status: mysqlEnum("status", fiscalDocumentStatusValues).notNull().default("PENDING"),
     environment: mysqlEnum("environment", fiscalEnvironmentValues).notNull(),
     chaveAcesso: varchar("chaveAcesso", { length: 44 }),
@@ -140,7 +162,11 @@ export const fiscalDocuments = mysqlTable(
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
     authorizedAt: bigint("authorizedAt", { mode: "number", unsigned: true }),
   },
-  table => [uniqueIndex("fiscal_documents_order_unique").on(table.orderId), index("fiscal_documents_status_idx").on(table.status, table.createdAt)],
+  table => [
+    uniqueIndex("fiscal_documents_order_unique").on(table.orderId),
+    uniqueIndex("fiscal_documents_table_session_unique").on(table.tableSessionId),
+    index("fiscal_documents_status_idx").on(table.status, table.createdAt),
+  ],
 );
 
 /**
@@ -478,9 +504,16 @@ export const orders = mysqlTable(
     cancelledAt: bigint("cancelledAt", { mode: "number", unsigned: true }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
+    // Chave de idempotência gerada pelo cliente (checkout público, balcão,
+    // rodada de mesa) — nulo pra chamadas que ainda não mandam isso (ex.:
+    // admin.tables.addManualRound). Protege contra clique duplo/resubmit
+    // criando dois pedidos: ver insertPricedOrder em server/routers/order.ts.
+    // Pré-requisito da Fase 3 (Outbox offline) do roadmap offline-first.
+    clientOperationId: varchar("clientOperationId", { length: 64 }),
   },
   table => [
     uniqueIndex("orders_public_code_unique").on(table.publicCode),
+    uniqueIndex("orders_client_operation_id_unique").on(table.clientOperationId),
     index("orders_status_created_idx").on(table.status, table.createdAt),
     // Substitui orders_customer_created_idx (customerId): nenhuma consulta do
     // sistema filtra orders por customerId — todo o fluxo de rastreio de
@@ -534,6 +567,14 @@ export const orderStatusHistory = mysqlTable(
     status: mysqlEnum("status", orderStatusValues).notNull(),
     note: varchar("note", { length: 500 }),
     changedByUserId: int("changedByUserId"),
+    // Id do NAVEGADOR (gerado em client/src/lib/deviceId.ts, persistido em
+    // localStorage), não da pessoa/conta — nulo pra chamadas antigas que
+    // ainda não mandam isso. Só usado pra atribuição/depuração de conflito
+    // no painel da equipe (Fase 4 offline-first) quando dois dispositivos
+    // mexem no mesmo pedido; changedByUserId já cobre "qual conta", este
+    // cobre "qual aparelho" — necessário porque contas de equipe são
+    // compartilhadas por várias pessoas/dispositivos de propósito.
+    deviceId: varchar("deviceId", { length: 64 }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
   },
   table => [
@@ -561,6 +602,34 @@ export const orderChangeLogs = mysqlTable(
     // ordena globalmente por createdAt sem orderId fixo.
     index("order_change_logs_created_idx").on(table.createdAt),
   ],
+);
+
+/**
+ * Auditoria de ações administrativas sensíveis (equipe/permissões, gateway
+ * de pagamento, chave Pix) — antes só existia auditoria de pedidos
+ * (order_status_history/order_change_logs acima); criar/pausar/excluir uma
+ * conta admin, ou trocar a credencial de um gateway/a chave Pix, não
+ * deixava rastro nenhum (achado M1 da auditoria de segurança). Mesmo
+ * formato de platform_audit_log do saas-core. NUNCA grava o valor de uma
+ * credencial/senha em beforeJson/afterJson — só o fato de que mudou.
+ */
+export const accountAuditLog = mysqlTable(
+  "account_audit_log",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Nulo quando o ator não pôde ser resolvido (não deveria acontecer, já
+    // que todas as mutations auditadas exigem adminOnlyProcedure/adminProcedure).
+    actorUserId: int("actorUserId"),
+    actorName: varchar("actorName", { length: 160 }).notNull(),
+    action: varchar("action", { length: 80 }).notNull(),
+    entityType: varchar("entityType", { length: 40 }),
+    entityId: int("entityId"),
+    beforeJson: text("beforeJson"),
+    afterJson: text("afterJson"),
+    ip: varchar("ip", { length: 64 }),
+    createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
+  },
+  table => [index("account_audit_log_created_idx").on(table.createdAt)],
 );
 
 export const printJobs = mysqlTable(

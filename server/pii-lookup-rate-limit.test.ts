@@ -9,7 +9,9 @@ function contextFromIp(ip: string): TrpcContext {
 describe("limite de tentativas em consultas públicas por telefone", () => {
   it("bloqueia customer.lookupByPhone após muitas tentativas do mesmo IP", async () => {
     const ip = "203.0.113.10";
-    for (let attempt = 0; attempt < 8; attempt += 1) {
+    // 20 é o limite real do endpoint (subiu do padrão de força bruta de 8
+    // na auditoria de escalabilidade 2026-09-19 — ver customer.ts).
+    for (let attempt = 0; attempt < 20; attempt += 1) {
       const caller = appRouter.createCaller(contextFromIp(ip));
       await caller.customer.lookupByPhone({ phone: "85999991234" }).catch(() => undefined);
     }
@@ -42,6 +44,16 @@ describe("limite de tentativas em consultas públicas por telefone", () => {
 
   it("não bloqueia telefones distintos vindos de IPs diferentes", async () => {
     const caller = appRouter.createCaller(contextFromIp("198.51.100.1"));
-    await expect(caller.customer.lookupByPhone({ phone: "85999991234" })).rejects.not.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+    // lookupByPhone é uma CONSULTA (query) — telefone não cadastrado resolve
+    // normalmente com `undefined`, não rejeita (ver getCustomerByPhone,
+    // server/db/customers.ts). `.rejects` aqui só "passava" sem DATABASE_URL
+    // configurada porque, nesse caso, getDb() sempre retorna null e a função
+    // lança "Banco de dados indisponível" pra QUALQUER chamada — mascarando
+    // que a asserção nunca testou de fato o rate limit. Contra MySQL real
+    // (telefone realmente não cadastrado), a chamada resolve sem erro nenhum,
+    // e `.rejects` falha por não haver rejeição — mesmo padrão do teste
+    // "não bloqueia repetir o mesmo telefone" acima, que já usa .catch().
+    const error = await caller.customer.lookupByPhone({ phone: "85999991234" }).catch(caught => caught);
+    expect(error).not.toMatchObject({ code: "TOO_MANY_REQUESTS" });
   });
 });

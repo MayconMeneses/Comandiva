@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { addonGroups, addonOptions, categories, products } from "../../../drizzle/schema";
-import { getDb } from "../../db";
+import { getDb, getDefaultFiscalTaxCategoryId, getDefaultNcm } from "../../db";
 import { assertFeatureAvailable, restaurantProcedureFor, router } from "../../_core/trpc";
 import { assertRealImageMatchesDeclaredType, storagePut } from "../../storage";
 import { optionalId, sortOrder } from "./shared";
@@ -72,7 +72,13 @@ export const adminCatalogRouter = router({
       return { id: input.id };
     }
     if (input.onPromotion) await assertFeatureAvailable("promotions");
-    const result = await db.insert(products).values({ categoryId: input.categoryId, name: input.name, description: input.description || null, imageUrl: input.imageUrl || null, priceCents: input.priceCents, preparationMinutes: input.preparationMinutes, available: input.available, featured: input.featured, onPromotion: input.onPromotion, sortOrder: input.sortOrder, createdAt: now, updatedAt: now });
+    // Produto novo já nasce com a categoria fiscal "Padrão" e um NCM
+    // genérico (só se o cadastro fiscal já tiver sido feito) — nunca fica
+    // "esquecido" sem classificação fiscal só porque foi criado depois da
+    // configuração inicial (ver Etapa 1.5 do plano de emissão de NFC-e).
+    const fiscalCategoryId = await getDefaultFiscalTaxCategoryId();
+    const ncm = fiscalCategoryId ? getDefaultNcm() : null;
+    const result = await db.insert(products).values({ categoryId: input.categoryId, name: input.name, description: input.description || null, imageUrl: input.imageUrl || null, priceCents: input.priceCents, preparationMinutes: input.preparationMinutes, available: input.available, featured: input.featured, onPromotion: input.onPromotion, sortOrder: input.sortOrder, fiscalCategoryId, ncm, createdAt: now, updatedAt: now });
     return { id: Number(result[0].insertId) };
   }),
   deleteProduct: restaurantProcedureFor("catalog").input(z.object({ productId: z.number().int().positive() })).mutation(async ({ input }) => {
@@ -97,7 +103,7 @@ export const adminCatalogRouter = router({
     await db.delete(addonOptions).where(eq(addonOptions.id, input.optionId));
     return { success: true };
   }),
-  saveAddonGroup: restaurantProcedureFor("catalog").input(z.object({ id: optionalId, productId: z.number().int().positive(), name: z.string().min(2).max(120), required: z.boolean().default(false), minSelections: z.number().int().min(0).max(10).default(0), maxSelections: z.number().int().min(1).max(10).default(1), sortOrder, active: z.boolean().default(true) }).superRefine((value, context) => {
+  saveAddonGroup: restaurantProcedureFor("catalog").input(z.object({ id: optionalId, productId: z.number().int().positive(), name: z.string().min(2).max(120), required: z.boolean().default(false), minSelections: z.number().int().min(0).max(100).default(0), maxSelections: z.number().int().min(1).max(100).default(1), sortOrder, active: z.boolean().default(true) }).superRefine((value, context) => {
     if (value.minSelections > value.maxSelections) context.addIssue({ code: "custom", path: ["minSelections"], message: "O mínimo não pode ser maior que o máximo." });
   })).mutation(async ({ input }) => {
     const db = await getDb();

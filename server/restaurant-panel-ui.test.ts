@@ -14,6 +14,7 @@ vi.mock("../client/src/lib/trpc", () => ({
     admin: { updateOrderStatus: { useMutation: () => ({ isPending: false, error: null, mutate: mutateMock }) } },
   },
 }));
+vi.mock("../client/src/lib/deviceId", () => ({ getDeviceId: () => "device-test-123" }));
 
 const restaurantPanelSource = readFileSync(resolve(import.meta.dirname, "../client/src/pages/RestaurantOrders.tsx"), "utf8");
 const orderManagementSource = readFileSync(resolve(import.meta.dirname, "../client/src/components/OrderManagement.tsx"), "utf8");
@@ -45,19 +46,19 @@ describe("operações do restaurante", () => {
     expect(getNextOrderStatus({ status: "COMPLETED", fulfillmentType: "DELIVERY" })).toBeNull();
   });
 
-  it("dispara a mutation com o pedido e o próximo status ao acionar o botão", () => {
-    const updates: Array<{ orderId: number; status: string }> = [];
+  it("dispara a mutation com o pedido, o próximo status e o expectedStatus (proteção de conflito) ao acionar o botão", () => {
+    const updates: Array<{ orderId: number; status: string; expectedStatus: string }> = [];
     advanceOrderStatus({ id: 42, status: "PREPARING", fulfillmentType: "DELIVERY" }, input => updates.push(input));
-    expect(updates).toEqual([{ orderId: 42, status: "OUT_FOR_DELIVERY" }]);
+    expect(updates).toEqual([{ orderId: 42, status: "OUT_FOR_DELIVERY", expectedStatus: "PREPARING" }]);
     advanceOrderStatus({ id: 43, status: "COMPLETED", fulfillmentType: "DELIVERY" }, input => updates.push(input));
     expect(updates).toHaveLength(1);
   });
 
-  it("aciona a mutation ao clicar no botão da aba Pedidos", () => {
+  it("aciona a mutation ao clicar no botão da aba Pedidos, mandando expectedStatus e deviceId", () => {
     mutateMock.mockClear();
     render(createElement(OrderStatusActions, { order: { id: 77, status: "PENDING", fulfillmentType: "DELIVERY" } }));
     fireEvent.click(screen.getByRole("button", { name: /Aceitar pedido/i }));
-    expect(mutateMock).toHaveBeenCalledWith({ orderId: 77, status: "ACCEPTED" });
+    expect(mutateMock).toHaveBeenCalledWith({ orderId: 77, status: "ACCEPTED", expectedStatus: "PENDING", deviceId: "device-test-123" });
   });
 
   it("identifica visualmente o cliente já localizado pelo telefone no checkout", () => {

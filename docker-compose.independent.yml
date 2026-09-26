@@ -16,6 +16,13 @@ services:
       - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
       - pubx_mysql_data:/var/lib/mysql
+    # Sem limite, um restaurante provisionado automaticamente (ver
+    # saas-core/server/_core/systemProvisioning.ts) pode consumir toda a
+    # memória/CPU da máquina e derrubar os outros restaurantes hospedados
+    # junto (achado M3 da auditoria) — valores conservadores, ajustáveis por
+    # env var conforme o tamanho real da VPS.
+    mem_limit: ${DB_MEM_LIMIT:-1g}
+    cpus: ${DB_CPU_LIMIT:-1.0}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
@@ -39,6 +46,8 @@ services:
       - "127.0.0.1:${S3_CONSOLE_PORT:-9001}:9001"
     volumes:
       - pubx_minio_data:/data
+    mem_limit: ${STORAGE_MEM_LIMIT:-512m}
+    cpus: ${STORAGE_CPU_LIMIT:-0.5}
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
@@ -79,6 +88,8 @@ services:
       # arquivo local precisa sobreviver a um deploy normal pra retenção
       # (find -mtime +N) fazer sentido.
       - pubx_backups:/app/backups
+    mem_limit: ${APP_MEM_LIMIT:-768m}
+    cpus: ${APP_CPU_LIMIT:-1.0}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s

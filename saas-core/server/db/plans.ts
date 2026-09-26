@@ -1,5 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { getDb } from "./client";
+import { cached, getDb, PLANS_CACHE_TTL_MS } from "./client";
 import { features, planFeatures, planLimits, plans } from "../../drizzle/schema";
 
 export async function getPlanByKey(key: string) {
@@ -32,6 +32,19 @@ export async function listPlansWithFeaturesAndLimits() {
     limits: Object.fromEntries(allPlanLimits.filter(row => row.planId === plan.id).map(row => [row.resourceKey, row.limitValue])),
   }));
 }
+
+/**
+ * Mesmos dados de `listPlansWithFeaturesAndLimits`, com cache de 30s — pros
+ * dois consumidores de alto volume: o sync de licença (`routers/sync.ts`,
+ * chamado periodicamente por CADA restaurante-cliente) e a página pública de
+ * planos (`routers/public.ts`, todo visitante do site comercial). Planos
+ * mudam raramente (edição manual no Painel Master) — 30s de atraso pra esses
+ * dois consumidores é imperceptível. A tela de edição do Painel Master
+ * (`routers/masterPanel/plans.ts`) e a rota de operador (`routers/plans.ts`)
+ * continuam chamando a versão sem cache direto, de propósito: quem acabou de
+ * editar um plano precisa ver o resultado na hora, não depois de até 30s.
+ */
+export const listPlansWithFeaturesAndLimitsCached = cached(PLANS_CACHE_TTL_MS, listPlansWithFeaturesAndLimits);
 
 /** id informado = UPDATE (key não é alterada); sem id = INSERT (key obrigatório, validado no router). */
 export async function savePlan(input: { id?: number; key?: string; name: string; priceCents: number; currency?: string; position: number; active: boolean }) {

@@ -19,9 +19,14 @@ export function getNextOrderStatus(order: Pick<{ status: string; fulfillmentType
   return null;
 }
 
-export type OrderStatusMutationInput = { orderId: number; status: NextOrderStatus["status"] };
+// `expectedStatus` vai junto pra fechar a mesma corrida de dois dispositivos
+// já fechada em RestaurantOrders.tsx/Kitchen.tsx (ver updateOrderStatus,
+// server/routers/admin/orders.ts) — aqui também é possível ter /admin/pedidos
+// aberto num aparelho enquanto outro membro da equipe mexe no mesmo pedido
+// por /painel-pedidos ou /cozinha.
+export type OrderStatusMutationInput = { orderId: number; status: NextOrderStatus["status"]; expectedStatus: OrderOperationalStatus };
 
 export function advanceOrderStatus(order: Pick<{ id: number; status: string; fulfillmentType: OrderFulfillmentType }, "id" | "status" | "fulfillmentType">, mutate: (input: OrderStatusMutationInput) => void) {
   const next = getNextOrderStatus(order);
-  if (next) mutate({ orderId: order.id, status: next.status });
+  if (next) mutate({ orderId: order.id, status: next.status, expectedStatus: order.status as OrderOperationalStatus });
 }

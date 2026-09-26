@@ -15,7 +15,13 @@ export async function markWebhookEventOnce(input: { gateway: string; gatewayEven
     await db.insert(webhookEvents).values({ gateway: input.gateway, gatewayEventId: input.gatewayEventId, processedAt: Date.now(), result: input.result });
     return { alreadyProcessed: false };
   } catch (error) {
-    const code = (error as { code?: string })?.code;
+    // drizzle-orm (0.45.x) embrulha o erro cru do mysql2 num DrizzleQueryError
+    // — o `code` do driver (ER_DUP_ENTRY) fica em `error.cause`, não no erro
+    // que a gente pega direto aqui. Sem isso, TODO webhook duplicado (MP)
+    // caía no `throw error` abaixo em vez de ser ignorado graciosamente —
+    // mesmo bug achado e corrigido no app principal (server/payments/
+    // repositories/webhookEvents.ts), testado contra MySQL real lá.
+    const code = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
     if (code === "ER_DUP_ENTRY") return { alreadyProcessed: true };
     throw error;
   }

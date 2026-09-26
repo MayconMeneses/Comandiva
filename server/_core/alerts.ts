@@ -45,14 +45,33 @@ function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}\n… (truncado)` : text;
 }
 
-function formatAlert(subject: string, message: string, severity: AlertSeverity, now: number) {
+/**
+ * Acha "server/pasta/arquivo.ts:linha" na primeira linha do stack trace que
+ * não é do node_modules — é o que deixa quem recebe o alerta ir direto no
+ * código, em vez de só ver a mensagem crua do erro. Funciona tanto com
+ * caminho absoluto do Windows (dev) quanto o caminho da imagem em produção
+ * (/app/server/...).
+ */
+function extractSourceLocation(text: string): string | undefined {
+  for (const line of text.split("\n")) {
+    if (line.includes("node_modules")) continue;
+    const match = line.match(/((?:server|shared|client)[\\/][^\s():]+):(\d+):\d+/);
+    if (match) return `${match[1]!.replace(/\\/g, "/")}:${match[2]}`;
+  }
+  return undefined;
+}
+
+function formatAlert(subject: string, message: string, severity: AlertSeverity, now: number, area?: string) {
   const emoji = SEVERITY_EMOJI[severity];
   const environment = ENV.isProduction ? "Produção" : "Desenvolvimento";
   const horario = new Date(now).toLocaleString("pt-BR", { timeZone: "America/Fortaleza" });
+  const location = extractSourceLocation(message);
   const safeMessage = truncate(redactSecrets(message), MAX_MESSAGE_LENGTH);
+  const areaLine = area ? `Área: ${area}\n` : "";
+  const locationLine = location ? `Local: ${location}\n` : "";
   return {
     subject: `[MM System Creator] ${subject}`,
-    text: `${emoji} ${severity}\nSistema: MM System Creator\nAmbiente: ${environment}\nEvento: ${subject}\n\n${safeMessage}\n\nHorário: ${horario}`,
+    text: `${emoji} ${severity}\nSistema: MM System Creator\nAmbiente: ${environment}\n${areaLine}Evento: ${subject}\n${locationLine}\n${safeMessage}\n\nHorário: ${horario}`,
   };
 }
 
@@ -78,14 +97,14 @@ async function sendTelegramAlert(text: string) {
  * configurado, só registra no log. Uma falha ao enviar (ex.: Telegram fora
  * do ar) nunca derruba a aplicação nem impede os outros canais de tentar.
  */
-export async function sendOwnerAlert(subject: string, message: string, kind = "generic", severity?: AlertSeverity) {
+export async function sendOwnerAlert(subject: string, message: string, kind = "generic", severity?: AlertSeverity, area?: string) {
   const now = Date.now();
   const last = lastSentAt.get(kind) ?? 0;
   if (now - last < THROTTLE_MS) return;
   lastSentAt.set(kind, now);
 
   const resolvedSeverity = severity ?? DEFAULT_SEVERITY_BY_KIND[kind] ?? "ERROR";
-  const { subject: fullSubject, text } = formatAlert(subject, message, resolvedSeverity, now);
+  const { subject: fullSubject, text } = formatAlert(subject, message, resolvedSeverity, now, area);
 
   try {
     const transport = getTransport();

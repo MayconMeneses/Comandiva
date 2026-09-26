@@ -20,6 +20,11 @@ const addRoundSchema = z.object({
   items: z.array(roundItemSchema).min(1, "Adicione pelo menos um item ao pedido."),
   customerNote: safeText(z.string().max(500)).optional(),
   customer: z.object({ name: safeText(z.string().min(2).max(160)), phone: phoneSchema }).optional(),
+  // Chave de idempotência gerada pelo cliente — mesmo raciocínio de
+  // `operationId` em checkoutSchema (server/routers/order.ts), pra uma mesa
+  // que manda várias rodadas na mesma sessão não correr o risco de uma
+  // rodada resubmetida virar pedido duplicado.
+  operationId: z.string().min(8).max(64).regex(/^[a-zA-Z0-9-]+$/),
 });
 
 /**
@@ -36,6 +41,7 @@ export async function addRoundToTable(params: {
   customer?: { name: string; phone: string };
   historyNote: string;
   origin: "GARCOM" | "QR_CODE";
+  clientOperationId?: string;
 }) {
   const priced = await priceOrder({ items: params.items, fulfillmentType: "DINE_IN" });
   const db = await getDb();
@@ -59,6 +65,7 @@ export async function addRoundToTable(params: {
     customerNote: params.customerNote,
     tableSessionId: session.id,
     historyNote: params.historyNote,
+    clientOperationId: params.clientOperationId,
     now: Date.now(),
   }));
   return { orderId, code, sessionId: session.id, totalCents: priced.totalCents };
@@ -123,7 +130,11 @@ export const tableRouter = router({
     };
   }),
   addRound: featureProcedure("extra_rounds").input(addRoundSchema).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`table-add-round:${ctx.req.ip}`);
+    // Chave é por IP, não por mesa — várias mesas no mesmo wifi do
+    // restaurante lançando rodadas ao longo de uma noite cheia somam pro
+    // mesmo contador; 8/10min (padrão de força bruta) é baixo demais pra
+    // isso (auditoria de escalabilidade 2026-09-19).
+    const limit = checkRateLimit(`table-add-round:${ctx.req.ip}`, { maxAttempts: 30 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
     const table = await findTableByToken(input.token);
     if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
@@ -134,10 +145,11 @@ export const tableRouter = router({
       customer: input.customer,
       historyNote: "Rodada pedida pela mesa via QR Code",
       origin: "QR_CODE",
+      clientOperationId: input.operationId,
     });
   }),
   requestBill: featureProcedure("request_bill").input(z.object({ token: z.string().min(6).max(24) })).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`table-request-bill:${ctx.req.ip}`);
+    const limit = checkRateLimit(`table-request-bill:${ctx.req.ip}`, { maxAttempts: 30 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
     const table = await findTableByToken(input.token);
     if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });
@@ -146,7 +158,7 @@ export const tableRouter = router({
     return { success: true };
   }),
   callWaiter: featureProcedure("call_waiter").input(z.object({ token: z.string().min(6).max(24) })).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`table-call-waiter:${ctx.req.ip}`);
+    const limit = checkRateLimit(`table-call-waiter:${ctx.req.ip}`, { maxAttempts: 30 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas. Aguarde um pouco." });
     const table = await findTableByToken(input.token);
     if (!table) throw new TRPCError({ code: "NOT_FOUND", message: "Mesa não encontrada. Peça ajuda à equipe." });

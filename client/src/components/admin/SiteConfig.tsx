@@ -1,6 +1,7 @@
 import FaqManager from "@/components/FaqManager";
 import { trpc } from "@/lib/trpc";
 import { Header, Loading } from "./shared";
+import AppearanceSettings from "./AppearanceSettings";
 import SiteInfoSettings from "./SiteInfoSettings";
 
 export default function SiteConfig() {
@@ -9,6 +10,7 @@ export default function SiteConfig() {
   return <>
     <Header eyebrow="Configuração" title="Site público" description="Dados usados nas páginas Sobre, Perguntas frequentes e no botão de WhatsApp do site de pedidos." />
     <div className="space-y-8">
+      <AppearanceSettings settings={dashboard.data?.settings} />
       <SiteInfoSettings settings={dashboard.data?.settings} />
       <FaqManager />
     </div>

@@ -36,7 +36,7 @@ describe("gate de feature por plano (table.addRound)", () => {
     const caller = appRouter.createCaller(publicContext);
 
     await expect(
-      caller.table.addRound({ token: "mesa-teste-123", items: [{ productId: 1, quantity: 1, addonOptionIds: [] }] }),
+      caller.table.addRound({ token: "mesa-teste-123", items: [{ productId: 1, quantity: 1, addonOptionIds: [] }], operationId: "test-operation-id-locked" }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       cause: { featureLocked: { featureId: "extra_rounds", requiredPlanKey: "profissional", requiredPlanName: "Profissional" } },
@@ -47,7 +47,7 @@ describe("gate de feature por plano (table.addRound)", () => {
     licenseMocks.getLicenseSnapshot.mockResolvedValue(UNLOCKED_SNAPSHOT);
     const caller = appRouter.createCaller(publicContext);
 
-    const error = await caller.table.addRound({ token: "mesa-teste-456", items: [{ productId: 1, quantity: 1, addonOptionIds: [] }] }).catch(caught => caught);
+    const error = await caller.table.addRound({ token: "mesa-teste-456", items: [{ productId: 1, quantity: 1, addonOptionIds: [] }], operationId: "test-operation-id-unlocked" }).catch(caught => caught);
     expect(error).not.toMatchObject({ code: "FORBIDDEN", cause: { featureLocked: expect.anything() } });
     // findTableByToken mockado devolve undefined -> a rota real segue até NOT_FOUND, provando que passou do gate de plano.
     expect(error).toMatchObject({ code: "NOT_FOUND" });

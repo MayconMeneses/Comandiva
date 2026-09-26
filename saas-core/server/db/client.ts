@@ -14,3 +14,32 @@ export async function getDb() {
   }
   return _db;
 }
+
+// Mesmo padrão já usado no app principal (server/db/client.ts::cached) —
+// cache em memória com TTL curto pra dado quase-estático lido com muita
+// frequência (planos/features consultados a cada sync de licença de CADA
+// restaurante-cliente, e a cada load da página pública de planos). Dedupe de
+// chamadas concorrentes (`pending`) evita disparar N queries idênticas se N
+// requisições chegarem antes da primeira responder.
+export function cached<T>(ttlMs: number, fn: () => Promise<T>): () => Promise<T> {
+  let value: { data: T; expiresAt: number } | null = null;
+  let pending: Promise<T> | null = null;
+  return () => {
+    const now = Date.now();
+    if (value && now < value.expiresAt) return Promise.resolve(value.data);
+    if (pending) return pending;
+    pending = fn()
+      .then(data => {
+        value = { data, expiresAt: Date.now() + ttlMs };
+        pending = null;
+        return data;
+      })
+      .catch(error => {
+        pending = null;
+        throw error;
+      });
+    return pending;
+  };
+}
+
+export const PLANS_CACHE_TTL_MS = 30_000;

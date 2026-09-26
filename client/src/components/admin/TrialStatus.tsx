@@ -29,19 +29,33 @@ export function TrialEndingBanner({ daysLeft, periodEndLabel }: { daysLeft: numb
   );
 }
 
-/** Bloqueio total do conteúdo do admin quando o trial venceu sem pagamento (status 'ended') — só a tela "Meu plano" continua acessível, pra dar pro dono assinar. */
-export function TrialEndedBlock() {
+const ACCESS_BLOCKED_COPY: Record<string, { title: string; body: string }> = {
+  ended: {
+    title: "Seu teste grátis terminou",
+    body: "Os 30 dias grátis do MM System Creator acabaram. Assine um plano pra continuar usando o painel — seus dados continuam salvos, nada foi perdido.",
+  },
+  canceled: {
+    title: "Sua assinatura foi cancelada",
+    body: "O acesso ao painel foi encerrado porque a assinatura chegou ao fim do período cancelado. Assine de novo pra voltar a usar o sistema — seus dados continuam salvos.",
+  },
+  suspended: {
+    title: "Sua assinatura está suspensa",
+    body: "A cobrança recorrente foi pausada no Mercado Pago. Verifique sua forma de pagamento por lá ou fale com a gente — seus dados continuam salvos.",
+  },
+};
+
+/** Bloqueio total do conteúdo do admin quando a assinatura não está em dia (status 'ended'/'canceled'/'suspended') — só a tela "Meu plano" continua acessível, pra dar pro dono resolver. */
+export function TrialEndedBlock({ status }: { status: string }) {
   const [, setLocation] = useLocation();
+  const copy = ACCESS_BLOCKED_COPY[status] ?? ACCESS_BLOCKED_COPY.ended;
   return (
     <div className="grid min-h-[60vh] place-items-center p-6 text-center">
       <div className="max-w-md">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#f3e2d8]">
           <Lock className="h-7 w-7 text-primary" />
         </div>
-        <h1 className="mt-5 font-display text-2xl font-bold">Seu teste grátis terminou</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Os 30 dias grátis do MM System Creator acabaram. Assine um plano pra continuar usando o painel — seus dados continuam salvos, nada foi perdido.
-        </p>
+        <h1 className="mt-5 font-display text-2xl font-bold">{copy.title}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.body}</p>
         <Button onClick={() => setLocation("/admin/plano")} className="mt-5 rounded-xl bg-primary hover:bg-primary-hover">
           Ver planos e assinar
         </Button>

@@ -6,9 +6,13 @@ import { Label } from "@/components/ui/label";
 import ProductDialog from "@/components/ProductDialog";
 import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
+import { generateClientId } from "@/lib/randomId";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
+import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { addressMatchesRoute } from "@shared/orderDomain";
 import { Minus, Phone, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { MenuProduct } from "@/lib/menuTypes";
 
@@ -26,6 +30,10 @@ export default function NewCounterOrder() {
   const [deliveryRouteId, setDeliveryRouteId] = useState<number | undefined>();
   const [address, setAddress] = useState({ postalCode: "", street: "", number: "", complement: "", neighborhood: "", city: "Croatá", state: "CE", reference: "" });
 
+  // Dedupe com a mesma query já feita em RestaurantOrders.tsx (tela que monta
+  // este diálogo) — React Query compartilha o cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const normalizedPhone = digits(phone);
   const lookup = trpc.customer.lookupByPhone.useQuery({ phone: normalizedPhone }, { enabled: (normalizedPhone.length === 10 || normalizedPhone.length === 11) && open, retry: false });
   const deliveryRoutes = trpc.catalog.deliveryRoutes.useQuery(undefined, { enabled: open });
@@ -40,8 +48,26 @@ export default function NewCounterOrder() {
     if (customer) { setName(customer.name); if (primary) setAddress({ postalCode: primary.postalCode ?? "", street: primary.street, number: primary.number, complement: primary.complement ?? "", neighborhood: primary.neighborhood, city: primary.city, state: primary.state, reference: primary.reference ?? "" }); }
   }, [lookup.data]);
 
+  // Diálogo fica montado e é reaberto várias vezes ("Novo pedido") sem
+  // recarregar a página — regenerar só no sucesso evita que o SEGUNDO
+  // pedido de balcão do dia seja tratado como duplicata do primeiro (ver
+  // comentário em insertPricedOrder, server/routers/order.ts).
+  // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
+  // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
+  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "counter" }) : generateClientId());
+  // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
+  const startedAtRef = useRef<number | null>(null);
   const createOrder = trpc.order.create.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
+      const now = Date.now();
+      startedAtRef.current = now;
+      persistPendingOrder({ type: "order.create", screen: "counter", payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "counter" }); },
     onSuccess: result => {
+      operationIdRef.current = generateClientId();
       clearCart();
       void utils.admin.orders.invalidate();
       void utils.admin.operationalSnapshot.invalidate();
@@ -49,12 +75,16 @@ export default function NewCounterOrder() {
       setOpen(false);
       setPhone(""); setName(""); setChangeFor(""); setFulfillmentType("PICKUP"); setDeliveryRouteId(undefined);
       setAddress({ postalCode: "", street: "", number: "", complement: "", neighborhood: "", city: "Croatá", state: "CE", reference: "" });
-      toast.success(`Pedido ${result.publicCode} criado com sucesso.`);
+      toast.success(startedAtRef.current !== null && Date.now() - startedAtRef.current > PENDING_ORDER_WINDOW_MS ? `Pedido ${result.publicCode} confirmado após uma queda de conexão longa — confira os detalhes, o valor pode ter mudado.` : `Pedido ${result.publicCode} criado com sucesso.`);
     },
     onError: error => toast.error(error.message),
   });
+  const createOrderStale = useStaleRetryWarning(isRetryingOffline(createOrder), startedAtRef.current);
 
-  const canSubmit = items.length > 0 && normalizedPhone.length >= 10 && name.trim().length >= 2 && !(routeRequired && !deliveryRouteId) && !addressLooksOutOfRoute && (fulfillmentType === "PICKUP" || (address.street && address.number && address.neighborhood));
+  const total = subtotalCents + deliveryFee;
+  const changeForCentsValue = paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor.replace(",", ".")) * 100) : undefined;
+  const changeForInsufficient = changeForCentsValue !== undefined && changeForCentsValue < total;
+  const canSubmit = items.length > 0 && normalizedPhone.length >= 10 && name.trim().length >= 2 && !(routeRequired && !deliveryRouteId) && !addressLooksOutOfRoute && !changeForInsufficient && (fulfillmentType === "PICKUP" || (address.street && address.number && address.neighborhood));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -66,8 +96,9 @@ export default function NewCounterOrder() {
       paymentMethod,
       customer: { phone: normalizedPhone, name },
       address: fulfillmentType === "DELIVERY" ? address : undefined,
-      changeForCents: paymentMethod === "CASH" && changeFor ? Math.round(Number(changeFor.replace(",", ".")) * 100) : undefined,
+      changeForCents: changeForCentsValue,
       origin: "BALCAO",
+      operationId: operationIdRef.current,
     });
   };
 
@@ -95,10 +126,10 @@ export default function NewCounterOrder() {
               {addressLooksOutOfRoute && <p className="text-xs text-[#a43720]">Esse bairro não parece coincidir com a rota "{selectedRoute?.name}". Confira o endereço ou troque a rota.</p>}
             </div>}
             <div><Label>Pagamento</Label><div className="mt-1.5 grid grid-cols-3 gap-2">{([["PIX", "Pix"], ["CASH", "Dinheiro"], ["CARD_ON_DELIVERY", "Cartão"]] as const).map(([method, label]) => <button type="button" key={method} onClick={() => setPaymentMethod(method)} className={`rounded-xl border px-2 py-2.5 text-xs font-semibold transition ${paymentMethod === method ? "border-primary bg-[#fdf1eb] text-[#9f3d26]" : "border-[#e0d5c5]"}`}>{label}</button>)}</div></div>
-            {paymentMethod === "CASH" && <div><Label>Troco para quanto?</Label><Input inputMode="decimal" value={changeFor} onChange={event => setChangeFor(event.target.value)} placeholder="Ex.: 50,00" className="mt-1.5 h-10 rounded-xl bg-white" /></div>}
-            <div className="rounded-xl bg-[#17120e] p-4 text-[#fffaf3]"><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Subtotal</span><span>{money(subtotalCents)}</span></div><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Entrega</span><span>{deliveryFee ? money(deliveryFee) : "Grátis"}</span></div><div className="mt-2 flex justify-between border-t border-[#4a3d30] pt-2 text-base font-bold"><span>Total</span><span className="text-[#e9c98f]">{money(subtotalCents + deliveryFee)}</span></div></div>
-            {createOrder.error && <p className="text-sm text-red-700">{createOrder.error.message}</p>}
-            <Button disabled={!canSubmit || createOrder.isPending} className="h-11 w-full rounded-xl bg-primary hover:bg-primary-hover"><ShoppingBag className="mr-2 h-4 w-4" />{createOrder.isPending ? "Criando pedido…" : "Criar pedido"}</Button>
+            {paymentMethod === "CASH" && <div><Label>Troco para quanto?</Label><Input inputMode="decimal" value={changeFor} onChange={event => setChangeFor(event.target.value)} placeholder="Ex.: 50,00" className="mt-1.5 h-10 rounded-xl bg-white" />{changeForInsufficient && <p className="mt-1 text-xs text-[#a43720]">O valor precisa ser igual ou maior que o total do pedido ({money(total)}).</p>}</div>}
+            <div className="rounded-xl bg-[#17120e] p-4 text-[#fffaf3]"><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Subtotal</span><span>{money(subtotalCents)}</span></div><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Entrega</span><span>{deliveryFee ? money(deliveryFee) : "Grátis"}</span></div><div className="mt-2 flex justify-between border-t border-[#4a3d30] pt-2 text-base font-bold"><span>Total</span><span className="text-[#e9c98f]">{money(total)}</span></div></div>
+            {isRetryingOffline(createOrder) ? <p className="text-sm text-amber-700">{createOrderStale ? "Conexão perdida há muito tempo — os preços podem ter mudado. Recarregue a página antes de continuar." : "Sem conexão. Tentando de novo…"}</p> : createOrder.error && <p className="text-sm text-red-700">{createOrder.error.message}</p>}
+            <Button disabled={!canSubmit || createOrder.isPending} className="h-11 w-full rounded-xl bg-primary hover:bg-primary-hover"><ShoppingBag className="mr-2 h-4 w-4" />{isRetryingOffline(createOrder) ? "Tentando de novo…" : createOrder.isPending ? "Criando pedido…" : "Criar pedido"}</Button>
           </div>
         </form>
       </DialogContent>

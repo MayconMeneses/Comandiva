@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { generateApiKey, hashApiKey } from "../_core/apiKey";
 import { getDb } from "./client";
 import { plans, restaurants, subscriptionEvents, subscriptions, type PlanKey, type RestaurantStatus } from "../../drizzle/schema";
@@ -11,8 +11,9 @@ import { commercialHomeUrl } from "../_core/env";
 
 // O teste grátis só começa a contar quando a equipe marca o restaurante como
 // entregue (menu/config organizados) — nunca no momento do cadastro. Ver
-// markRestaurantDelivered abaixo.
-const TRIAL_DAYS = 30;
+// markRestaurantDelivered abaixo. Mudado de 30 pra 7 dias (pedido do dono,
+// 2026-09-24).
+const TRIAL_DAYS = 7;
 const DELIVERY_SLA_BUSINESS_DAYS = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -40,12 +41,37 @@ export type CreateRestaurantInput = {
   contactEmail?: string;
   contactPhone?: string;
   actor?: string;
+  // false = pula o trial de 7 dias, assinatura nasce direto em "ended"
+  // (bloqueada, precisa assinar de verdade pra usar) — usado pelo cadastro
+  // público quando o mesmo contato já teve restaurante antes (ver
+  // hasRestaurantForContact/achado da auditoria: sem isso, cancelar e
+  // cadastrar de novo dava um teste grátis novo indefinidamente). Default
+  // true preserva o comportamento pra criação manual (Painel Master/CLI),
+  // onde um operador humano já está decidindo conscientemente.
+  grantTrial?: boolean;
 };
 
 /**
- * Cria um restaurante-cliente novo + sua assinatura inicial (status "trial"),
- * numa única operação. Devolve a API key em texto puro — a ÚNICA vez que ela
- * existe fora do hash guardado no banco; quem chama precisa copiar/salvar
+ * Existe algum restaurante (qualquer status, inclusive cancelado/encerrado)
+ * com este e-mail ou telefone de contato? Usado só pelo cadastro público
+ * pra decidir se concede um novo trial — nunca bloqueia o cadastro em si,
+ * só a gratuidade dos 7 dias.
+ */
+export async function hasRestaurantForContact(contactEmail?: string, contactPhone?: string): Promise<boolean> {
+  const email = contactEmail?.trim().toLowerCase();
+  const phone = contactPhone?.trim();
+  if (!email && !phone) return false;
+
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db.select({ id: restaurants.id, contactEmail: restaurants.contactEmail, contactPhone: restaurants.contactPhone }).from(restaurants);
+  return rows.some(row => (email && row.contactEmail?.trim().toLowerCase() === email) || (phone && row.contactPhone?.trim() === phone));
+}
+
+/**
+ * Cria um restaurante-cliente novo + sua assinatura inicial, numa única
+ * operação. Devolve a API key em texto puro — a ÚNICA vez que ela existe
+ * fora do hash guardado no banco; quem chama precisa copiar/salvar
  * imediatamente (mesmo padrão de senha provisória exibida uma vez só).
  */
 export async function createRestaurantWithSubscription(input: CreateRestaurantInput) {
@@ -57,6 +83,7 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
 
   const { apiKey, apiKeyHash, apiKeyPrefix } = generateApiKey();
   const now = Date.now();
+  const grantTrial = input.grantTrial ?? true;
 
   const deliveryDueAt = addBusinessDays(now, DELIVERY_SLA_BUSINESS_DAYS);
 
@@ -78,11 +105,15 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
 
   // Período "zerado" de propósito (start = end = agora): o teste grátis de
   // verdade só passa a contar em markRestaurantDelivered, quando a
-  // configuração estiver pronta — nunca no cadastro em si.
+  // configuração estiver pronta — nunca no cadastro em si. Sem trial
+  // concedido (contato repetido), nasce direto em "ended": markRestaurantDelivered
+  // não mexe em status != "trial", então o bloqueio (ver computeSnapshotForRestaurant)
+  // já vale desde o primeiro acesso, antes mesmo da entrega.
+  const initialStatus = grantTrial ? "trial" : "ended";
   const subscriptionResult = await db.insert(subscriptions).values({
     restaurantId,
     planId: plan.id,
-    status: "trial",
+    status: initialStatus,
     startedAt: now,
     currentPeriodStart: now,
     currentPeriodEnd: now,
@@ -94,18 +125,18 @@ export async function createRestaurantWithSubscription(input: CreateRestaurantIn
 
   await db.insert(subscriptionEvents).values({
     subscriptionId,
-    eventType: "created",
-    afterJson: JSON.stringify({ planKey: plan.key, status: "trial", deliveryDueAt }),
+    eventType: grantTrial ? "created" : "created_no_trial_repeat_contact",
+    afterJson: JSON.stringify({ planKey: plan.key, status: initialStatus, deliveryDueAt }),
     actor: input.actor ?? "operator:cli",
     createdAt: now,
   });
 
-  return { restaurantId, apiKey, planKey: plan.key, status: "trial" as const, deliveryDueAt };
+  return { restaurantId, apiKey, planKey: plan.key, status: initialStatus, deliveryDueAt };
 }
 
 /**
  * Marca a configuração do restaurante como concluída e é só NESSE momento
- * que o teste grátis de 30 dias passa a contar de verdade — regra de
+ * que o teste grátis de 7 dias passa a contar de verdade — regra de
  * negócio central: o cliente não pode ter o tempo de trial consumido
  * enquanto a equipe ainda está organizando cardápio/config dele.
  */
@@ -240,29 +271,65 @@ export function restaurantSortPriority(restaurant: { status: RestaurantStatus },
   return 0;
 }
 
-export async function listRestaurantsForPanel(filters: { status?: RestaurantStatus; planKey?: PlanKey; includeHidden?: boolean } = {}) {
+const DEFAULT_PAGE_SIZE = 25;
+// Trava de segurança pra chamadas sem paginação de UI (ex.: o assistente de
+// manutenção, que precisa do retrato completo) — nunca puxa a tabela
+// inteira pra memória mesmo se pageSize não for informado.
+const MAX_PAGE_SIZE = 1000;
+
+export async function listRestaurantsForPanel(
+  filters: { status?: RestaurantStatus; planKey?: PlanKey; includeHidden?: boolean; page?: number; pageSize?: number } = {},
+) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return { restaurants: [], total: 0 };
+
+  const now = Date.now();
+  const hiddenCutoff = now - HIDE_CANCELLED_AFTER_DAYS * DAY_MS;
+
   const conditions = [
     filters.status ? eq(restaurants.status, filters.status) : undefined,
     filters.planKey ? eq(plans.key, filters.planKey) : undefined,
+    // Cancelados somem da lista sozinhos N dias depois — replica em SQL a
+    // mesma regra que antes era filtrada em memória, pra a paginação bater
+    // com a contagem total.
+    filters.includeHidden ? undefined : sql`(${restaurants.status} != 'cancelled' OR ${restaurants.cancelledAt} IS NULL OR ${restaurants.cancelledAt} > ${hiddenCutoff})`,
   ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+  const whereClause = conditions.length ? and(...conditions) : undefined;
 
-  const rows = await db
-    .select({ restaurant: restaurants, subscription: subscriptions, plan: plans })
-    .from(restaurants)
-    .innerJoin(subscriptions, eq(subscriptions.restaurantId, restaurants.id))
-    .innerJoin(plans, eq(subscriptions.planId, plans.id))
-    .where(conditions.length ? and(...conditions) : undefined);
+  // Mesma regra de prioridade de restaurantSortPriority (ativos, depois
+  // pagamento em atraso/suspenso, depois cancelados), só que em SQL — precisa
+  // rodar antes do LIMIT/OFFSET pra paginação ficar correta.
+  const priorityRank = sql`CASE
+    WHEN ${restaurants.status} = 'cancelled' THEN 2
+    WHEN ${restaurants.status} = 'suspended' OR ${subscriptions.status} IN ('payment_pending', 'past_due', 'cancel_at_period_end') THEN 1
+    ELSE 0
+  END`;
 
-  const now = Date.now();
-  const visible = filters.includeHidden
-    ? rows
-    : rows.filter(({ restaurant }) => !(restaurant.status === "cancelled" && restaurant.cancelledAt != null && now - restaurant.cancelledAt > HIDE_CANCELLED_AFTER_DAYS * DAY_MS));
+  const pageSize = Math.min(Math.max(filters.pageSize ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  const page = Math.max(filters.page ?? 1, 1);
 
-  return visible
-    .map(({ restaurant: { apiKeyHash: _apiKeyHash, ...restaurant }, subscription, plan }) => ({ ...restaurant, subscription, plan }))
-    .sort((a, b) => restaurantSortPriority(a, a.subscription) - restaurantSortPriority(b, b.subscription));
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({ restaurant: restaurants, subscription: subscriptions, plan: plans })
+      .from(restaurants)
+      .innerJoin(subscriptions, eq(subscriptions.restaurantId, restaurants.id))
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(whereClause)
+      .orderBy(priorityRank, desc(restaurants.id))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    db
+      .select({ total: count() })
+      .from(restaurants)
+      .innerJoin(subscriptions, eq(subscriptions.restaurantId, restaurants.id))
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(whereClause),
+  ]);
+
+  return {
+    restaurants: rows.map(({ restaurant: { apiKeyHash: _apiKeyHash, ...restaurant }, subscription, plan }) => ({ ...restaurant, subscription, plan })),
+    total: Number(total),
+  };
 }
 
 /** Detalhe completo pro Painel Master: Dados + Plano + Pagamentos + últimas ações de auditoria envolvendo este restaurante. */

@@ -12,6 +12,7 @@ const PLAN_OPTIONS = ["", "essencial", "profissional", "premium"] as const;
 const NEW_PLAN_OPTIONS = ["essencial", "profissional", "premium"] as const;
 
 const CANCELLED_HIDE_DAYS = 10;
+const PAGE_SIZE = 25;
 
 export default function RestaurantList() {
   const [status, setStatus] = useState<(typeof STATUS_OPTIONS)[number]>("");
@@ -20,12 +21,22 @@ export default function RestaurantList() {
   // listRestaurantsForPanel) — nunca apagados, só escondidos por padrão
   // pra não acumular; esse toggle reexibe pra quem precisar consultar.
   const [includeHidden, setIncludeHidden] = useState(false);
+  const [page, setPage] = useState(1);
   const utils = trpc.useUtils();
   const list = trpc.masterPanel.restaurants.list.useQuery({
     status: status || undefined,
     planKey: planKey || undefined,
     includeHidden,
+    page,
+    pageSize: PAGE_SIZE,
   });
+  const total = list.data?.total ?? 0;
+  const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
+
+  const applyFilter = <T,>(setter: (value: T) => void) => (value: T) => {
+    setter(value);
+    setPage(1);
+  };
 
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState("");
@@ -59,20 +70,20 @@ export default function RestaurantList() {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-bold text-ink">Restaurantes</h1>
         <div className="flex gap-2">
-          <select value={status} onChange={event => setStatus(event.target.value as typeof status)} className="h-9 rounded-lg border border-border bg-paper-raised px-2 text-sm">
+          <select value={status} onChange={event => applyFilter(setStatus)(event.target.value as typeof status)} className="h-9 rounded-lg border border-border bg-paper-raised px-2 text-sm">
             <option value="">Todos os status</option>
             <option value="active">Ativo</option>
             <option value="suspended">Suspenso</option>
             <option value="cancelled">Cancelado</option>
           </select>
-          <select value={planKey} onChange={event => setPlanKey(event.target.value as typeof planKey)} className="h-9 rounded-lg border border-border bg-paper-raised px-2 text-sm">
+          <select value={planKey} onChange={event => applyFilter(setPlanKey)(event.target.value as typeof planKey)} className="h-9 rounded-lg border border-border bg-paper-raised px-2 text-sm">
             <option value="">Todos os planos</option>
             <option value="essencial">Essencial</option>
             <option value="profissional">Profissional</option>
             <option value="premium">Premium</option>
           </select>
           <label className="flex items-center gap-1.5 text-xs font-medium text-ink-soft">
-            <input type="checkbox" checked={includeHidden} onChange={event => setIncludeHidden(event.target.checked)} className="h-4 w-4 accent-accent" />
+            <input type="checkbox" checked={includeHidden} onChange={event => applyFilter(setIncludeHidden)(event.target.checked)} className="h-4 w-4 accent-accent" />
             Mostrar cancelados ocultos ({CANCELLED_HIDE_DAYS}+ dias)
           </label>
           {!isCreating ? <Button onClick={() => setIsCreating(true)}>Novo restaurante</Button> : null}
@@ -179,7 +190,7 @@ export default function RestaurantList() {
             </tr>
           </thead>
           <tbody>
-            {list.data?.map(row => (
+            {list.data?.restaurants.map(row => (
               <tr key={row.id} className="border-b border-border last:border-0 hover:bg-paper">
                 <td className="px-4 py-3">
                   <Link href={`/restaurantes/${row.id}`} className="font-medium text-accent hover:underline">{row.name}</Link>
@@ -206,7 +217,22 @@ export default function RestaurantList() {
           </tbody>
         </table>
         {list.isLoading ? <p className="p-4 text-sm text-ink-soft">Carregando…</p> : null}
-        {list.data && !list.data.length ? <p className="p-4 text-sm text-ink-soft">Nenhum restaurante encontrado com esse filtro.</p> : null}
+        {list.data && !list.data.restaurants.length ? <p className="p-4 text-sm text-ink-soft">Nenhum restaurante encontrado com esse filtro.</p> : null}
+        {list.data && list.data.restaurants.length ? (
+          <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3 text-sm text-ink-soft">
+            <span>
+              {total} restaurante{total === 1 ? "" : "s"} · página {page} de {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" disabled={page <= 1} onClick={() => setPage(current => Math.max(current - 1, 1))}>
+                Anterior
+              </Button>
+              <Button variant="outline" disabled={page >= totalPages} onClick={() => setPage(current => Math.min(current + 1, totalPages))}>
+                Próxima
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </PanelLayout>
   );

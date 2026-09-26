@@ -99,7 +99,7 @@ export default function PlanAdmin() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-[#e2d5c5] bg-[#fffdf8] p-6">
+      <div className="rounded-3xl border border-border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Meu plano</p>
@@ -112,7 +112,7 @@ export default function PlanAdmin() {
               {data.syncedAt ? <>Última sincronização: {new Date(data.syncedAt).toLocaleString("pt-BR")} {data.lastSyncOk ? "· ok" : "· com falha (mantendo último estado bom conhecido)"}</> : "Ainda não sincronizado com o serviço central."}
             </p>
           </div>
-          <Button variant="outline" disabled={forceSync.isPending} onClick={() => forceSync.mutate()} className="h-10 rounded-xl border-[#d8c8b4] bg-white">
+          <Button variant="outline" disabled={forceSync.isPending} onClick={() => forceSync.mutate()} className="h-10 rounded-xl border-border bg-card">
             <RefreshCw className={`mr-2 h-4 w-4 ${forceSync.isPending ? "animate-spin" : ""}`} />Sincronizar agora
           </Button>
         </div>
@@ -143,7 +143,7 @@ export default function PlanAdmin() {
         )}
       </div>
 
-      <div className="rounded-3xl border border-[#e2d5c5] bg-[#fffdf8] p-6">
+      <div className="rounded-3xl border border-border bg-card p-6">
         <h2 className="font-display text-xl font-bold">Recursos</h2>
         <div className="mt-4 divide-y divide-[#eee4d8]">
           {allFeatureIds.map(featureId => {
@@ -180,7 +180,7 @@ export default function PlanAdmin() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[#e2d5c5] bg-[#fffdf8] p-6">
+      <div className="rounded-3xl border border-border bg-card p-6">
         <h2 className="font-display text-xl font-bold">Planos disponíveis</h2>
         <p className="mt-1 text-sm text-muted-foreground">Upgrade libera os recursos na hora. Downgrade só passa a valer no fim do período atual — nada é apagado.</p>
         {plans.isLoading ? (
@@ -193,7 +193,7 @@ export default function PlanAdmin() {
               const isUpgrade = plan.position > currentPosition;
               const isDowngrade = plan.position < currentPosition;
               return (
-                <div key={plan.key} className={`flex flex-col rounded-2xl border p-4 ${isCurrent ? "border-primary bg-[#fdf1ea]" : isScheduledTarget ? "border-amber-300 bg-amber-50" : "border-[#eee4d8] bg-white"}`}>
+                <div key={plan.key} className={`flex flex-col rounded-2xl border p-4 ${isCurrent ? "border-primary bg-[#fdf1ea]" : isScheduledTarget ? "border-amber-300 bg-amber-50" : "border-border bg-card"}`}>
                   <p className="text-sm font-bold uppercase tracking-wide text-primary">{plan.name}</p>
                   <p className="mt-1 text-2xl font-bold">{money(plan.priceCents)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
                   <p className="mt-2 text-xs text-muted-foreground">{plan.features.length} recurso(s) liberado(s)</p>
@@ -205,7 +205,7 @@ export default function PlanAdmin() {
                   ) : isUpgrade ? (
                     <Button onClick={() => openChangeDialog(plan)} className="mt-2 rounded-xl bg-primary hover:bg-primary-hover"><Sparkles className="mr-1.5 h-4 w-4" />Fazer upgrade</Button>
                   ) : isDowngrade ? (
-                    <Button variant="outline" onClick={() => openChangeDialog(plan)} className="mt-2 rounded-xl border-[#d8c8b4] bg-white">Fazer downgrade</Button>
+                    <Button variant="outline" onClick={() => openChangeDialog(plan)} className="mt-2 rounded-xl border-border bg-card">Fazer downgrade</Button>
                   ) : null}
                 </div>
               );
@@ -215,7 +215,7 @@ export default function PlanAdmin() {
         )}
       </div>
 
-      <div className="rounded-3xl border border-[#e2d5c5] bg-[#fffdf8] p-6">
+      <div className="rounded-3xl border border-border bg-card p-6">
         <h2 className="font-display text-xl font-bold">Limites do plano</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {Object.entries(LIMIT_LABELS).map(([resourceKey, label]) => {
@@ -223,7 +223,7 @@ export default function PlanAdmin() {
             const used = data.usage[resourceKey as keyof typeof data.usage] ?? 0;
             const overLimit = limit != null && used > limit;
             return (
-              <div key={resourceKey} className={`rounded-2xl border p-4 ${overLimit ? "border-amber-300 bg-amber-50" : "border-[#eee4d8] bg-white"}`}>
+              <div key={resourceKey} className={`rounded-2xl border p-4 ${overLimit ? "border-amber-300 bg-amber-50" : "border-border bg-card"}`}>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
                 <p className="mt-1 text-lg font-bold">{used} <span className="text-sm font-normal text-muted-foreground">/ {limit == null ? "ilimitado" : limit}</span></p>
                 {overLimit && <p className="mt-1 text-xs text-amber-900">Acima do limite do plano atual — nada foi removido, mas você não consegue criar mais até fazer upgrade ou reduzir.</p>}
@@ -233,16 +233,16 @@ export default function PlanAdmin() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[#e2d5c5] bg-[#fffdf8] p-6">
+      <div className="rounded-3xl border border-border bg-card p-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display text-xl font-bold">Cobranças e assinatura</h2>
-          <Button variant="outline" size="sm" onClick={() => setShowHistory(current => !current)} className="h-8 rounded-lg border-[#d8c8b4] bg-white text-xs"><ReceiptText className="mr-1.5 h-3.5 w-3.5" />{showHistory ? "Ocultar histórico" : "Ver histórico de cobranças"}</Button>
+          <Button variant="outline" size="sm" onClick={() => setShowHistory(current => !current)} className="h-8 rounded-lg border-border bg-card text-xs"><ReceiptText className="mr-1.5 h-3.5 w-3.5" />{showHistory ? "Ocultar histórico" : "Ver histórico de cobranças"}</Button>
         </div>
         {showHistory && (
           <div className="mt-4 space-y-2">
             {paymentHistory.isLoading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : paymentHistory.data?.length ? (
               paymentHistory.data.map(payment => (
-                <div key={payment.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#eee4d8] bg-white px-3 py-2 text-xs">
+                <div key={payment.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-xs">
                   <span>{new Date(payment.createdAt).toLocaleDateString("pt-BR")}</span>
                   <span className="font-semibold">{money(payment.amountCents)}</span>
                   <span className={payment.status === "paid" ? "text-emerald-700" : payment.status === "failed" ? "text-red-700" : "text-muted-foreground"}>{payment.status === "paid" ? "Pago" : payment.status === "failed" ? "Falhou" : payment.status === "refunded" ? "Estornado" : "Pendente"}</span>
@@ -252,14 +252,14 @@ export default function PlanAdmin() {
           </div>
         )}
         {!isCancelScheduled && data.status !== "canceled" && (
-          <div className="mt-5 border-t border-[#eee4d8] pt-4">
+          <div className="mt-5 border-t border-border pt-4">
             <Button variant="ghost" onClick={() => setConfirmCancel(true)} className="h-8 px-2 text-xs text-red-700 hover:bg-red-50 hover:text-red-800">Cancelar assinatura</Button>
           </div>
         )}
       </div>
 
       <Dialog open={Boolean(pendingChange)} onOpenChange={open => { if (!open) setPendingChange(null); }}>
-        <DialogContent className="rounded-2xl bg-[#fffdf8] sm:max-w-md">
+        <DialogContent className="rounded-2xl bg-card sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">{pendingChange?.direction === "upgrade" ? "Confirmar upgrade" : "Confirmar downgrade"}</DialogTitle>
             <DialogDescription className="text-sm leading-6">
@@ -270,7 +270,7 @@ export default function PlanAdmin() {
           </DialogHeader>
           <div className="mt-2">
             <Label htmlFor="payer-email">E-mail para o pagamento</Label>
-            <Input id="payer-email" type="email" value={payerEmail} onChange={event => setPayerEmail(event.target.value)} placeholder="seu@email.com" className="mt-1.5 h-10 rounded-xl bg-white" />
+            <Input id="payer-email" type="email" value={payerEmail} onChange={event => setPayerEmail(event.target.value)} placeholder="seu@email.com" className="mt-1.5 h-10 rounded-xl bg-card" />
           </div>
           {changePlan.error && <p className="mt-2 text-sm text-red-700">{changePlan.error.message}</p>}
           <div className="mt-4 flex justify-end gap-2">
@@ -281,7 +281,7 @@ export default function PlanAdmin() {
       </Dialog>
 
       <Dialog open={confirmCancel} onOpenChange={setConfirmCancel}>
-        <DialogContent className="rounded-2xl bg-[#fffdf8] sm:max-w-md">
+        <DialogContent className="rounded-2xl bg-card sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Cancelar assinatura</DialogTitle>
             <DialogDescription className="text-sm leading-6">
@@ -290,7 +290,7 @@ export default function PlanAdmin() {
           </DialogHeader>
           <div className="mt-2">
             <Label htmlFor="cancel-reason">Motivo (opcional)</Label>
-            <Input id="cancel-reason" value={cancelReason} onChange={event => setCancelReason(event.target.value)} placeholder="Nos ajuda a melhorar" className="mt-1.5 h-10 rounded-xl bg-white" />
+            <Input id="cancel-reason" value={cancelReason} onChange={event => setCancelReason(event.target.value)} placeholder="Nos ajuda a melhorar" className="mt-1.5 h-10 rounded-xl bg-card" />
           </div>
           {cancelSubscription.error && <p className="mt-2 text-sm text-red-700">{cancelSubscription.error.message}</p>}
           <div className="mt-4 flex justify-end gap-2">

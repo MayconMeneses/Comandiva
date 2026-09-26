@@ -41,6 +41,27 @@ export function sendTelegramMessageAsync(text: string): void {
   void sendTelegramMessage(text).catch(error => console.error("[telegram] Erro inesperado ao enviar mensagem:", error));
 }
 
+// Evita inundar o Telegram com alertas repetidos — no máximo 1 alerta por
+// `kind` a cada 10min (mesmo raciocínio de server/_core/alerts.ts no app
+// principal). Por `kind` (não uma janela única global) pra um crash-loop de
+// erro interno numa requisição não "consumir" a janela e esconder um
+// uncaughtException real logo em seguida, ou vice-versa.
+const lastAlertAtByKind = new Map<string, number>();
+const ALERT_THROTTLE_MS = 10 * 60 * 1000;
+
+/** Ponto único de alerta de malfuncionamento (crash do processo ou erro interno numa requisição) — sempre pelo Telegram, nunca bloqueia quem chamou. */
+export function alertSystemError(subject: string, detail: string, kind: string, area?: string): Promise<void> {
+  const now = Date.now();
+  const lastAlertAt = lastAlertAtByKind.get(kind) ?? 0;
+  if (now - lastAlertAt < ALERT_THROTTLE_MS) return Promise.resolve();
+  lastAlertAtByKind.set(kind, now);
+  return sendTelegramMessage(buildSystemErrorMessage({ subject, detail, area }))
+    .then(outcome => {
+      if (!outcome.sent) console.error("[telegram] Falha ao mandar alerta de erro:", outcome.reason);
+    })
+    .catch(error => console.error("[telegram] Erro inesperado ao mandar alerta de erro:", error));
+}
+
 /** `parse_mode: "HTML"` do Telegram — nome de restaurante/contato vem de quem preenche o formulário público, nunca confiar sem escapar. */
 function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -121,6 +142,12 @@ export function buildNewPaidSignupMessage(params: {
   contactPhone?: string;
   amountCents: number;
   apiKey: string;
+  // true = este e-mail/telefone já teve restaurante antes — trial de 7
+  // dias NÃO foi concedido (ver hasRestaurantForContact/achado da auditoria
+  // de segurança). Sinalizado aqui pra nunca ficar invisível: um bloqueio
+  // automático que ninguém vê pode esconder um falso positivo (duas pessoas
+  // diferentes que só compartilham telefone, por exemplo).
+  repeatContact?: boolean;
 }): string {
   const amount = (params.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   return [
@@ -130,6 +157,7 @@ export function buildNewPaidSignupMessage(params: {
     `Contato: ${escapeHtml(params.contactName || "-")} · ${escapeHtml(params.contactEmail)}${params.contactPhone ? ` · ${escapeHtml(params.contactPhone)}` : ""}`,
     `Taxa de implementação paga: ${amount}`,
     `API key: <code>${escapeHtml(params.apiKey)}</code>`,
+    ...(params.repeatContact ? ["⚠️ <b>Contato repetido</b> — já teve restaurante antes, teste grátis de 7 dias NÃO foi concedido desta vez."] : []),
   ].join("\n");
 }
 
@@ -138,7 +166,7 @@ export function buildRestaurantDeliveredMessage(params: { restaurantId: number; 
   return [
     "✅ <b>Ambiente entregue</b>",
     `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
-    `Teste grátis de 30 dias começou a valer — termina em ${trialEndsAtLabel}.`,
+    `Teste grátis de 7 dias começou a valer — termina em ${trialEndsAtLabel}.`,
   ].join("\n");
 }
 
@@ -186,14 +214,39 @@ function redactSecrets(text: string): string {
 
 const MAX_ERROR_MESSAGE_LENGTH = 3500; // Telegram limita a 4096 caracteres; deixa folga pro resto do texto.
 
-export function buildSystemErrorMessage(params: { subject: string; detail: string }): string {
+/**
+ * Acha "server/pasta/arquivo.ts:linha" na primeira linha do stack trace que
+ * não é do node_modules — é o que deixa quem recebe o alerta ir direto no
+ * código, em vez de só ver a mensagem crua do erro (mesmo raciocínio de
+ * server/_core/alerts.ts no app principal).
+ */
+function extractSourceLocation(text: string): string | undefined {
+  for (const line of text.split("\n")) {
+    if (line.includes("node_modules")) continue;
+    const match = line.match(/((?:server|shared|client)[\\/][^\s():]+):(\d+):\d+/);
+    if (match) return `${match[1]!.replace(/\\/g, "/")}:${match[2]}`;
+  }
+  return undefined;
+}
+
+/**
+ * `area` identifica QUAL parte do saas-core (o mesmo processo hospeda o
+ * Painel Master, o site comercial de cadastro e a API interna/operador) —
+ * ver server/_core/trpc.ts::describeArea, que deriva isso do namespace tRPC.
+ * Omitido pros crashes de processo inteiro (uncaughtException/unhandledRejection),
+ * que não têm uma área específica — o processo caiu todo.
+ */
+export function buildSystemErrorMessage(params: { subject: string; detail: string; area?: string }): string {
   const environment = ENV.isProduction ? "Produção" : "Desenvolvimento";
   const horario = new Date().toLocaleString("pt-BR", { timeZone: "America/Fortaleza" });
+  const location = extractSourceLocation(params.detail);
   const safeDetail = redactSecrets(params.detail).slice(0, MAX_ERROR_MESSAGE_LENGTH);
   return [
     "🔴 <b>Erro grave no saas-core</b>",
     `Ambiente: ${escapeHtml(environment)}`,
+    ...(params.area ? [`Área: ${escapeHtml(params.area)}`] : []),
     `Evento: ${escapeHtml(params.subject)}`,
+    ...(location ? [`Local: ${escapeHtml(location)}`] : []),
     "",
     `<pre>${escapeHtml(safeDetail)}</pre>`,
     "",

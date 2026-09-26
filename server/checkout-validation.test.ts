@@ -6,6 +6,7 @@ const baseInput = {
   fulfillmentType: "DELIVERY" as const,
   paymentMethod: "PIX" as const,
   customer: { name: "Cliente de Teste", phone: "(85) 99999-1234" },
+  operationId: "test-operation-id-1",
 };
 
 describe("validação do checkout", () => {

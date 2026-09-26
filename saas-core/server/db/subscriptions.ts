@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { getDb } from "./client";
 import { billingPayments, features, planFeatures, planLimits, plans, restaurants, subscriptionEvents, subscriptions, type SubscriptionStatus } from "../../drizzle/schema";
 import { createSubscriptionPreapproval, updateSubscriptionPreapproval } from "../_core/mercadoPagoBilling";
@@ -235,8 +235,12 @@ export async function isPastDueGraceExpired(subscription: { id: number; status: 
 
   const db = await getDb();
   if (!db) return true;
-  const recentEvents = await db.select().from(subscriptionEvents).where(eq(subscriptionEvents.subscriptionId, subscription.id));
-  const alreadyNotifiedThisEpisode = recentEvents.some(event => event.eventType === "past_due_grace_expired" && event.createdAt >= subscription.pastDueSince!);
+  const [existingNotification] = await db
+    .select({ id: subscriptionEvents.id })
+    .from(subscriptionEvents)
+    .where(and(eq(subscriptionEvents.subscriptionId, subscription.id), eq(subscriptionEvents.eventType, "past_due_grace_expired"), gte(subscriptionEvents.createdAt, subscription.pastDueSince!)))
+    .limit(1);
+  const alreadyNotifiedThisEpisode = Boolean(existingNotification);
   if (!alreadyNotifiedThisEpisode) {
     await recordEvent(subscription.id, "past_due_grace_expired", { status: "past_due" }, { status: "past_due", blocked: true }, "system:reconciliation");
     const contact = await getRestaurantContact(subscription.restaurantId);
@@ -313,15 +317,35 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
     return;
   }
 
-  // Trial vencido sem nenhum checkout iniciado (sem scheduledPlanId) — sem
-  // isso, o restaurante ficava com acesso completo indefinidamente após os
-  // 30 dias grátis, porque nada mais reavaliava esse estado (ver auditoria
-  // que motivou esta mudança). Reaproveita 'ended', valor do enum que antes
-  // nunca era atribuído por nenhum código — computeSnapshotForRestaurant
-  // abaixo zera as features quando vê esse status, bloqueando o acesso até
-  // o dono assinar de verdade (billing/login continuam liberados, porque
-  // não passam por nenhum feature-gate).
-  if (subscription.status === "trial" && !subscription.scheduledPlanId) {
+  // Trial vencido — sem isso, o restaurante ficava com acesso completo
+  // indefinidamente após os 7 dias grátis, porque nada mais reavaliava esse
+  // estado (ver auditoria que motivou esta mudança). Reaproveita 'ended',
+  // valor do enum que antes nunca era atribuído por nenhum código —
+  // computeSnapshotForRestaurant abaixo zera as features quando vê esse
+  // status, bloqueando o acesso até o dono assinar de verdade (billing/login
+  // continuam liberados, porque não passam por nenhum feature-gate).
+  //
+  // Checa `status === "trial"` sozinho, SEM olhar scheduledPlanId (achado
+  // M2 da auditoria) — antes, um checkout iniciado mas nunca confirmado pelo
+  // Mercado Pago (scheduledPlanId setado, status ainda "trial") caía no
+  // branch de scheduledPlanId logo abaixo, que promove o plano pago sem
+  // exigir confirmação de pagamento nenhuma: um mês inteiro de graça. Se o
+  // status ainda é "trial", o Mercado Pago nunca confirmou nada — não importa
+  // se existe um scheduledPlanId pendente, o acesso deve ser bloqueado do
+  // mesmo jeito. Uma confirmação tardia continua funcionando normalmente:
+  // applyPreapprovalStatus (chamada direto pelo webhook, não daqui) ativa o
+  // plano assim que o Mercado Pago confirmar, seja qual for o status atual.
+  if (subscription.status === "trial") {
+    if (ENV.internalDemoRestaurantIds.includes(subscription.restaurantId)) {
+      // Restaurante de uso interno/demonstração (ver ENV.internalDemoRestaurantIds)
+      // — em vez de bloquear, renova o período de 30 dias a partir de agora.
+      // Continua em 'trial', então o aviso "faltam N dias" (TrialEndingBanner)
+      // segue aparecendo com a data sempre fresca, mas o bloqueio total
+      // (TrialEndedBlock) nunca é acionado pra esses restaurantes.
+      await db.update(subscriptions).set({ currentPeriodStart: now, currentPeriodEnd: now + ONE_MONTH_MS, updatedAt: now }).where(eq(subscriptions.id, subscription.id));
+      await recordEvent(subscription.id, "trial_renewed_internal_demo", { currentPeriodEnd: subscription.currentPeriodEnd }, { currentPeriodEnd: now + ONE_MONTH_MS }, "system:reconciliation");
+      return;
+    }
     await db.update(subscriptions).set({ status: "ended", updatedAt: now }).where(eq(subscriptions.id, subscription.id));
     await recordEvent(subscription.id, "trial_ended", { status: "trial" }, { status: "ended" }, "system:reconciliation");
     return;
@@ -577,14 +601,20 @@ export async function computeSnapshotForRestaurant(restaurantId: number): Promis
   ]);
 
   const plansById = new Map(allPlans.map(candidate => [candidate.id, candidate]));
-  // Trial encerrado sem pagamento (status 'ended', ver applyDueScheduledChanges
-  // acima) OU mensalidade recusada há mais de 5 dias sem regularizar (ver
-  // markSubscriptionPastDue/isPastDueGraceExpired) — nos dois casos trata como
-  // se o plano não liberasse NENHUMA feature, então o laço abaixo joga todas
-  // em lockedFeatures automaticamente, sem duplicar lógica de bloqueio.
+  // Bloqueia TODAS as features quando a assinatura não está em dia — trial
+  // encerrado sem pagamento ('ended'), assinatura cancelada ('canceled',
+  // fim do ciclo pago já passou), preapproval pausada no Mercado Pago
+  // ('suspended') ou mensalidade recusada há mais de 5 dias sem regularizar
+  // (ver markSubscriptionPastDue/isPastDueGraceExpired). Antes desta
+  // auditoria, só 'ended'/past_due-vencido bloqueavam — uma assinatura
+  // cancelada ou suspensa pelo Mercado Pago continuava com acesso total
+  // pra sempre, porque nada mais reavaliava esse estado (achado H1). O laço
+  // abaixo joga toda feature bloqueada em lockedFeatures automaticamente,
+  // sem duplicar lógica.
   const isTrialExpiredUnpaid = subscription.status === "ended";
+  const isSubscriptionInactive = subscription.status === "canceled" || subscription.status === "suspended";
   const isPastDueBlocked = await isPastDueGraceExpired(subscription);
-  const currentPlanFeatureIds = isTrialExpiredUnpaid || isPastDueBlocked ? new Set<string>() : new Set(allPlanFeatures.filter(row => row.planId === plan.id).map(row => row.featureId));
+  const currentPlanFeatureIds = isTrialExpiredUnpaid || isSubscriptionInactive || isPastDueBlocked ? new Set<string>() : new Set(allPlanFeatures.filter(row => row.planId === plan.id).map(row => row.featureId));
 
   const includedFeatures: string[] = [];
   const lockedFeatures: LicenseSnapshot["lockedFeatures"] = {};

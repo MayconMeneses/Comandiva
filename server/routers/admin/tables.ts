@@ -5,6 +5,7 @@ import {
   closeTableSession,
   createReservation,
   createTable,
+  getFiscalDocumentByTableSessionId,
   getOrOpenSessionForTable,
   getSessionWithOrders,
   listPendingServiceRequests,
@@ -18,6 +19,7 @@ import {
   updateReservation,
   updateTable,
 } from "../../db";
+import { emitNfceForTableSession, retryNfceForTableSession } from "../../_core/nfceEmission";
 import { assertWithinPlanLimit, assertWithinPlanLimitAndInsert } from "../../_core/planLimits";
 import { adminProcedure, requireFeature, restaurantProcedure, router } from "../../_core/trpc";
 import { phoneSchema, safeText } from "../customer";
@@ -77,11 +79,28 @@ export const adminTablesRouter = router({
       return getSessionWithOrders(input.sessionId);
     }),
   closeSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
+    let result;
     try {
-      return await closeTableSession(input.sessionId, ctx.user?.id ?? null);
+      result = await closeTableSession(input.sessionId, ctx.user?.id ?? null);
     } catch (error) {
       throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível fechar a comanda." });
     }
+    // Fora do try/catch de propósito: nunca deixar uma falha na emissão da
+    // NFC-e (provedor fora do ar, etc.) fazer parecer que o fechamento da
+    // comanda falhou — a comanda já fechou de verdade acima. Disparado aqui
+    // (roteador), não dentro de closeTableSession (db/tableSessions.ts),
+    // pra evitar import circular (nfceEmission.ts já importa de ../db, que
+    // inclui tableSessions.ts). Consolida todas as rodadas numa nota só —
+    // ver "Quando emitir" no plano de emissão de NFC-e.
+    void emitNfceForTableSession(input.sessionId).catch(error => console.warn("[nfce] Falha ao emitir NFC-e no fechamento da comanda:", error));
+    return result;
+  }),
+  // Usadas pela tela de fechamento de comanda pra mostrar/imprimir o DANFE
+  // consolidado quando pronto, e pelo botão "Tentar emitir nota de novo".
+  fiscalDocumentForTableSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).query(({ input }) => getFiscalDocumentByTableSessionId(input.sessionId)),
+  retryNfceForTableSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
+    await retryNfceForTableSession(input.sessionId);
+    return getFiscalDocumentByTableSessionId(input.sessionId);
   }),
   cancelSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
     await cancelTableSession(input.sessionId);

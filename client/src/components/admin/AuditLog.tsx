@@ -13,11 +13,26 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
   ORDER_ARCHIVED: "Pedido removido da lista (arquivado)",
 };
 
+const ACCOUNT_ACTION_LABELS: Record<string, string> = {
+  "team.created": "Conta de equipe criada",
+  "team.updated": "Conta de equipe editada",
+  "team.paused": "Conta de equipe pausada",
+  "team.reactivated": "Conta de equipe reativada",
+  "team.deleted": "Conta de equipe removida",
+  "paymentGateway.created": "Gateway de pagamento cadastrado",
+  "paymentGateway.updated": "Gateway de pagamento editado",
+  "paymentGateway.activeChanged": "Gateway de pagamento ativado/desativado",
+  "paymentGateway.deleted": "Gateway de pagamento removido",
+  "settings.pixChanged": "Chave Pix alterada",
+};
+
 export default function AuditLog() {
   const snapshot = trpc.admin.mySnapshot.useQuery();
   const locked = snapshot.data?.lockedFeatures.audit;
   const query = trpc.admin.recent.useQuery({ limit: 100 }, { enabled: !snapshot.isLoading && !locked });
   const entries = query.data ?? [];
+  const accountQuery = trpc.admin.recentAccountActions.useQuery({ limit: 100 }, { enabled: !snapshot.isLoading && !locked });
+  const accountEntries = accountQuery.data ?? [];
 
   if (snapshot.isLoading) return <Loading />;
   if (locked) return <LockedFeatureFullPage requiredPlanName={locked.requiredPlanName} featureId="audit" />;
@@ -38,10 +53,10 @@ export default function AuditLog() {
       ) : query.error ? (
         <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{query.error.message}</p>
       ) : entries.length ? (
-        <div className="overflow-x-auto rounded-2xl border border-[#e4d8c8] bg-[#fffdf8]">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-[#e4d8c8] text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3">Quando</th>
                 <th className="px-4 py-3">Pedido</th>
                 <th className="px-4 py-3">Ação</th>
@@ -50,7 +65,7 @@ export default function AuditLog() {
             </thead>
             <tbody>
               {entries.map(entry => (
-                <tr key={`${entry.kind}-${entry.id}`} className="border-b border-[#f0e6d8] last:border-0">
+                <tr key={`${entry.kind}-${entry.id}`} className="border-b border-border last:border-0">
                   <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString("pt-BR")}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 font-medium">{entry.orderPublicCode}</td>
                   <td className="px-4 py-2.5">
@@ -67,7 +82,44 @@ export default function AuditLog() {
           </table>
         </div>
       ) : (
-        <p className="rounded-xl border border-dashed border-[#d9cdbc] p-4 text-sm text-muted-foreground">Nenhuma ação registrada ainda.</p>
+        <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma ação registrada ainda.</p>
+      )}
+
+      <div className="mb-5 mt-10 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Rastreabilidade</p>
+          <h2 className="mt-2 font-display text-2xl font-bold">Ações administrativas</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Equipe/permissões, gateway de pagamento e chave Pix — nunca mostra o valor de uma senha ou credencial, só o que mudou.</p>
+        </div>
+      </div>
+
+      {accountQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando…</p>
+      ) : accountQuery.error ? (
+        <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{accountQuery.error.message}</p>
+      ) : accountEntries.length ? (
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <th className="px-4 py-3">Quando</th>
+                <th className="px-4 py-3">Ação</th>
+                <th className="px-4 py-3">Quem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accountEntries.map(entry => (
+                <tr key={entry.id} className="border-b border-border last:border-0">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString("pt-BR")}</td>
+                  <td className="px-4 py-2.5">{ACCOUNT_ACTION_LABELS[entry.action] ?? entry.action}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{entry.actorName}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma ação administrativa registrada ainda.</p>
       )}
     </section>
   );

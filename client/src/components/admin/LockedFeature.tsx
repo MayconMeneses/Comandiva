@@ -48,7 +48,7 @@ export function FeatureLockDot({ title, onClick }: { title?: string; onClick?: (
 export function LockedFeatureFullPage({ requiredPlanName, featureId }: { requiredPlanName?: string | null; featureId?: string }) {
   const [, setLocation] = useLocation();
   return (
-    <div className="grid min-h-[60vh] place-items-center rounded-3xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-10 text-center">
+    <div className="grid min-h-[60vh] place-items-center rounded-3xl border border-dashed border-border bg-card p-10 text-center">
       <div className="mx-auto max-w-sm">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f3e2d8] text-primary">
           <Lock className="h-6 w-6" />
@@ -70,7 +70,7 @@ export function LockedFeatureFullPage({ requiredPlanName, featureId }: { require
 export function LockedFeatureCard({ title, requiredPlanName, featureId }: { title: string; requiredPlanName?: string | null; featureId?: string }) {
   const [, setLocation] = useLocation();
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#d9cdbc] bg-[#fffdfa] p-8 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
       <div className="flex items-start gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f3e2d8] text-primary">
           <Lock className="h-5 w-5" />
@@ -95,7 +95,7 @@ export function UpgradeNudgeModal({ open, onOpenChange, info }: { open: boolean;
   const [, setLocation] = useLocation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl bg-[#fffdf8]">
+      <DialogContent className="max-w-md rounded-2xl bg-card">
         <DialogHeader>
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f3e2d8] text-primary">
             <Lock className="h-5 w-5" />

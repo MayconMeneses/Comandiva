@@ -1,17 +1,32 @@
-import { and, asc, eq, gt, inArray, lt, ne } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, lt, lte, ne } from "drizzle-orm";
 import { tableReservations } from "../../drizzle/schema";
 import { getDb } from "./client";
 
 /** Janela mínima entre duas reservas na mesma mesa — evita marcar duas reservas praticamente coladas. */
 const RESERVATION_BUFFER_MS = 90 * 60 * 1000;
 
+// Teto de segurança — mais apertado quando nem fromAt/toAt são informados
+// (a tabela crescendo com o tempo, reservas antigas nunca arquivadas, virava
+// uma query cada vez mais pesada sem que ninguém tivesse pedido "me traga
+// tudo" de propósito); mais folgado quando já veio um período, só como
+// defesa extra (achado da auditoria de escalabilidade 2026-09-19).
+const MAX_RESERVATIONS_WITHOUT_RANGE = 500;
+const MAX_RESERVATIONS_WITH_RANGE = 2000;
+
 // ---- Reservas ----
 
 export async function listReservations(filters: { fromAt?: number; toAt?: number } = {}) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  const rows = await db.select().from(tableReservations).orderBy(asc(tableReservations.reservedFor));
-  return rows.filter(row => (filters.fromAt ? row.reservedFor >= filters.fromAt : true) && (filters.toAt ? row.reservedFor <= filters.toAt : true));
+  const conditions = [];
+  if (filters.fromAt) conditions.push(gte(tableReservations.reservedFor, filters.fromAt));
+  if (filters.toAt) conditions.push(lte(tableReservations.reservedFor, filters.toAt));
+  return db
+    .select()
+    .from(tableReservations)
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(asc(tableReservations.reservedFor))
+    .limit(conditions.length ? MAX_RESERVATIONS_WITH_RANGE : MAX_RESERVATIONS_WITHOUT_RANGE);
 }
 
 /** true se já existe outra reserva ativa nessa mesa dentro da janela de +-90min do horário pedido. */

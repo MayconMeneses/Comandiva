@@ -9,7 +9,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * currentPeriodEnd — diferente do fluxo normal de renovação.
  */
 const mocks = vi.hoisted(() => ({ getDb: vi.fn() }));
-vi.mock("./db/client", () => ({ getDb: mocks.getDb }));
+// cached: passthrough (sem memoização de verdade) — evita que o cache real (30s de TTL,
+// num closure só por módulo) vaze estado entre testes.
+vi.mock("./db/client", () => ({ getDb: mocks.getDb, cached: (_ttlMs: number, fn: () => unknown) => fn, PLANS_CACHE_TTL_MS: 30_000 }));
 vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "TEST-token", mercadoPagoWebhookSecret: "", isProduction: false } }));
 
 import { subscriptions, subscriptionEvents, restaurants } from "../drizzle/schema";
@@ -27,8 +29,13 @@ function buildFakeDb(subscriptionRow: Record<string, unknown>) {
       from: (table: unknown) => ({
         where: () => {
           if (table === subscriptionEvents) {
-            // isPastDueGraceExpired lê a lista inteira sem .limit().
-            return Promise.resolve(events.filter(event => event.subscriptionId === current.id));
+            // isPastDueGraceExpired filtra subscriptionId+eventType+createdAt
+            // na própria query (.limit(1)) — replica esse filtro aqui já que
+            // o fake não interpreta o objeto and(...) de verdade.
+            const filtered = events.filter(
+              event => event.subscriptionId === current.id && event.eventType === "past_due_grace_expired" && event.createdAt >= (current.pastDueSince as number),
+            );
+            return { limit: async (n: number) => filtered.slice(0, n) };
           }
           return {
             limit: async () => {

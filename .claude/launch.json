@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "saas-core-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "saas-core", "run", "dev"],
+      "port": 4000,
+      "autoPort": true
     }
   ]
 }

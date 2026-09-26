@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { planKeyValues } from "../../drizzle/schema";
-import { listPlansWithFeaturesAndLimits, listAllFeatures } from "../db/plans";
+import { listPlansWithFeaturesAndLimits, listPlansWithFeaturesAndLimitsCached, listAllFeatures } from "../db/plans";
 import { attachMpPreference, createSignupPayment, getSignupPaymentById } from "../db/signupPayments";
 import { getRestaurantById } from "../db/restaurants";
 import { createImplementationFeePreference } from "../_core/mercadoPagoCheckout";
@@ -32,7 +32,7 @@ const MAX_MENU_FILE_BYTES = 8 * 1024 * 1024; // 8MB — cabe folgado num cardáp
  */
 export const publicRouter = router({
   plans: publicProcedure.query(async () => {
-    const [allPlans, allFeatures] = await Promise.all([listPlansWithFeaturesAndLimits(), listAllFeatures()]);
+    const [allPlans, allFeatures] = await Promise.all([listPlansWithFeaturesAndLimitsCached(), listAllFeatures()]);
     const featureNameById = new Map(allFeatures.map(feature => [feature.featureId, feature.name]));
     const activePlans = allPlans.filter(plan => plan.active);
     return {
