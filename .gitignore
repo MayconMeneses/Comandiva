@@ -35,3 +35,4 @@ desktop.ini
 
 # Testes/cobertura
 coverage/
+graphify-out/cache/
