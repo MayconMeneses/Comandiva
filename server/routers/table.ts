@@ -51,6 +51,11 @@ export async function addRoundToTable(params: {
     ? await saveCustomerProfile({ phone: params.customer.phone, name: params.customer.name })
     : await getOrCreateWalkInCustomer();
   if (!customer) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o cliente." });
+  // Mesmo raciocínio de order.ts::create: saveCustomerProfile não sobrescreve mais
+  // nome de telefone já cadastrado, então o nome gravado NESTA rodada é sempre o que
+  // foi digitado agora (params.customer), nunca o valor antigo devolvido por ela.
+  const customerName = params.customer?.name ?? customer.name;
+  const customerPhone = params.customer?.phone ?? customer.phone;
   // orders + orderItems + orderItemAddons + orderStatusHistory numa
   // transação só — mesmo raciocínio de order.create em ./order.ts.
   const { orderId, code } = await db.transaction(tx => insertPricedOrder({
@@ -60,8 +65,8 @@ export async function addRoundToTable(params: {
     origin: params.origin,
     paymentMethod: null, // decidido no fechamento da comanda (table_bill_payments), não por rodada
     customerId: customer.id,
-    customerName: customer.name,
-    customerPhone: customer.phone,
+    customerName,
+    customerPhone,
     customerNote: params.customerNote,
     tableSessionId: session.id,
     historyNote: params.historyNote,

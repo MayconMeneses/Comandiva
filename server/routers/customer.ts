@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { getCustomerByPhone, saveCustomerProfile } from "../db";
+import { getCustomerByPhone } from "../db";
 import { normalizePhone } from "../../shared/orderDomain";
 import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
@@ -39,18 +39,6 @@ export const customerRouter = router({
     const limit = checkRateLimit(`customer-lookup:${ctx.req.ip}`, { maxAttempts: 20 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas consultas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     return getCustomerByPhone(input.phone);
-  }),
-  // Sobrescreve nome/endereço padrão de um cliente já cadastrado só pelo
-  // telefone (sem sessão) — mesmo raciocínio de rate limit do lookupByPhone
-  // acima: sem isso, dava pra martelar esse endpoint sem limite.
-  saveProfile: publicProcedure.input(z.object({
-    phone: phoneSchema,
-    name: safeText(z.string().min(2).max(160)),
-    address: addressSchema.optional(),
-  })).mutation(async ({ input, ctx }) => {
-    const limit = checkRateLimit(`customer-save-profile:${ctx.req.ip}`);
-    if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas tentativas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
-    return saveCustomerProfile(input);
   }),
 });
 

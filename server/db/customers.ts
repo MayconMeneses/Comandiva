@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { customerAddresses, customerChangeLogs, customers, orders } from "../../drizzle/schema";
 import { getDb } from "./client";
 
@@ -58,6 +58,26 @@ export async function getCustomerByPhone(phone: string) {
   return { ...customer, addresses };
 }
 
+/**
+ * Chamado a partir de checkout público (order.create) e rodada de mesa via QR
+ * (table.addRound) — nenhum dos dois tem sessão/login, só o telefone que a
+ * própria pessoa digitou. Por isso, achado de segurança (auditoria desta
+ * sessão): NUNCA atualiza nome/endereço de um telefone que já tem cadastro —
+ * antes disso, qualquer um sabendo o telefone de um cliente real (vazamento
+ * comum: nota fiscal, WhatsApp) conseguia sobrescrever o nome e o endereço
+ * PADRÃO daquele telefone só fazendo um pedido, sem nenhuma prova de posse.
+ * Esse endereço sobrescrito seria depois usado pra pré-preencher o checkout
+ * da PRÓXIMA compra legítima da vítima — um jeito silencioso de desviar uma
+ * entrega futura pro endereço do atacante.
+ *
+ * O pedido em si nunca dependeu disso: `customerName`/endereço gravados em
+ * cada `orders` sempre vêm direto do que a pessoa digitou NESSA compra (ver
+ * order.ts/table.ts), nunca do valor devolvido aqui — então parar de
+ * sobrescrever não muda o que aparece no pedido atual, só impede que ele
+ * "vaze" pro perfil salvo de outra pessoa. Só telefone NOVO (sem cadastro
+ * ainda) grava nome/endereço — nesse caso não existe ninguém pra ter o
+ * cadastro corrompido.
+ */
 export async function saveCustomerProfile(input: {
   phone: string;
   name: string;
@@ -74,42 +94,30 @@ export async function saveCustomerProfile(input: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  const now = Date.now();
   const found = await getCustomerByPhone(input.phone);
-  let customerId: number;
-  if (found) {
-    customerId = found.id;
-    await db.update(customers).set({ name: input.name, updatedAt: now }).where(eq(customers.id, customerId));
-    await db.insert(customerChangeLogs).values({
-      customerId,
-      changeType: "PROFILE_UPDATED",
-      details: JSON.stringify({ source: "checkout" }),
-      createdAt: now,
-    });
-  } else {
-    const result = await db.insert(customers).values({
-      phone: input.phone,
-      name: input.name,
-      createdAt: now,
-      updatedAt: now,
-    });
-    customerId = Number(result[0].insertId);
-    await db.insert(customerChangeLogs).values({
-      customerId,
-      changeType: "PROFILE_CREATED",
-      details: JSON.stringify({ source: "checkout" }),
-      createdAt: now,
-    });
-  }
+  if (found) return found;
+
+  const now = Date.now();
+  const result = await db.insert(customers).values({
+    phone: input.phone,
+    name: input.name,
+    createdAt: now,
+    updatedAt: now,
+  });
+  const customerId = Number(result[0].insertId);
+  await db.insert(customerChangeLogs).values({
+    customerId,
+    changeType: "PROFILE_CREATED",
+    details: JSON.stringify({ source: "checkout" }),
+    createdAt: now,
+  });
 
   if (input.address) {
     const address = input.address;
-    const [existing] = await db
-      .select()
-      .from(customerAddresses)
-      .where(and(eq(customerAddresses.customerId, customerId), eq(customerAddresses.isDefault, true)))
-      .limit(1);
-    const values = {
+    await db.insert(customerAddresses).values({
+      customerId,
+      label: "Principal",
+      isDefault: true,
       recipientName: input.name,
       postalCode: address.postalCode || null,
       street: address.street,
@@ -119,19 +127,9 @@ export async function saveCustomerProfile(input: {
       city: address.city,
       state: address.state,
       reference: address.reference || null,
+      createdAt: now,
       updatedAt: now,
-    };
-    if (existing) {
-      await db.update(customerAddresses).set(values).where(eq(customerAddresses.id, existing.id));
-    } else {
-      await db.insert(customerAddresses).values({
-        customerId,
-        label: "Principal",
-        isDefault: true,
-        createdAt: now,
-        ...values,
-      });
-    }
+    });
   }
   return getCustomerByPhone(input.phone);
 }
