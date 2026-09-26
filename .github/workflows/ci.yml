@@ -42,14 +42,15 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      # Auditoria de vulnerabilidades de dependências — hoje (2026-09) o app
-      # principal tem 82 vulnerabilidades conhecidas (3 críticas) ainda não
-      # corrigidas. `continue-on-error: true` de propósito: isso é só pra dar
-      # visibilidade no log do CI, ainda NÃO bloqueia merge. Trocar pra
-      # bloqueante depois que as críticas existentes forem corrigidas.
-      - name: Auditoria de vulnerabilidades (não bloqueia ainda)
+      # Auditoria de vulnerabilidades de dependências — zerada em 2026-09
+      # (achado de auditoria desta sessão: 26 dos 29 avisos vinham de uma
+      # devDependency solta "pnpm" no package.json, resolvendo uma cópia
+      # antiga e vulnerável do próprio pnpm dentro de node_modules, sem
+      # relação com o pnpm real usado pra rodar comandos — removida; os
+      # outros 3, transitivos de vite-plugin-pwa/drizzle-kit, corrigidos via
+      # pnpm.overrides). Agora bloqueia merge de verdade.
+      - name: Auditoria de vulnerabilidades
         run: pnpm audit --audit-level=critical
-        continue-on-error: true
       - name: Lint
         run: pnpm run lint
       - run: pnpm run check
@@ -110,12 +111,13 @@ jobs:
           cache: pnpm
           cache-dependency-path: saas-core/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      # Auditoria de vulnerabilidades — saas-core tem 9 vulnerabilidades
-      # conhecidas hoje (1 crítica), ainda não corrigidas. Mesma lógica do
-      # job acima: só visibilidade por enquanto, não bloqueia merge.
-      - name: Auditoria de vulnerabilidades (não bloqueia ainda)
+      # Auditoria de vulnerabilidades — zerada em 2026-09 (achado desta
+      # sessão: vitest estava preso em ^2.1.4, trazendo vite<=6.4.2
+      # vulnerável e um vitest com CVE crítico próprio; atualizado pra
+      # ^4.1.11, mesma versão já usada no app principal). Mesma lógica do
+      # job acima: agora bloqueia merge de verdade.
+      - name: Auditoria de vulnerabilidades
         run: pnpm audit --audit-level=critical
-        continue-on-error: true
       - name: Lint
         run: pnpm run lint
       - run: pnpm run check
