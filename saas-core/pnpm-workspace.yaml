@@ -12,3 +12,11 @@ overrides:
   # já vinham patcheados por causa do express@4.22.2, mais novo que o do
   # app principal; ver auditoria V-36).
   qs: "6.16.0"
+  # Achado de auditoria (2026-09): @esbuild-kit/core-utils (dependência
+  # transitiva deprecada do drizzle-kit, só usada como loader legado de
+  # config) fixava esbuild@0.18.20, vulnerável a "esbuild enables any
+  # website to send any requests to the development server and read the
+  # response" (GHSA-67mh-4wv8-2f99). drizzle-kit já usa esbuild>=0.25.4
+  # diretamente; isto só força a mesma versão já usada no resto da árvore
+  # também nessa dependência transitiva específica.
+  "@esbuild-kit/core-utils>esbuild": "^0.25.0"
