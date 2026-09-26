@@ -131,6 +131,16 @@ export const publicRouter = router({
    * só repassado como anexo pro Telegram do dono (ver telegramService.ts e o
    * limite documentado em drizzle/schema/restaurants.ts: cardápio do
    * restaurante nunca vive no saas-core, só no deployment próprio dele).
+   *
+   * `restaurantId` é um inteiro sequencial simples, sem nenhum token — sem
+   * as duas checagens abaixo (achado de auditoria, baixa severidade), dava
+   * pra mandar arquivo/spam "em nome de" QUALQUER restaurante só adivinhando
+   * o ID, indefinidamente. Como o propósito real deste endpoint é só a janela
+   * de onboarding (entre o cadastro e a entrega, ver markRestaurantDelivered),
+   * bloquear depois de `deliveredAt` fecha a abertura em restaurantes já
+   * entregues/ativos sem afetar o uso legítimo. O rate limit por
+   * restaurantId (além do já existente por IP) impede esgotar essa janela
+   * usando vários IPs contra o mesmo restaurante.
    */
   uploadMenuReference: publicProcedure
     .input(
@@ -143,12 +153,18 @@ export const publicRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const rateLimitKey = `public-menu-upload:${ctx.req.ip}`;
-      const limit = checkRateLimit(rateLimitKey);
+      const limit = checkRateLimit(`public-menu-upload:${ctx.req.ip}`);
       if (!limit.allowed) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
           message: `Muitas tentativas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).`,
+        });
+      }
+      const perRestaurantLimit = checkRateLimit(`public-menu-upload-restaurant:${input.restaurantId}`);
+      if (!perRestaurantLimit.allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `Muitas tentativas para este restaurante. Tente novamente em ${Math.ceil((perRestaurantLimit.retryAfterSeconds ?? 60) / 60)} minuto(s).`,
         });
       }
 
@@ -158,6 +174,7 @@ export const publicRouter = router({
 
       const restaurant = await getRestaurantById(input.restaurantId);
       if (!restaurant) throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante não encontrado." });
+      if (restaurant.deliveredAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Este restaurante já foi entregue — envie o cardápio direto pela equipe." });
 
       const fileBuffer = Buffer.from(input.fileBase64, "base64");
       if (fileBuffer.byteLength === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo vazio." });
