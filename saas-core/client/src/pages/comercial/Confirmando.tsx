@@ -1,4 +1,6 @@
 import { trpc } from "@/lib/trpc";
+import { useNoIndex } from "@/lib/useNoIndex";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
@@ -10,6 +12,12 @@ import { ComercialHeader } from "./ComercialHeader";
  * webhook confirmar o pagamento de verdade) até ter certeza.
  */
 export default function Confirmando() {
+  useNoIndex();
+  usePageMeta({
+    title: "Confirmando seu cadastro — MM System Creator",
+    description: "Estamos confirmando o pagamento do seu cadastro no MM System Creator. Não feche esta página.",
+    path: "/comercial/cadastro/confirmando",
+  });
   const search = useSearch();
   const [, setLocation] = useLocation();
   const signupPaymentId = Number(new URLSearchParams(search).get("ref"));

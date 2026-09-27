@@ -1,7 +1,15 @@
+import { useNoIndex } from "@/lib/useNoIndex";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { Link, useSearch } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
 
 export default function Sucesso() {
+  useNoIndex();
+  usePageMeta({
+    title: "Cadastro confirmado — MM System Creator",
+    description: "Seu cadastro no MM System Creator foi recebido. Nossa equipe vai organizar seu cardápio e configuração.",
+    path: "/comercial/cadastro/sucesso",
+  });
   const search = useSearch();
   const restaurantId = new URLSearchParams(search).get("ref");
 

@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { trpc } from "@/lib/trpc";
 import { useMercadoPagoSecurity } from "@/lib/useMercadoPagoSecurity";
+import { useNoIndex } from "@/lib/useNoIndex";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { FormEvent, useState } from "react";
 import { Link, useParams } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
@@ -11,7 +13,13 @@ const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 
 export default function Cadastro() {
   useMercadoPagoSecurity();
+  useNoIndex();
   const { planKey } = useParams<{ planKey: string }>();
+  usePageMeta({
+    title: "Cadastre seu restaurante — MM System Creator",
+    description: "Finalize o cadastro do seu restaurante no MM System Creator e comece seu período de testes.",
+    path: `/comercial/cadastro/${planKey ?? ""}`,
+  });
   const [name, setName] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");

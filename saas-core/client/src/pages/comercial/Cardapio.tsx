@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { trpc } from "@/lib/trpc";
+import { useNoIndex } from "@/lib/useNoIndex";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
@@ -21,6 +23,12 @@ function readFileAsBase64(file: File): Promise<string> {
 }
 
 export default function Cardapio() {
+  useNoIndex();
+  usePageMeta({
+    title: "Envie seu cardápio — MM System Creator",
+    description: "Envie o cardápio do seu restaurante pra agilizar a configuração do seu sistema MM System Creator.",
+    path: "/comercial/cadastro/cardapio",
+  });
   const search = useSearch();
   const restaurantId = Number(new URLSearchParams(search).get("ref"));
   const [file, setFile] = useState<File | null>(null);
