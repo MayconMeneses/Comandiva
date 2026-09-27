@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createServiceRequest, getDb, getOrCreateWalkInCustomer, getOrOpenSessionForTable, getSessionWithOrders, findTableByToken, requestSessionBill } from "../db";
+import { orders } from "../../drizzle/schema";
 import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
 import { getLicenseSnapshot } from "../_core/license";
 import { featureProcedure, publicProcedure, router } from "../_core/trpc";
@@ -46,11 +48,34 @@ export async function addRoundToTable(params: {
   const priced = await priceOrder({ items: params.items, fulfillmentType: "DINE_IN" });
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+  // Achado de revisão de código: checa duplicata pelo clientOperationId ANTES
+  // de tocar em qualquer sessão/mesa. Sem isso, um retry antigo da fila
+  // offline (resposta perdida, reenviado até 5min depois — ver
+  // PENDING_ORDER_WINDOW_MS no cliente) podia chegar depois de a equipe já
+  // ter fechado a comanda: getOrOpenSessionForTable abriria uma sessão NOVA
+  // e reocuparia a mesa antes do dedupe (que só rodava dentro de
+  // insertPricedOrder) ter chance de identificar que era o mesmo pedido.
+  // Isto é só a proteção de primeira camada — a unique constraint dentro de
+  // insertPricedOrder continua sendo quem garante a dedupe de verdade contra
+  // concorrência real entre duas chamadas simultâneas.
+  if (params.clientOperationId) {
+    const [existing] = await db
+      .select({ id: orders.id, publicCode: orders.publicCode, tableSessionId: orders.tableSessionId })
+      .from(orders)
+      .where(eq(orders.clientOperationId, params.clientOperationId))
+      .limit(1);
+    if (existing) return { orderId: existing.id, code: existing.publicCode, sessionId: existing.tableSessionId ?? params.tableId, totalCents: priced.totalCents };
+  }
   const session = await getOrOpenSessionForTable(params.tableId);
   const customer = params.customer
     ? await saveCustomerProfile({ phone: params.customer.phone, name: params.customer.name })
     : await getOrCreateWalkInCustomer();
   if (!customer) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o cliente." });
+  // Mesmo raciocínio de order.ts::create: saveCustomerProfile não sobrescreve mais
+  // nome de telefone já cadastrado, então o nome gravado NESTA rodada é sempre o que
+  // foi digitado agora (params.customer), nunca o valor antigo devolvido por ela.
+  const customerName = params.customer?.name ?? customer.name;
+  const customerPhone = params.customer?.phone ?? customer.phone;
   // orders + orderItems + orderItemAddons + orderStatusHistory numa
   // transação só — mesmo raciocínio de order.create em ./order.ts.
   const { orderId, code } = await db.transaction(tx => insertPricedOrder({
@@ -60,8 +85,8 @@ export async function addRoundToTable(params: {
     origin: params.origin,
     paymentMethod: null, // decidido no fechamento da comanda (table_bill_payments), não por rodada
     customerId: customer.id,
-    customerName: customer.name,
-    customerPhone: customer.phone,
+    customerName,
+    customerPhone,
     customerNote: params.customerNote,
     tableSessionId: session.id,
     historyNote: params.historyNote,

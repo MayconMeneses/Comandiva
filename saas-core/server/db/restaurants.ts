@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, or, sql } from "drizzle-orm";
 import { generateApiKey, hashApiKey } from "../_core/apiKey";
 import { getDb } from "./client";
 import { plans, restaurants, subscriptionEvents, subscriptions, type PlanKey, type RestaurantStatus } from "../../drizzle/schema";
@@ -7,7 +7,7 @@ import { getSubscriptionForRestaurant, listBillingPaymentsForSubscription } from
 import { listPlatformAuditLog } from "./auditLog";
 import { sendEmailAsync } from "../_core/emailService";
 import { buildRestaurantDeliveredMessage, sendTelegramMessageAsync } from "../_core/telegramService";
-import { ENV } from "../_core/env";
+import { commercialHomeUrl } from "../_core/env";
 
 // O teste grátis só começa a contar quando a equipe marca o restaurante como
 // entregue (menu/config organizados) — nunca no momento do cadastro. Ver
@@ -64,8 +64,16 @@ export async function hasRestaurantForContact(contactEmail?: string, contactPhon
 
   const db = await getDb();
   if (!db) return false;
-  const rows = await db.select({ id: restaurants.id, contactEmail: restaurants.contactEmail, contactPhone: restaurants.contactPhone }).from(restaurants);
-  return rows.some(row => (email && row.contactEmail?.trim().toLowerCase() === email) || (phone && row.contactPhone?.trim() === phone));
+  // Achado de auditoria: antes carregava a tabela inteira de restaurantes em
+  // memória (sem WHERE) só pra testar um e-mail/telefone com .some() — igual
+  // ao mesmo full table scan que este PR já corrigiu em outros pontos. Filtra
+  // no banco (mesma normalização trim/lowercase de antes) e para no primeiro
+  // que bater.
+  const conditions = [];
+  if (email) conditions.push(sql`lower(trim(${restaurants.contactEmail})) = ${email}`);
+  if (phone) conditions.push(sql`trim(${restaurants.contactPhone}) = ${phone}`);
+  const [row] = await db.select({ id: restaurants.id }).from(restaurants).where(or(...conditions)).limit(1);
+  return Boolean(row);
 }
 
 /**
@@ -171,7 +179,7 @@ export async function markRestaurantDelivered(restaurantId: number, actor: strin
     sendEmailAsync(restaurant.contactEmail, "restaurantReady", {
       customerName: restaurant.contactName || restaurant.name,
       restaurantName: restaurant.name,
-      actionUrl: restaurant.deploymentUrl || ENV.commercialSiteUrl,
+      actionUrl: restaurant.deploymentUrl || commercialHomeUrl,
     });
   }
 

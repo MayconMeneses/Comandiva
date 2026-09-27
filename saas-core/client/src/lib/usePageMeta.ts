@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
-const OG_IMAGE = "https://mmsystem.tech/mm-logo-full.png";
+const BASE_URL = "https://mmsystem.tech";
+const OG_IMAGE = `${BASE_URL}/mm-logo-full.png`;
 
 type PageMeta = {
   title: string;
@@ -45,7 +46,7 @@ export function usePageMeta({ title, description, path }: PageMeta) {
       ["og:title", title],
       ["og:description", description],
       ["og:image", OG_IMAGE],
-      ["og:url", `https://mmsystem.tech${path}`],
+      ["og:url", `${BASE_URL}${path}`],
       ["twitter:card", "summary_large_image"],
     ];
     const createdOgTags = ogTags.map(([property, content]) => {
@@ -57,10 +58,19 @@ export function usePageMeta({ title, description, path }: PageMeta) {
       return meta;
     });
 
+    // Canonical por página — evita conteúdo duplicado no Google quando a
+    // mesma rota é alcançável com querystring diferente (ex.: ?ref=123 nas
+    // páginas de fluxo de cadastro).
+    const canonical = document.createElement("link");
+    canonical.rel = "canonical";
+    canonical.href = `${BASE_URL}${path}`;
+    document.head.appendChild(canonical);
+
     return () => {
       document.title = previousTitle;
       descriptionMeta.content = previousDescription;
       createdOgTags.forEach(meta => document.head.removeChild(meta));
+      document.head.removeChild(canonical);
     };
   }, [title, description, path]);
 }

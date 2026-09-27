@@ -8,8 +8,9 @@ import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, offlineResilienceMutationOptions, orderMutationRetryDelay, shouldRetryOrderMutation } from "@/lib/offlineRetry";
-import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, persistPendingOrder, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
+import { useResumableOperationId } from "@/hooks/useResumableOperationId";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { addressMatchesRoute, findBestRouteMatch } from "@shared/orderDomain";
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, MapPin, PackageCheck, Phone, ShoppingBag } from "lucide-react";
@@ -93,7 +94,7 @@ export default function Checkout() {
   // de um sucesso — ver comentário em insertPricedOrder (server/routers/order.ts).
   // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
   // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
-  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "checkout" }) : generateClientId());
+  const operationIdRef = useResumableOperationId({ type: "order.create", screen: "checkout" }, settings.data === undefined ? undefined : offlineResilienceEnabled);
   // Teto de tempo pro retry em memória da Fase 3 estrita (mutations do React
   // Query não suportam cancelamento — só dá pra avisar, não matar a
   // tentativa). Mesmo Date.now() usado no onMutate abaixo pro

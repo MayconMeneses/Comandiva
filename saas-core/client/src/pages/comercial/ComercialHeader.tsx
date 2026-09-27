@@ -1,8 +1,10 @@
 import { Link } from "wouter";
 import { useEffect } from "react";
 
+// min-h (não h fixo) + py: garante toque confortável (~44px) e ainda cresce
+// sem cortar texto se o rótulo quebrar linha numa tela bem estreita.
 const PRIMARY_LINK_CLASSES =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110";
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
 
 /**
  * Cabeçalho compartilhado das páginas públicas (/comercial/*). A logo real
@@ -18,12 +20,24 @@ export function ComercialHeader({ showNav = true }: { showNav?: boolean }) {
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
       <div className="flex w-full items-center justify-between px-6 py-3">
-        <Link href="/comercial" className="inline-flex items-center rounded-lg bg-[#1a1a1a] px-3 py-1.5">
-          <img src="/mm-logo-full.png" alt="MM System Creator" className="h-7 w-auto sm:h-8" />
+        <Link
+          href="/comercial"
+          className="inline-flex items-center rounded-lg bg-[#1a1a1a] px-3 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <img
+            src="/mm-logo-full.png"
+            alt="MM System Creator"
+            width={1400}
+            height={594}
+            className="h-7 w-auto sm:h-8"
+          />
         </Link>
         {showNav && (
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/comercial/planos" className="hidden text-ink-soft hover:text-ink sm:inline">
+            <Link
+              href="/comercial/planos"
+              className="hidden rounded text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:inline"
+            >
               Planos
             </Link>
             <Link href="/comercial/planos" className={PRIMARY_LINK_CLASSES}>

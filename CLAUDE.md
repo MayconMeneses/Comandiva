@@ -74,8 +74,9 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
   pagamento, gestão de outras contas admin/staff, configuração fiscal e billing/assinatura — ver
   `server/_core/trpc.ts`. Toda entrada e toda mutation feita durante a sessão ficam gravadas em
   `platform_audit_log` (auditoria pós-fato, não bloqueio prévio).
-- Planos atuais: Essencial (R$149,90), Profissional (R$249,90), Premium (R$299,90). Cobrança de
-  assinatura via Mercado Pago (mesma processadora já usada pros pedidos dos clientes finais).
+- Planos atuais (conforme `saas-core/scripts/seed-plans.ts`, fonte de verdade): Essencial (R$99,99),
+  Profissional (R$199,99), Premium (R$249,99). Cobrança de assinatura via Mercado Pago (mesma
+  processadora já usada pros pedidos dos clientes finais).
 
 ## Decisões importantes já tomadas (não refazer sem necessidade)
 

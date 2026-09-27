@@ -104,11 +104,13 @@ export default function Planos() {
         />
 
         <div className="mx-auto max-w-5xl px-6 py-16 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-accent shadow-sm backdrop-blur">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-indigo-400 shadow-sm backdrop-blur">
             <IconShieldCheck className="h-3.5 w-3.5" />
             Ambiente de cadastro seguro
           </span>
-          <h1 className="mt-4 text-3xl font-bold text-ink sm:text-4xl">Escolha o plano do seu restaurante</h1>
+          {/* 3 passos (2xl/3xl/4xl) em vez de 1 só — 320-360px fica confortável
+              sem esperar o salto direto pra 4xl. */}
+          <h1 className="mt-4 text-2xl font-bold text-ink sm:text-3xl lg:text-4xl">Escolha o plano do seu restaurante</h1>
           <p className="mt-4 text-ink-soft">
             <strong>7 dias de teste grátis</strong> assim que seu sistema estiver pronto (em até 10 dias
             úteis), sem cartão de crédito. Sem comissão por pedido — a mensalidade cobre o aluguel do
@@ -120,7 +122,7 @@ export default function Planos() {
 
           <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-ink-soft">
             <span className="inline-flex items-center gap-1.5">
-              <IconLock className="h-4 w-4 text-emerald-400" /> Pagamento 100% seguro — Mercado Pago
+              <IconLock className="h-4 w-4 text-emerald-400" /> Pagamento processado pelo Mercado Pago
             </span>
             <span className="inline-flex items-center gap-1.5">
               <IconShieldCheck className="h-4 w-4 text-emerald-400" /> Seus dados protegidos
@@ -130,10 +132,12 @@ export default function Planos() {
             </span>
           </div>
 
-          {plansQuery.isLoading && <p className="mt-12 text-ink-soft">Carregando planos...</p>}
-          {plansQuery.isError && (
-            <p className="mt-12 text-red-400">Não foi possível carregar os planos agora. Tente novamente em instantes.</p>
-          )}
+          <div aria-live="polite">
+            {plansQuery.isLoading && <p className="mt-12 text-ink-soft">Carregando planos...</p>}
+            {plansQuery.isError && (
+              <p className="mt-12 text-red-400">Não foi possível carregar os planos agora. Tente novamente em instantes.</p>
+            )}
+          </div>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
             {plans?.map((plan, index) => {
@@ -166,7 +170,7 @@ export default function Planos() {
                   >
                     {highlighted && (
                       <span className="absolute -top-3 left-6 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-white">
-                        Mais escolhido
+                        Recomendado
                       </span>
                     )}
                     {plan.key === "premium" && (
@@ -211,7 +215,7 @@ export default function Planos() {
 
                     <Link
                       href={`/comercial/cadastro/${plan.key}`}
-                      className={`mt-6 inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-all duration-200 ${
+                      className={`mt-6 inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
                         highlighted
                           ? "bg-gradient-to-r from-[#008cfe] to-[#6146fd] text-white shadow-lg shadow-[#6146fd]/20 hover:-translate-y-0.5 hover:brightness-110"
                           : "border border-border bg-paper-raised text-ink hover:bg-paper"
@@ -232,65 +236,78 @@ export default function Planos() {
                 Todo plano mostra o sistema inteiro — o que muda é o que já vem liberado. O que ainda não está no
                 seu plano continua visível, só marcado como bloqueado.
               </p>
-              <div className="mt-8 overflow-x-auto rounded-2xl border border-border bg-paper-raised/90 shadow-sm backdrop-blur">
-                <table className="w-full min-w-[560px] border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="p-4 text-left font-semibold text-ink-soft">Recurso</th>
-                      {plans.map(plan => (
-                        <th key={plan.id} className="p-4 text-center font-semibold text-ink">
-                          {plan.name}
-                          {plan.key === "premium" && <span className="mt-1 block text-xs font-medium text-accent">👑 Tudo incluído</span>}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {BASE_INCLUDES.map(item => (
-                      <tr key={item} className="border-b border-border/60 last:border-0">
-                        <td className="p-4 text-ink-soft">{item}</td>
+              {/* Em mobile a tabela ainda rola de lado (min-w-[560px] > tela),
+                  mas a 1ª coluna (nome do recurso) fica fixa com `sticky
+                  left-0` pra nunca perder o contexto do que está sendo
+                  comparado, e o gradiente + dica abaixo avisam que dá pra
+                  arrastar. Em telas largas o min-w já cabe sem scroll, então
+                  o sticky/gradiente fica inerte (sem efeito visual). */}
+              <div className="relative mt-8">
+                <div className="overflow-x-auto rounded-2xl border border-border bg-paper-raised/90 shadow-sm backdrop-blur">
+                  <table className="w-full min-w-[560px] border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="sticky left-0 z-10 bg-paper-raised p-4 text-left font-semibold text-ink-soft">Recurso</th>
                         {plans.map(plan => (
-                          <td key={plan.id} className="p-4 text-center">
-                            <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
-                          </td>
+                          <th key={plan.id} className="p-4 text-center font-semibold text-ink">
+                            {plan.name}
+                            {plan.key === "premium" && <span className="mt-1 block text-xs font-medium text-indigo-400">👑 Tudo incluído</span>}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                    {allFeatures.map(feature => (
-                      <tr key={feature.featureId} className="border-b border-border/60 last:border-0">
-                        <td className="p-4">
-                          <span className="text-ink-soft">{feature.name}</span>
-                          {FEATURE_DESCRIPTIONS[feature.featureId] && (
-                            <span className="mt-0.5 block text-xs text-ink-soft/70">{FEATURE_DESCRIPTIONS[feature.featureId]}</span>
-                          )}
-                        </td>
-                        {plans.map(plan => {
-                          const included = plan.features.includes(feature.featureId);
-                          return (
+                    </thead>
+                    <tbody>
+                      {BASE_INCLUDES.map(item => (
+                        <tr key={item} className="border-b border-border/60 last:border-0">
+                          <td className="sticky left-0 z-10 bg-paper-raised p-4 text-ink-soft">{item}</td>
+                          {plans.map(plan => (
                             <td key={plan.id} className="p-4 text-center">
-                              {included ? (
-                                <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
-                              ) : (
-                                <IconLock className="mx-auto h-4 w-4 text-ink-soft/50" />
-                              )}
+                              <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
                             </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          ))}
+                        </tr>
+                      ))}
+                      {allFeatures.map(feature => (
+                        <tr key={feature.featureId} className="border-b border-border/60 last:border-0">
+                          <td className="sticky left-0 z-10 bg-paper-raised p-4">
+                            <span className="text-ink-soft">{feature.name}</span>
+                            {FEATURE_DESCRIPTIONS[feature.featureId] && (
+                              <span className="mt-0.5 block text-xs text-ink-soft">{FEATURE_DESCRIPTIONS[feature.featureId]}</span>
+                            )}
+                          </td>
+                          {plans.map(plan => {
+                            const included = plan.features.includes(feature.featureId);
+                            return (
+                              <td key={plan.id} className="p-4 text-center">
+                                {included ? (
+                                  <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
+                                ) : (
+                                  <IconLock className="mx-auto h-4 w-4 text-ink-soft/70" />
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Sinaliza que dá pra arrastar pro lado — some em telas onde a
+                    tabela já cabe inteira (a partir do sm, min-w-[560px] passa
+                    a caber no max-w-4xl do container). */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-2xl bg-gradient-to-l from-paper-raised to-transparent sm:hidden" />
               </div>
+              <p className="mt-2 text-center text-xs text-ink-soft sm:hidden">← arraste a tabela pro lado para ver todos os planos →</p>
             </div>
           )}
 
           <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
             <p className="text-sm font-semibold text-ink">
-              Taxa de implementação: <span className="text-accent">{money(implementationFeeCents)}</span>
+              Taxa de implementação: <span className="text-indigo-400">{money(implementationFeeCents)}</span>
             </p>
             <p className="mt-1 text-sm text-ink-soft">
-              Cobrimos a configuração completa: subir seus produtos no sistema, testar tudo até funcionar
-              100% e entregar pronto pra vender. Cobrada uma única vez, no cadastro.
+              Cobrimos a configuração completa: subir seus produtos no sistema, testar tudo e entregar
+              pronto pra vender. Cobrada uma única vez, no cadastro.
             </p>
           </div>
 

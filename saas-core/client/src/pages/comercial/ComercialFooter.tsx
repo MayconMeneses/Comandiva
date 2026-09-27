@@ -26,7 +26,15 @@ export function ComercialFooter() {
   return (
     <footer className="border-t border-border py-10">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-5 px-6 text-center">
-        <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-9 w-9 rounded-md" />
+        <img
+          src="/mm-logo-icon.png"
+          alt=""
+          aria-hidden="true"
+          width={36}
+          height={36}
+          loading="lazy"
+          className="h-9 w-9 rounded-md"
+        />
 
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-ink-soft">
           <span className="inline-flex items-center gap-1.5">
@@ -43,10 +51,16 @@ export function ComercialFooter() {
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-ink-soft">
           <span>© {new Date().getFullYear()} MM System Creator. Todos os direitos reservados.</span>
-          <Link href="/comercial/termos" className="underline-offset-2 hover:underline">
+          <Link
+            href="/comercial/termos"
+            className="rounded underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
             Termos de uso
           </Link>
-          <Link href="/comercial/privacidade" className="underline-offset-2 hover:underline">
+          <Link
+            href="/comercial/privacidade"
+            className="rounded underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
             Privacidade
           </Link>
         </div>

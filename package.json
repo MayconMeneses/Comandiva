@@ -106,7 +106,6 @@
     "eslint": "10.4.1",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
-    "pnpm": "^10.15.1",
     "prettier": "^3.6.2",
     "supertest": "^7.2.2",
     "tailwindcss": "^4.3.3",
@@ -123,7 +122,9 @@
       "fast-xml-parser": "5.11.1",
       "body-parser": "1.20.8",
       "express>path-to-regexp": "0.1.13",
-      "qs": "6.16.0"
+      "qs": "6.16.0",
+      "vite-plugin-pwa>tinyglobby": "^0.2.17",
+      "@esbuild-kit/core-utils>esbuild": "^0.25.0"
     }
   }
 }

@@ -60,7 +60,7 @@ function buildDbStub(options: { existingDocument?: Record<string, unknown> | nul
         },
       };
     },
-    insert: () => ({ values: async (values: Record<string, unknown>) => { inserts.push(values); } }),
+    insert: () => ({ values: async (values: Record<string, unknown>) => { inserts.push(values); return [{ insertId: inserts.length }]; } }),
     update: () => ({ set: (values: Record<string, unknown>) => ({ where: async () => { updates.push(values); } }) }),
   };
   return { db, inserts, updates };
@@ -78,7 +78,7 @@ describe("nfceEmission — emitNfceForOrder", () => {
     mocks.getFiscalCredentialsForEmission.mockResolvedValue(CREDENTIALS);
   });
 
-  it("nota autorizada: grava chaveAcesso/danfeUrl/qrCodeUrl com status AUTHORIZED", async () => {
+  it("nota autorizada: reserva a linha (PENDING) antes do provedor, depois grava chaveAcesso/danfeUrl/qrCodeUrl com status AUTHORIZED", async () => {
     mocks.getOrderWithDetails.mockResolvedValue(order());
     const stub = buildDbStub();
     vi.mocked(getDb).mockResolvedValue(stub.db as never);
@@ -86,8 +86,13 @@ describe("nfceEmission — emitNfceForOrder", () => {
 
     await emitNfceForOrder(1);
 
+    // Sem nota anterior, o 1º INSERT é a reserva da linha (status PENDING,
+    // achado de revisão — ver comentário em nfceEmission.ts::emit), ANTES de
+    // chamar o provedor; o resultado real chega depois, por UPDATE.
     expect(stub.inserts).toHaveLength(1);
-    expect(stub.inserts[0]).toMatchObject({ status: "AUTHORIZED", chaveAcesso: "chave-123", danfeUrl: "https://focusnfe/danfe.pdf", qrCodeUrl: "https://focusnfe/qr" });
+    expect(stub.inserts[0]).toMatchObject({ status: "PENDING" });
+    expect(stub.updates).toHaveLength(1);
+    expect(stub.updates[0]).toMatchObject({ status: "AUTHORIZED", chaveAcesso: "chave-123", danfeUrl: "https://focusnfe/danfe.pdf", qrCodeUrl: "https://focusnfe/qr" });
     vi.unstubAllGlobals();
   });
 
@@ -99,7 +104,7 @@ describe("nfceEmission — emitNfceForOrder", () => {
 
     await expect(emitNfceForOrder(1)).resolves.toBeUndefined();
 
-    expect(stub.inserts[0]).toMatchObject({ status: "REJECTED", rejectionReason: "CNPJ do emitente não habilitado" });
+    expect(stub.updates[0]).toMatchObject({ status: "REJECTED", rejectionReason: "CNPJ do emitente não habilitado" });
     vi.unstubAllGlobals();
   });
 
@@ -113,8 +118,8 @@ describe("nfceEmission — emitNfceForOrder", () => {
     await emitNfceForOrder(1);
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(stub.inserts[0]).toMatchObject({ status: "ERROR" });
-    expect(String(stub.inserts[0].rejectionReason)).toContain("X-Bacon");
+    expect(stub.updates[0]).toMatchObject({ status: "ERROR" });
+    expect(String(stub.updates[0].rejectionReason)).toContain("X-Bacon");
     vi.unstubAllGlobals();
   });
 
@@ -128,7 +133,7 @@ describe("nfceEmission — emitNfceForOrder", () => {
     await emitNfceForOrder(1);
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(stub.inserts[0]).toMatchObject({ status: "ERROR" });
+    expect(stub.updates[0]).toMatchObject({ status: "ERROR" });
     vi.unstubAllGlobals();
   });
 
@@ -140,7 +145,42 @@ describe("nfceEmission — emitNfceForOrder", () => {
 
     await expect(emitNfceForOrder(1)).resolves.toBeUndefined();
 
-    expect(stub.inserts[0]).toMatchObject({ status: "ERROR" });
+    expect(stub.updates[0]).toMatchObject({ status: "ERROR" });
+    vi.unstubAllGlobals();
+  });
+
+  it("duas emissões de primeira vez pro MESMO pedido ao mesmo tempo: só uma chama o provedor, a outra desiste sem lançar erro (achado de revisão)", async () => {
+    mocks.getOrderWithDetails.mockResolvedValue(order());
+    // As duas chamadas veem "nenhuma nota ainda" (existingDocument nulo,
+    // padrão de buildDbStub) — exatamente o cenário da corrida: o gatilho
+    // automático e o botão manual "Tentar emitir de novo" quase juntos,
+    // antes de qualquer um dos dois ter reservado a linha.
+    const stub = buildDbStub();
+    let insertAttempts = 0;
+    const realInsert = stub.db.insert;
+    stub.db.insert = ((table: unknown) => {
+      const real = realInsert(table);
+      return {
+        values: async (values: Record<string, unknown>) => {
+          insertAttempts++;
+          if (insertAttempts > 1) {
+            const error = new Error("Duplicate entry for key 'fiscal_documents_order_unique'") as Error & { cause?: { code?: string } };
+            error.cause = { code: "ER_DUP_ENTRY" };
+            throw error;
+          }
+          return real.values(values);
+        },
+      };
+    }) as typeof stub.db.insert;
+    vi.mocked(getDb).mockResolvedValue(stub.db as never);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: "autorizado", chave_nfe: "chave-123" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    // Promise.all (não sequencial) — se a segunda chamada lançasse sem
+    // tratamento (o bug original), isto rejeitaria e o teste falharia.
+    await expect(Promise.all([emitNfceForOrder(1), emitNfceForOrder(1)])).resolves.toBeDefined();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1); // nunca duas notas reais autorizadas pro mesmo pedido
     vi.unstubAllGlobals();
   });
 
@@ -194,9 +234,9 @@ describe("nfceEmission — emitNfceForTableSession (consolidação de mesa)", ()
     await emitNfceForTableSession(5);
 
     expect(capturedBody?.items).toHaveLength(2); // 1 item por rodada, não 1 nota por rodada
-    expect(stub.inserts).toHaveLength(1); // uma única linha em fiscal_documents
-    expect(stub.inserts[0]).toMatchObject({ tableSessionId: 5, status: "AUTHORIZED" });
-    expect(JSON.parse(String(stub.inserts[0].consolidatedOrderIds))).toEqual([10, 11]);
+    expect(stub.inserts).toHaveLength(1); // uma única linha em fiscal_documents (a reserva PENDING)
+    expect(stub.updates[0]).toMatchObject({ tableSessionId: 5, status: "AUTHORIZED" });
+    expect(JSON.parse(String(stub.updates[0].consolidatedOrderIds))).toEqual([10, 11]);
     vi.unstubAllGlobals();
   });
 
@@ -218,7 +258,7 @@ describe("nfceEmission — emitNfceForTableSession (consolidação de mesa)", ()
     await emitNfceForTableSession(5);
 
     expect(capturedBody?.items).toHaveLength(1);
-    expect(JSON.parse(String(stub.inserts[0].consolidatedOrderIds))).toEqual([10]);
+    expect(JSON.parse(String(stub.updates[0].consolidatedOrderIds))).toEqual([10]);
     vi.unstubAllGlobals();
   });
 });

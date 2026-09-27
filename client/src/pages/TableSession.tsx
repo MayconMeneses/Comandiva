@@ -8,8 +8,9 @@ import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, persistPendingOrder, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
+import { useResumableOperationId } from "@/hooks/useResumableOperationId";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { ArrowLeft, BellRing, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -81,7 +82,7 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   // comentário em insertPricedOrder, server/routers/order.ts). A semente
   // reusa uma pendência salva (F5 com rodada pausada) em vez de sempre gerar
   // um id novo — ver client/src/lib/pendingOrderQueue.ts.
-  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "table.addRound", token }) : generateClientId());
+  const operationIdRef = useResumableOperationId({ type: "table.addRound", token }, settings.data === undefined ? undefined : offlineResilienceEnabled);
   // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
   const startedAtRef = useRef<number | null>(null);
   const addRound = trpc.table.addRound.useMutation({

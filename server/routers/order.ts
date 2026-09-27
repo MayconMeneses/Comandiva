@@ -327,6 +327,10 @@ export const orderRouter = router({
     const origin = input.origin === "BALCAO" && isStaff ? "BALCAO" as const : "SITE" as const;
     const customer = await saveCustomerProfile({ phone: input.customer.phone, name: input.customer.name, address: input.address });
     if (!customer) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o cliente." });
+    // customer.name/customer.phone só servem pra telefone NOVO (saveCustomerProfile
+    // não sobrescreve mais um cadastro existente, ver comentário lá) — o nome/telefone
+    // gravados NESTE pedido são sempre o que a pessoa digitou agora, nunca o que já
+    // estava salvo de uma compra anterior (poderia ser de outra pessoa na mesma casa).
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
     const now = Date.now();
@@ -343,8 +347,8 @@ export const orderRouter = router({
         origin,
         paymentMethod: input.paymentMethod,
         customerId: customer.id,
-        customerName: customer.name,
-        customerPhone: customer.phone,
+        customerName: input.customer.name,
+        customerPhone: input.customer.phone,
         changeForCents: input.changeForCents,
         customerNote: input.customerNote,
         address: input.address,

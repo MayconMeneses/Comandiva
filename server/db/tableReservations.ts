@@ -13,20 +13,29 @@ const RESERVATION_BUFFER_MS = 90 * 60 * 1000;
 const MAX_RESERVATIONS_WITHOUT_RANGE = 500;
 const MAX_RESERVATIONS_WITH_RANGE = 2000;
 
+// Sem fromAt explícito (chamada real do admin: ReservationsManager.tsx pede
+// só `{}`), a query pegava as 500 reservas mais ANTIGAS por ordem ascendente
+// — como a tabela nunca é arquivada, depois que o restaurante acumula mais
+// de 500 reservas no histórico, isso escondia TODAS as reservas futuras da
+// tela do admin, sem erro nenhum (achado de auditoria). Sem período pedido,
+// olha só a partir de um pouco antes de agora.
+const DEFAULT_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+
 // ---- Reservas ----
 
 export async function listReservations(filters: { fromAt?: number; toAt?: number } = {}) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  const conditions = [];
-  if (filters.fromAt) conditions.push(gte(tableReservations.reservedFor, filters.fromAt));
+  const hasExplicitRange = Boolean(filters.fromAt || filters.toAt);
+  const fromAt = filters.fromAt ?? Date.now() - DEFAULT_LOOKBACK_MS;
+  const conditions = [gte(tableReservations.reservedFor, fromAt)];
   if (filters.toAt) conditions.push(lte(tableReservations.reservedFor, filters.toAt));
   return db
     .select()
     .from(tableReservations)
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(asc(tableReservations.reservedFor))
-    .limit(conditions.length ? MAX_RESERVATIONS_WITH_RANGE : MAX_RESERVATIONS_WITHOUT_RANGE);
+    .limit(hasExplicitRange ? MAX_RESERVATIONS_WITH_RANGE : MAX_RESERVATIONS_WITHOUT_RANGE);
 }
 
 /** true se já existe outra reserva ativa nessa mesa dentro da janela de +-90min do horário pedido. */

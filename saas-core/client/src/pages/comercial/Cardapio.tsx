@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { trpc } from "@/lib/trpc";
+import { useNoIndex } from "@/lib/useNoIndex";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
@@ -21,6 +23,12 @@ function readFileAsBase64(file: File): Promise<string> {
 }
 
 export default function Cardapio() {
+  useNoIndex();
+  usePageMeta({
+    title: "Envie seu cardápio — MM System Creator",
+    description: "Envie o cardápio do seu restaurante pra agilizar a configuração do seu sistema MM System Creator.",
+    path: "/comercial/cadastro/cardapio",
+  });
   const search = useSearch();
   const restaurantId = Number(new URLSearchParams(search).get("ref"));
   const [file, setFile] = useState<File | null>(null);
@@ -56,7 +64,10 @@ export default function Cardapio() {
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
       <div className="mx-auto max-w-md px-6 py-12">
-        <Link href="/comercial" className="text-sm text-ink-soft hover:text-ink">
+        <Link
+          href="/comercial"
+          className="rounded text-sm text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
           ← Voltar para a página inicial
         </Link>
 
@@ -78,11 +89,15 @@ export default function Cardapio() {
                 PDF, Word ou foto — o que você já tiver serve. Isso adianta a organização do seu sistema.
               </p>
 
+              <label htmlFor="cardapio-file" className="mt-5 block text-sm font-medium text-ink">
+                Arquivo do cardápio
+              </label>
               <input
+                id="cardapio-file"
                 type="file"
                 accept={ACCEPT}
                 onChange={onFileChange}
-                className="mt-5 block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-accent"
+                className="mt-1.5 block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
 
               <div className="mt-4">
@@ -96,20 +111,22 @@ export default function Cardapio() {
                   maxLength={2000}
                   rows={3}
                   placeholder="Horário de funcionamento, preferências de cores, algo que devemos saber..."
-                  className="mt-1.5 block w-full rounded-lg border border-border bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-soft/60"
+                  className="mt-1.5 block w-full rounded-lg border border-border bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-soft/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 />
               </div>
 
-              {(error || upload.error) && (
-                <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-sm text-red-400">
-                  {error ?? upload.error?.message}
-                </p>
-              )}
+              <div aria-live="polite">
+                {(error || upload.error) && (
+                  <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-sm text-red-400">
+                    {error ?? upload.error?.message}
+                  </p>
+                )}
+              </div>
 
               <Button
                 type="submit"
                 disabled={!file || upload.isPending}
-                className="mt-5 w-full !bg-gradient-to-r !from-[#008cfe] !to-[#6146fd] shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:!brightness-110"
+                className="mt-5 w-full !h-auto !min-h-11 !py-2.5 !bg-gradient-to-r !from-[#008cfe] !to-[#6146fd] shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:!brightness-110"
               >
                 {upload.isPending ? "Enviando..." : "Enviar cardápio"}
               </Button>

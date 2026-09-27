@@ -35,4 +35,8 @@ desktop.ini
 
 # Testes/cobertura
 coverage/
+
+graphify-out/cache/
 .claude/scheduled_tasks.lock
+# Worktrees temporários de subagentes do Claude Code (runtime, nunca versionar)
+.claude/worktrees/

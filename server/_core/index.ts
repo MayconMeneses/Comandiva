@@ -50,6 +50,43 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
+/**
+ * A origem do storage de imagens (`ENV.s3PublicBaseUrl`) só é conhecida em
+ * runtime — cada instalação aponta pro próprio MinIO/S3 — então a CSP não
+ * pode hardcodar esse domínio, só descobrir a partir do env no boot. Sem
+ * `img-src` cobrindo essa origem, toda imagem de produto/evento (servida de
+ * lá, nunca do mesmo domínio do app) seria bloqueada pelo navegador.
+ */
+function buildContentSecurityPolicy(): string {
+  const storageOrigin = (() => {
+    if (!ENV.s3PublicBaseUrl) return null;
+    try {
+      return new URL(ENV.s3PublicBaseUrl).origin;
+    } catch {
+      return null;
+    }
+  })();
+  const directives: Record<string, string[]> = {
+    "default-src": ["'self'"],
+    "script-src": ["'self'"],
+    // 'unsafe-inline' só pra style-src: o app usa `style={{...}}` em vários
+    // componentes (ex.: barra de progresso de preparo) — sem isso, todo
+    // estilo inline seria bloqueado. script-src continua estrito (sem
+    // 'unsafe-inline', sem script externo, nenhum <script> inline no HTML).
+    "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+    "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
+    "img-src": ["'self'", "data:", "blob:", ...(storageOrigin ? [storageOrigin] : [])],
+    "connect-src": ["'self'", ...(storageOrigin ? [storageOrigin] : [])],
+    "object-src": ["'none'"],
+    "base-uri": ["'self'"],
+    // Reforça X-Frame-Options: DENY (frame-ancestors é a versão CSP, com
+    // suporte mais granular, mas nenhum navegador removeu X-Frame-Options).
+    "frame-ancestors": ["'none'"],
+    "form-action": ["'self'"],
+  };
+  return Object.entries(directives).map(([key, values]) => `${key} ${values.join(" ")}`).join("; ");
+}
+
 async function findAvailablePort(startPort: number = 3000): Promise<number> {
   for (let port = startPort; port < startPort + 20; port++) {
     if (await isPortAvailable(port)) {
@@ -79,12 +116,22 @@ async function startServer() {
   const server = createServer(app);
   configureTrustProxy(app, ENV.trustProxy);
   app.disable("x-powered-by");
+  const contentSecurityPolicy = buildContentSecurityPolicy();
+  // `npm run dev` (NODE_ENV=development, ver setupVite/serveStatic abaixo)
+  // serve o preamble do React Fast Refresh como <script> inline — só existe
+  // nesse modo, o build de produção (dist/public/index.html) não tem nenhum
+  // script inline (testado manualmente: zero violação de CSP no bundle real,
+  // e o próprio Fast Refresh quebra com a CSP ligada em dev). Então a CSP só
+  // faz sentido fora do modo dev, senão trava o hot-reload de quem só roda
+  // `npm run dev` fora do Docker pra iterar mais rápido.
+  const isDevServer = process.env.NODE_ENV === "development";
   // Cabeçalhos básicos de segurança (sem depender de pacote externo)
   app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (!isDevServer) res.setHeader("Content-Security-Policy", contentSecurityPolicy);
     // Só envia HSTS quando a requisição já chegou como HTTPS (direto ou via
     // reverse proxy com TRUST_PROXY=true) — nunca em HTTP puro/local.
     if (req.secure) {
