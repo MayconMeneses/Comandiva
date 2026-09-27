@@ -45,9 +45,11 @@ export default function Confirmando() {
             Isso pode levar alguns instantes. Não feche esta página — o cadastro só é concluído quando o
             Mercado Pago confirma o pagamento pra gente.
           </p>
-          {!Number.isFinite(signupPaymentId) || signupPaymentId <= 0 ? (
-            <p className="mt-3 text-sm text-red-400">Não encontramos a referência do seu pagamento.</p>
-          ) : null}
+          <div aria-live="polite">
+            {!Number.isFinite(signupPaymentId) || signupPaymentId <= 0 ? (
+              <p className="mt-3 text-sm text-red-400">Não encontramos a referência do seu pagamento.</p>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

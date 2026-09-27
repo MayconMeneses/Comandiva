@@ -104,7 +104,7 @@ export default function Planos() {
         />
 
         <div className="mx-auto max-w-5xl px-6 py-16 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-accent shadow-sm backdrop-blur">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-indigo-400 shadow-sm backdrop-blur">
             <IconShieldCheck className="h-3.5 w-3.5" />
             Ambiente de cadastro seguro
           </span>
@@ -130,10 +130,12 @@ export default function Planos() {
             </span>
           </div>
 
-          {plansQuery.isLoading && <p className="mt-12 text-ink-soft">Carregando planos...</p>}
-          {plansQuery.isError && (
-            <p className="mt-12 text-red-400">Não foi possível carregar os planos agora. Tente novamente em instantes.</p>
-          )}
+          <div aria-live="polite">
+            {plansQuery.isLoading && <p className="mt-12 text-ink-soft">Carregando planos...</p>}
+            {plansQuery.isError && (
+              <p className="mt-12 text-red-400">Não foi possível carregar os planos agora. Tente novamente em instantes.</p>
+            )}
+          </div>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
             {plans?.map((plan, index) => {
@@ -211,7 +213,7 @@ export default function Planos() {
 
                     <Link
                       href={`/comercial/cadastro/${plan.key}`}
-                      className={`mt-6 inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-all duration-200 ${
+                      className={`mt-6 inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
                         highlighted
                           ? "bg-gradient-to-r from-[#008cfe] to-[#6146fd] text-white shadow-lg shadow-[#6146fd]/20 hover:-translate-y-0.5 hover:brightness-110"
                           : "border border-border bg-paper-raised text-ink hover:bg-paper"
@@ -240,7 +242,7 @@ export default function Planos() {
                       {plans.map(plan => (
                         <th key={plan.id} className="p-4 text-center font-semibold text-ink">
                           {plan.name}
-                          {plan.key === "premium" && <span className="mt-1 block text-xs font-medium text-accent">👑 Tudo incluído</span>}
+                          {plan.key === "premium" && <span className="mt-1 block text-xs font-medium text-indigo-400">👑 Tudo incluído</span>}
                         </th>
                       ))}
                     </tr>
@@ -261,7 +263,7 @@ export default function Planos() {
                         <td className="p-4">
                           <span className="text-ink-soft">{feature.name}</span>
                           {FEATURE_DESCRIPTIONS[feature.featureId] && (
-                            <span className="mt-0.5 block text-xs text-ink-soft/70">{FEATURE_DESCRIPTIONS[feature.featureId]}</span>
+                            <span className="mt-0.5 block text-xs text-ink-soft">{FEATURE_DESCRIPTIONS[feature.featureId]}</span>
                           )}
                         </td>
                         {plans.map(plan => {
@@ -271,7 +273,7 @@ export default function Planos() {
                               {included ? (
                                 <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
                               ) : (
-                                <IconLock className="mx-auto h-4 w-4 text-ink-soft/50" />
+                                <IconLock className="mx-auto h-4 w-4 text-ink-soft/70" />
                               )}
                             </td>
                           );
@@ -286,7 +288,7 @@ export default function Planos() {
 
           <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
             <p className="text-sm font-semibold text-ink">
-              Taxa de implementação: <span className="text-accent">{money(implementationFeeCents)}</span>
+              Taxa de implementação: <span className="text-indigo-400">{money(implementationFeeCents)}</span>
             </p>
             <p className="mt-1 text-sm text-ink-soft">
               Cobrimos a configuração completa: subir seus produtos no sistema, testar tudo até funcionar

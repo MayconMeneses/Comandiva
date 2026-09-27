@@ -51,10 +51,16 @@ export function ComercialFooter() {
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-ink-soft">
           <span>© {new Date().getFullYear()} MM System Creator. Todos os direitos reservados.</span>
-          <Link href="/comercial/termos" className="underline-offset-2 hover:underline">
+          <Link
+            href="/comercial/termos"
+            className="rounded underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
             Termos de uso
           </Link>
-          <Link href="/comercial/privacidade" className="underline-offset-2 hover:underline">
+          <Link
+            href="/comercial/privacidade"
+            className="rounded underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
             Privacidade
           </Link>
         </div>
