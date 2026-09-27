@@ -26,7 +26,7 @@ export default function Sucesso() {
               <p className="mt-5 text-sm text-ink-soft">Quer adiantar? Já pode mandar seu cardápio agora.</p>
               <Link
                 href={`/comercial/cadastro/cardapio?ref=${restaurantId}`}
-                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110"
+                className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110"
               >
                 Enviar cardápio agora
               </Link>

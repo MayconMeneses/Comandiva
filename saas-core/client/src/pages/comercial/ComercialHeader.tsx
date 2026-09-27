@@ -1,8 +1,10 @@
 import { Link } from "wouter";
 import { useEffect } from "react";
 
+// min-h (não h fixo) + py: garante toque confortável (~44px) e ainda cresce
+// sem cortar texto se o rótulo quebrar linha numa tela bem estreita.
 const PRIMARY_LINK_CLASSES =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110";
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110";
 
 /**
  * Cabeçalho compartilhado das páginas públicas (/comercial/*). A logo real
