@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import type { ReactNode, SVGProps } from "react";
+import { useState, type ReactNode, type SVGProps } from "react";
 import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
@@ -166,21 +166,28 @@ const COMPARISON = [
   { label: "Personalização do cardápio/visual", us: "Total", them: "Quase nenhuma" },
 ];
 
-const ROTINA: { title: string; image: string; description: string }[] = [
+// Screenshots reais do MM System Creator rodando (não são mockups/composições) — achado
+// de auditoria: as imagens antigas eram fotos de banco de imagem com um dashboard FICTÍCIO
+// desenhado no próprio arquivo (números inventados gravados no pixel, não reflow em mobile,
+// não indexável). Substituídas por capturas de tela de verdade da interface do sistema.
+const ROTINA: { title: string; image: string; description: string; alt: string }[] = [
   {
-    title: "Pense no crescimento, não na correria",
+    title: "Cardápio sempre organizado",
     image: "/assets/hero/rotina-crescimento-v2.jpg",
-    description: "Troque hora apagando incêndio por hora pensando em cardápio novo, horário de pico e como girar mais nos dias fracos.",
+    description: "Categorias e produtos num painel só, sem depender de ninguém pra manter preço e disponibilidade em dia.",
+    alt: "Tela do admin do MM System Creator mostrando a lista de categorias do cardápio",
   },
   {
-    title: "Menos trabalho repetitivo",
+    title: "Pedido sozinho, sem letra feia",
     image: "/assets/hero/rotina-menos-trabalho-v2.jpg",
-    description: "O pedido entra sozinho, já com o valor certo. Ninguém mais precisa copiar comanda à mão nem discutir troco no balcão.",
+    description: "O cliente finaliza pelo celular, o pedido já chega pronto pra produção — ninguém mais copia comanda à mão.",
+    alt: "Tela de finalização de pedido do MM System Creator com o resumo do pedido do cliente",
   },
   {
-    title: "Tudo numa tela só",
+    title: "Cardápio bonito pro cliente",
     image: "/assets/hero/rotina-tudo-tela-v2.jpg",
-    description: "Cardápio, mesa, entrega e relatório do mês reunidos no mesmo lugar — chega de abrir três sistemas diferentes pra fechar o caixa.",
+    description: "Categorias, fotos e preços organizados de um jeito fácil de navegar — a cara do seu restaurante, não a de um app genérico.",
+    alt: "Cardápio público do MM System Creator com categorias e produtos de um restaurante",
   },
 ];
 
@@ -246,11 +253,78 @@ const SUPORTE: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: str
 
 const STEPS = [
   { number: "1", title: "Escolha o plano", description: "Compare os recursos e escolha o que faz sentido pro tamanho do seu restaurante." },
-  { number: "2", title: "Cadastre seu restaurante", description: "Leva menos de 2 minutos — sem cartão de crédito, sem burocracia." },
+  {
+    number: "2",
+    title: "Cadastre seu restaurante",
+    // Achado de revisão de conteúdo: "sem cartão de crédito, sem burocracia" aqui
+    // dava a entender que não se paga nada nesta etapa — mas o cadastro inclui a
+    // taxa de implementação, cobrada na hora (ver Cadastro.tsx). "Sem cartão de
+    // crédito" continua verdadeiro (Mercado Pago aceita Pix), só não pode parecer
+    // "de graça".
+    description: "Leva menos de 2 minutos pra preencher — inclui a taxa única de implementação, que cobre a configuração do seu cardápio.",
+  },
   {
     number: "3",
     title: "Comece a vender",
     description: "Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis. Pronto, seu teste grátis de 7 dias começa a valer.",
+  },
+];
+
+// Situações comuns de gestão de restaurante sem cardápio/pedido digital — nenhum
+// número/estatística inventado, só descrição de rotina (ver seção "O problema").
+const PROBLEMA: string[] = [
+  "Comanda de papel que se perde ou fica ilegível na hora de fechar a conta.",
+  "Pedido do delivery anotado errado porque chegou por três canais diferentes ao mesmo tempo.",
+  "Cardápio que ninguém atualiza porque só uma pessoa sabe editar o site.",
+  "Planilha de fim de mês que não fecha porque faltou registrar uma venda.",
+  "Cliente perguntando \"chegou meu pedido?\" porque não tem como acompanhar.",
+];
+
+// Só os formatos que o sistema realmente diferencia por fluxo de pedido — delivery/retirada
+// (todo plano) e mesa com QR Code (Profissional+, ver saas-core/scripts/seed-plans.ts).
+const PARA_QUEM: string[] = [
+  "Restaurante que vende por delivery e retirada e quer parar de dividir vitrine (e taxa) com aplicativo de terceiro.",
+  "Quem também atende mesa no salão e quer cliente pedindo, chamando a equipe e fechando a conta pelo próprio celular via QR Code.",
+];
+
+// Cada resposta rastreável a uma funcionalidade/decisão real do produto (ver comentários
+// junto de cada uma) — nada de SLA ou promessa que não dá pra confirmar no código.
+const FAQ: { question: string; answer: string }[] = [
+  {
+    question: "O sistema funciona no celular?",
+    answer:
+      "Sim. O cardápio, o painel de pedidos e o admin são responsivos, e o sistema pode ser instalado como app no celular ou tablet da equipe — sem precisar baixar de loja de aplicativo.",
+  },
+  {
+    question: "Tem taxa de setup ou preciso pagar algo antes do teste grátis?",
+    answer:
+      "O cadastro inclui uma taxa de implementação única, cobrada no momento via Mercado Pago (Pix ou cartão) — ela cobre a configuração completa do seu cardápio pela nossa equipe. Só depois de tudo pronto o teste grátis de 7 dias começa a valer.",
+  },
+  {
+    question: "O sistema cobra comissão por pedido?",
+    answer: "Não. A mensalidade é fixa por plano — sem taxa por venda ou por pedido, seja delivery, retirada ou mesa.",
+  },
+  {
+    question: "O sistema emite nota fiscal?",
+    answer: "Sim, emissão de NFC-e integrada, disponível em todos os planos — inclusive o de entrada.",
+  },
+  {
+    question: "Atende pedido por delivery e por retirada no balcão?",
+    answer: "Sim, os dois fluxos existem no mesmo painel: o pedido é marcado como \"saiu para entrega\" ou \"pronto para retirada\" conforme o cliente escolher no checkout.",
+  },
+  {
+    question: "O sistema atende restaurante com atendimento de mesa?",
+    answer:
+      "Sim, a partir do plano Profissional: o cliente pede pela própria mesa escaneando um QR Code, pode chamar a equipe, pedir a conta e abrir comanda direto pelo celular.",
+  },
+  {
+    question: "Posso cancelar quando quiser?",
+    answer: "Sim, direto no seu painel, sem precisar justificar — o acesso continua até o fim do período já pago, sem cobrança extra por cancelar.",
+  },
+  {
+    question: "Se eu travar em alguma configuração, tenho suporte?",
+    answer:
+      "Sim, mas de forma direta: hoje não é uma central com vários atendentes — é contato por WhatsApp com quem constrói o sistema, incluindo acesso remoto ao seu painel pra resolver junto, sem pedir sua senha.",
   },
 ];
 
@@ -261,6 +335,7 @@ export default function Home() {
       "Sistema completo para restaurante: cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por venda. 7 dias grátis, sem cartão de crédito.",
     path: "/comercial",
   });
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
@@ -279,14 +354,8 @@ export default function Home() {
         <div className="relative w-full">
           <img
             src="/assets/hero/hero-banner.jpg"
-            alt="Painel do MM System Creator em uso: vendas, pedidos e financeiro do restaurante em tempo real"
+            alt="Cardápio digital do MM System Creator sendo usado por um cliente, com categorias, produtos e carrinho"
             className="h-auto w-full"
-          />
-          <a
-            href="#diferenciais"
-            aria-label="Conheça o sistema"
-            className="absolute"
-            style={{ left: "3%", top: "63%", width: "24%", height: "12%" }}
           />
         </div>
         <div
@@ -340,9 +409,10 @@ export default function Home() {
           {ROTINA.map(item => (
             <div key={item.title}>
               <div className="aspect-[3/2] overflow-hidden rounded-2xl border border-border shadow-lg">
-                <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                <img src={item.image} alt={item.alt} loading="lazy" className="h-full w-full object-cover" />
               </div>
-              <p className="mt-4 text-base text-ink-soft">{item.description}</p>
+              <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
+              <p className="mt-1.5 text-base text-ink-soft">{item.description}</p>
             </div>
           ))}
         </div>
@@ -364,6 +434,24 @@ export default function Home() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* O problema */}
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Situações comuns na rotina de um restaurante</h2>
+        </div>
+        <ul className="mt-10 space-y-4">
+          {PROBLEMA.map(item => (
+            <li key={item} className="flex items-start gap-3 text-ink-soft">
+              <IconX className="mt-1 h-4 w-4 shrink-0 text-red-400" aria-hidden="true" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mx-auto mt-8 max-w-xl text-center text-ink-soft">
+          Nenhuma dessas situações é rara — mas também não precisa continuar assim.
+        </p>
       </section>
 
       {/* Diferenciais */}
@@ -484,12 +572,67 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Para quem é */}
+      <section className="border-y border-border bg-paper-raised/60">
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Para quem é</h2>
+          <div className="mt-8 space-y-4 text-left">
+            {PARA_QUEM.map(item => (
+              <p key={item} className="flex items-start gap-3 text-ink-soft">
+                <IconCheck className="mt-1 h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true" />
+                <span>{item}</span>
+              </p>
+            ))}
+          </div>
+          <p className="mx-auto mt-6 max-w-xl text-sm text-ink-soft">
+            Se o seu movimento é só balcão sem nenhum desses fluxos, vale conversar antes pra confirmar se faz
+            sentido pro seu caso.
+          </p>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Perguntas frequentes</h2>
+        </div>
+        <div className="mt-10 space-y-3">
+          {FAQ.map((item, index) => {
+            const isOpen = openFaq === index;
+            const panelId = `faq-panel-${index}`;
+            return (
+              <div key={item.question} className="overflow-hidden rounded-2xl border border-border bg-paper-raised">
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(current => (current === index ? null : index))}
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-semibold text-ink"
+                >
+                  {item.question}
+                  <span className="shrink-0 text-accent">{isOpen ? "−" : "+"}</span>
+                </button>
+                <div
+                  id={panelId}
+                  role="region"
+                  className={`grid transition-[grid-template-rows] duration-200 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+                >
+                  <div className="overflow-hidden">
+                    <p className="px-5 pb-4 text-sm text-ink-soft">{item.answer}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Sobre o criador */}
       <section className="border-y border-border bg-paper-raised/60">
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
           <span className="text-xs font-semibold uppercase tracking-wider text-accent">Quem criou</span>
           <div className="mt-4 flex items-center justify-center">
-            <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-16 w-16 rounded-2xl shadow-sm" />
+            <img src="/mm-logo-icon.png" alt="" aria-hidden="true" loading="lazy" className="h-16 w-16 rounded-2xl shadow-sm" />
           </div>
           <h2 className="mt-4 text-2xl font-bold text-ink sm:text-3xl">Maycon Meneses</h2>
           <p className="mt-4 text-ink-soft">
