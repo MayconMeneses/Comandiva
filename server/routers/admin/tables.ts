@@ -98,7 +98,12 @@ export const adminTablesRouter = router({
   // Usadas pela tela de fechamento de comanda pra mostrar/imprimir o DANFE
   // consolidado quando pronto, e pelo botão "Tentar emitir nota de novo".
   fiscalDocumentForTableSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).query(({ input }) => getFiscalDocumentByTableSessionId(input.sessionId)),
-  retryNfceForTableSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
+  // adminProcedure (não tablesRestaurantProcedure) de propósito — achado de
+  // revisão de código: essa ação força uma emissão fiscal real (NFC-e); a
+  // mesma ação pra pedido normal (retryNfceForOrder, em admin/orders.ts) já
+  // exige admin, então esta não podia ficar liberada pra qualquer staff só
+  // com permissão de mesa.
+  retryNfceForTableSession: tablesAdminProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
     await retryNfceForTableSession(input.sessionId);
     return getFiscalDocumentByTableSessionId(input.sessionId);
   }),
