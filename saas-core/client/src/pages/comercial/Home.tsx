@@ -22,9 +22,9 @@ const STRUCTURED_DATA = {
 };
 
 const PRIMARY_LINK_CLASSES =
-  "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-6 text-sm font-semibold text-white shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110";
+  "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-6 text-sm font-semibold text-white shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
 const OUTLINE_LINK_CLASSES =
-  "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-paper-raised px-6 text-sm font-semibold text-ink transition-colors hover:bg-paper";
+  "inline-flex h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-paper-raised px-6 text-sm font-semibold text-ink transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
 
 function Icon({ children, ...props }: { children: ReactNode } & SVGProps<SVGSVGElement>) {
   return (
@@ -391,7 +391,7 @@ export default function Home() {
           <div className="mt-10 overflow-hidden rounded-2xl border border-border bg-paper-raised">
             <div className="grid grid-cols-3 border-b border-border bg-paper text-sm font-semibold text-ink">
               <div className="px-4 py-3">&nbsp;</div>
-              <div className="px-4 py-3 text-accent">Com sistema próprio</div>
+              <div className="px-4 py-3 text-indigo-400">Com sistema próprio</div>
               <div className="px-4 py-3 text-ink-soft">App de entrega comum</div>
             </div>
             {COMPARISON.map(row => (
@@ -421,7 +421,7 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-ink">{item.title}</h3>
                 {item.badge && (
-                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">{item.badge}</span>
+                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-indigo-400">{item.badge}</span>
                 )}
               </div>
               <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
@@ -475,7 +475,7 @@ export default function Home() {
       {/* Sobre o criador */}
       <section className="border-y border-border bg-paper-raised/60">
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <span className="text-xs font-semibold uppercase tracking-wider text-accent">Quem criou</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Quem criou</span>
           <div className="mt-4 flex items-center justify-center">
             <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-16 w-16 rounded-2xl shadow-sm" />
           </div>
@@ -486,7 +486,7 @@ export default function Home() {
             terceirização. Da ideia ao código, cada parte do sistema foi pensada pra resolver o problema de
             verdade de quem administra um restaurante.
           </p>
-          <p className="mt-4 text-sm font-semibold tracking-wide text-accent">Ideias · Sistemas · Soluções</p>
+          <p className="mt-4 text-sm font-semibold tracking-wide text-indigo-400">Ideias · Sistemas · Soluções</p>
         </div>
       </section>
 
@@ -501,7 +501,7 @@ export default function Home() {
           <div className="mt-8">
             <Link
               href="/comercial/planos"
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-white px-8 text-sm font-semibold text-accent shadow-sm transition-colors hover:bg-white/90"
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-white px-8 text-sm font-semibold text-accent shadow-sm transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-accent"
             >
               Ver planos e começar agora
             </Link>

@@ -55,3 +55,18 @@ body {
   --accent: #4f46e5;
   --accent-hover: #6366f1;
 }
+
+/* Respeita a preferência do sistema por menos movimento: desliga as
+   transições/transform de hover (não há lib de animação no projeto, só
+   utilitários Tailwind tipo transition-all/hover:-translate-y-0.5). Global
+   de propósito — vale pra qualquer página, não só /comercial. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+  }
+  *:hover {
+    transform: none !important;
+  }
+}

@@ -54,12 +54,15 @@ export default function Cadastro() {
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
       <div className="mx-auto max-w-md px-6 py-12">
-        <Link href="/comercial/planos" className="text-sm text-ink-soft hover:text-ink">
+        <Link
+          href="/comercial/planos"
+          className="rounded text-sm text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
           ← Voltar para os planos
         </Link>
 
         <form onSubmit={submit} className="mt-6 rounded-2xl border border-border bg-paper-raised p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-accent">Assinar {planLabel}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">Assinar {planLabel}</p>
           <h1 className="mt-2 text-2xl font-bold text-ink">Cadastre seu restaurante</h1>
           <p className="mt-1 text-sm text-ink-soft">
             Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis — podendo ser
@@ -120,9 +123,11 @@ export default function Cadastro() {
             </div>
           </div>
 
-          {signup.error ? (
-            <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-sm text-red-400">{signup.error.message}</p>
-          ) : null}
+          <div aria-live="polite">
+            {signup.error ? (
+              <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-sm text-red-400">{signup.error.message}</p>
+            ) : null}
+          </div>
 
           <Button
             type="submit"

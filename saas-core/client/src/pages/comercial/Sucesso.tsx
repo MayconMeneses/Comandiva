@@ -26,14 +26,17 @@ export default function Sucesso() {
               <p className="mt-5 text-sm text-ink-soft">Quer adiantar? Já pode mandar seu cardápio agora.</p>
               <Link
                 href={`/comercial/cadastro/cardapio?ref=${restaurantId}`}
-                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110"
+                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper-raised"
               >
                 Enviar cardápio agora
               </Link>
             </>
           )}
 
-          <Link href="/comercial" className="mt-6 inline-block text-sm font-medium text-accent hover:underline">
+          <Link
+            href="/comercial"
+            className="mt-6 inline-block rounded text-sm font-medium text-indigo-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
             Voltar para a página inicial
           </Link>
         </div>
