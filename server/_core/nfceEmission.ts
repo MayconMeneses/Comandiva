@@ -123,12 +123,36 @@ async function emit(params: EmitParams): Promise<void> {
   const existingWhere = "orderId" in params.fiscalDocumentKey ? eq(fiscalDocuments.orderId, params.fiscalDocumentKey.orderId) : eq(fiscalDocuments.tableSessionId, params.fiscalDocumentKey.tableSessionId);
   const [existing] = await db.select().from(fiscalDocuments).where(existingWhere).limit(1);
   if (existing?.status === "AUTHORIZED") return; // já emitida — nunca duplica (retry só reprocessa ERROR/REJECTED/CONTINGENCY)
+  let existingId = existing?.id;
 
   let credentials: Awaited<ReturnType<typeof getFiscalCredentialsForEmission>>;
   try {
     credentials = await getFiscalCredentialsForEmission();
   } catch {
     return; // fiscal não configurado — sem erro visível, admin.fiscalSettings já mostra o que falta
+  }
+
+  // Achado de revisão de código: sem isto, duas emissões de primeira vez pro
+  // MESMO orderId/tableSessionId (ex.: o gatilho automático ao mudar status
+  // e o botão manual "Tentar emitir de novo" disparando quase juntos, os
+  // dois vendo `existing` undefined) corriam pra chamar a Focus NFe duas
+  // vezes pro mesmo pedido — risco de duas notas fiscais reais autorizadas
+  // na SEFAZ — e quem perdesse a corrida do INSERT final lançava uma
+  // exceção sem tratamento. As unique indexes em orderId/tableSessionId
+  // (fiscal_documents_order_unique/..._table_session_unique) já existiam só
+  // pra impedir duas linhas AUTHORIZED; reserva a linha (status PENDING,
+  // já tratado no admin como "processando", ver Receipt.tsx) ANTES de
+  // chamar o provedor, não só depois — quem perde a corrida do INSERT
+  // simplesmente desiste desta chamada em vez de repetir a chamada externa.
+  if (!existingId) {
+    try {
+      const claim = await db.insert(fiscalDocuments).values({ ...params.fiscalDocumentKey, status: "PENDING", environment: credentials.environment, createdAt: now, updatedAt: now });
+      existingId = Number(claim[0].insertId);
+    } catch (error) {
+      const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
+      if (errorCode !== "ER_DUP_ENTRY") throw error;
+      return; // perdeu a corrida — outra chamada concorrente já está emitindo esta mesma nota
+    }
   }
 
   const documentBase = {
@@ -141,7 +165,7 @@ async function emit(params: EmitParams): Promise<void> {
   const { productById, categoryById } = await loadFiscalDataForProducts(params.items.map(item => item.productId));
   const blockingProduct = findBlockingProduct(params.items, productById, categoryById);
   if (blockingProduct) {
-    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: `Produto "${blockingProduct}" está sem NCM ou categoria fiscal completa. Configure em Admin → Fiscal antes de emitir.`, createdAt: now });
+    await upsertFiscalDocument(existingId, { ...documentBase, status: "ERROR", rejectionReason: `Produto "${blockingProduct}" está sem NCM ou categoria fiscal completa. Configure em Admin → Fiscal antes de emitir.`, createdAt: now });
     return;
   }
 
@@ -170,15 +194,15 @@ async function emit(params: EmitParams): Promise<void> {
     });
     const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
     if (!response.ok || !body) {
-      await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: (body?.mensagem_sefaz as string) || (body?.mensagem as string) || `Provedor respondeu ${response.status}`, createdAt: now });
+      await upsertFiscalDocument(existingId, { ...documentBase, status: "ERROR", rejectionReason: (body?.mensagem_sefaz as string) || (body?.mensagem as string) || `Provedor respondeu ${response.status}`, createdAt: now });
       return;
     }
     if (body.contingencia_offline) {
-      await upsertFiscalDocument(existing?.id, { ...documentBase, status: "CONTINGENCY", rejectionReason: null, createdAt: now });
+      await upsertFiscalDocument(existingId, { ...documentBase, status: "CONTINGENCY", rejectionReason: null, createdAt: now });
       return;
     }
     if (body.status === "autorizado") {
-      await upsertFiscalDocument(existing?.id, {
+      await upsertFiscalDocument(existingId, {
         ...documentBase,
         status: "AUTHORIZED",
         chaveAcesso: (body.chave_nfe as string) ?? null,
@@ -194,9 +218,9 @@ async function emit(params: EmitParams): Promise<void> {
       });
       return;
     }
-    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "REJECTED", rejectionReason: (body.mensagem_sefaz as string) || "Rejeitada pela SEFAZ — verifique os dados fiscais.", createdAt: now });
+    await upsertFiscalDocument(existingId, { ...documentBase, status: "REJECTED", rejectionReason: (body.mensagem_sefaz as string) || "Rejeitada pela SEFAZ — verifique os dados fiscais.", createdAt: now });
   } catch (error) {
-    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: error instanceof Error ? error.message : "Falha de comunicação com o provedor de emissão.", createdAt: now });
+    await upsertFiscalDocument(existingId, { ...documentBase, status: "ERROR", rejectionReason: error instanceof Error ? error.message : "Falha de comunicação com o provedor de emissão.", createdAt: now });
   }
 }
 
