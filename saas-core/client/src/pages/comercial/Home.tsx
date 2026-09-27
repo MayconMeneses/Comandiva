@@ -222,11 +222,15 @@ const RESUMO: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: stri
   },
 ];
 
-const SUPORTE: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [
+// Número real do WhatsApp (Croatá/CE, DDD 88) — link com mensagem pré-preenchida, sem depender de nenhum widget/script de terceiro.
+const WHATSAPP_LINK = `https://wa.me/5588999401565?text=${encodeURIComponent("Olá! Vi o MM System Creator e quero saber mais sobre o sistema.")}`;
+
+const SUPORTE: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string; href?: string }[] = [
   {
     icon: IconWhatsapp,
     title: "WhatsApp direto comigo",
     description: "Resposta rápida, sem robô e sem fila de espera.",
+    href: WHATSAPP_LINK,
   },
   {
     icon: IconRemote,
@@ -460,15 +464,23 @@ export default function Home() {
           <p className="mt-3 text-ink-soft">Sem central de atendimento genérica — você fala direto com quem construiu o sistema.</p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {SUPORTE.map(item => (
-            <div key={item.title} className="rounded-2xl border border-border bg-paper-raised p-6 text-center">
-              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                <item.icon className="h-6 w-6" />
-              </div>
-              <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
-              <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
-            </div>
-          ))}
+          {SUPORTE.map(item => {
+            const Wrapper = item.href ? "a" : "div";
+            return (
+              <Wrapper
+                key={item.title}
+                {...(item.href ? { href: item.href, target: "_blank", rel: "noopener noreferrer" } : {})}
+                className={`rounded-2xl border border-border bg-paper-raised p-6 text-center ${item.href ? "block transition-colors hover:border-accent" : ""}`}
+              >
+                <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <item.icon className="h-6 w-6" />
+                </div>
+                <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
+                <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
+                {item.href ? <p className="mt-3 text-sm font-semibold text-accent">Falar no WhatsApp →</p> : null}
+              </Wrapper>
+            );
+          })}
         </div>
       </section>
 
