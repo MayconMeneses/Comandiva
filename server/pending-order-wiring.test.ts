@@ -28,11 +28,9 @@ describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", 
     expect(checkoutSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "checkout" }); }');
   });
 
-  it("Checkout.tsx: a semente do operationIdRef usa resumeOrCreateOperationId condicional, não generateClientId direto", () => {
-    // generateClientId ainda é usado como semente quando offlineResilienceEnabled é false
-    // (ver describe "offline_resilience" abaixo), e sempre dentro do onSuccess (regenerar
-    // pro PRÓXIMO pedido) — só não pode ser a chamada INCONDICIONAL de antes.
-    expect(checkoutSource).toContain('useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "checkout" }) : generateClientId())');
+  it("Checkout.tsx: a semente do operationIdRef usa useResumableOperationId (achado de revisão: useRef direto nunca via resumeOrCreateOperationId, porque offlineResilienceEnabled sempre chega undefined/false na 1ª renderização)", () => {
+    expect(checkoutSource).toContain('import { useResumableOperationId } from "@/hooks/useResumableOperationId";');
+    expect(checkoutSource).toContain('useResumableOperationId({ type: "order.create", screen: "checkout" }, settings.data === undefined ? undefined : offlineResilienceEnabled)');
   });
 
   it("NewCounterOrder.tsx: onMutate persiste com screen \"counter\" (só quando offlineResilienceEnabled), onSettled limpa", () => {
@@ -40,8 +38,9 @@ describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", 
     expect(counterSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "counter" }); }');
   });
 
-  it("NewCounterOrder.tsx: a semente do operationIdRef usa resumeOrCreateOperationId condicional", () => {
-    expect(counterSource).toContain('useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "counter" }) : generateClientId())');
+  it("NewCounterOrder.tsx: a semente do operationIdRef usa useResumableOperationId", () => {
+    expect(counterSource).toContain('import { useResumableOperationId } from "@/hooks/useResumableOperationId";');
+    expect(counterSource).toContain('useResumableOperationId({ type: "order.create", screen: "counter" }, settings.data === undefined ? undefined : offlineResilienceEnabled)');
   });
 
   it("TableSession.tsx: onMutate persiste com type \"table.addRound\" e o token da mesa (só quando offlineResilienceEnabled), onSettled limpa", () => {
@@ -49,8 +48,9 @@ describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", 
     expect(tableSessionSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "table.addRound", token }); }');
   });
 
-  it("TableSession.tsx: a semente do operationIdRef usa resumeOrCreateOperationId condicional com o token", () => {
-    expect(tableSessionSource).toContain('useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "table.addRound", token }) : generateClientId())');
+  it("TableSession.tsx: a semente do operationIdRef usa useResumableOperationId com o token", () => {
+    expect(tableSessionSource).toContain('import { useResumableOperationId } from "@/hooks/useResumableOperationId";');
+    expect(tableSessionSource).toContain('useResumableOperationId({ type: "table.addRound", token }, settings.data === undefined ? undefined : offlineResilienceEnabled)');
   });
 
   it("App.tsx: PendingOrderBanner está montado logo após o Toaster, antes do Router (em qualquer rota)", () => {

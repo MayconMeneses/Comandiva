@@ -8,8 +8,9 @@ import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, persistPendingOrder, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
+import { useResumableOperationId } from "@/hooks/useResumableOperationId";
 import { addressMatchesRoute } from "@shared/orderDomain";
 import { Minus, Phone, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -54,7 +55,7 @@ export default function NewCounterOrder() {
   // comentário em insertPricedOrder, server/routers/order.ts).
   // A semente reusa uma pendência salva (F5 com pedido pausado) em vez de
   // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts.
-  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "order.create", screen: "counter" }) : generateClientId());
+  const operationIdRef = useResumableOperationId({ type: "order.create", screen: "counter" }, settings.data === undefined ? undefined : offlineResilienceEnabled);
   // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
   const startedAtRef = useRef<number | null>(null);
   const createOrder = trpc.order.create.useMutation({
