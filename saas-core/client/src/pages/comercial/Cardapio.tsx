@@ -126,7 +126,7 @@ export default function Cardapio() {
               <Button
                 type="submit"
                 disabled={!file || upload.isPending}
-                className="mt-5 w-full !bg-gradient-to-r !from-[#008cfe] !to-[#6146fd] shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:!brightness-110"
+                className="mt-5 w-full !h-auto !min-h-11 !py-2.5 !bg-gradient-to-r !from-[#008cfe] !to-[#6146fd] shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:!brightness-110"
               >
                 {upload.isPending ? "Enviando..." : "Enviar cardápio"}
               </Button>
