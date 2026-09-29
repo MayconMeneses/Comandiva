@@ -1,7 +1,10 @@
+import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
 
 export default function Privacidade() {
+  usePageMeta({ ...COMMERCIAL_PAGE_META["/comercial/privacidade"], path: "/comercial/privacidade" });
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />

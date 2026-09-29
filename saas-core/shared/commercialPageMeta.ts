@@ -7,9 +7,12 @@
  * colar um link, por exemplo — só viam o título/descrição estáticos e
  * genéricos do Painel Master (ver client/index.html), porque a SPA inteira
  * usa o mesmo HTML pra qualquer rota. Só as páginas listadas aqui recebem
- * essa injeção server-side; o resto (Termos, Privacidade, fluxo de
- * cadastro) continua com o fallback padrão — são páginas que ninguém
- * compartilha fora do funil, sem necessidade de OG próprio ainda.
+ * essa injeção server-side. O fluxo de cadastro (Cadastro/Sucesso/
+ * Confirmando/Cardapio) fica de fora DE PROPÓSITO — são páginas
+ * transacionais, dependentes do estado de quem está no meio do cadastro
+ * ("Cadastro recebido!", "Confirmando seu pagamento..."), nunca destinadas
+ * a busca/compartilhamento — dar OG/título de busca a elas não faz sentido
+ * e poderia até confundir (uma dessas páginas "rankeando" no Google).
  */
 export const COMMERCIAL_PAGE_META: Record<string, { title: string; description: string }> = {
   "/comercial": {
@@ -19,5 +22,13 @@ export const COMMERCIAL_PAGE_META: Record<string, { title: string; description: 
   "/comercial/planos": {
     title: "Planos e Preços — Sistema para Restaurante a partir de R$ 99,99/mês | MM System Creator",
     description: "Compare os planos do MM System Creator: cardápio digital, pedidos online, mesas com QR Code, cozinha e relatórios. A partir de R$ 99,99/mês, sem comissão por pedido. 7 dias grátis.",
+  },
+  "/comercial/termos": {
+    title: "Termos de Uso | MM System Creator",
+    description: "Termos de uso do MM System Creator: como funciona a assinatura mensal, o que está incluído e as condições de uso do sistema para restaurantes.",
+  },
+  "/comercial/privacidade": {
+    title: "Política de Privacidade | MM System Creator",
+    description: "Política de privacidade do MM System Creator: quais dados coletamos, para que usamos e como protegemos as informações do seu restaurante e dos seus clientes.",
   },
 };

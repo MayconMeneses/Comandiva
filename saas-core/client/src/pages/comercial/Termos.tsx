@@ -1,7 +1,10 @@
+import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
+import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
 
 export default function Termos() {
+  usePageMeta({ ...COMMERCIAL_PAGE_META["/comercial/termos"], path: "/comercial/termos" });
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
