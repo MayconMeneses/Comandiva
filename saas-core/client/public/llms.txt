@@ -1,0 +1,29 @@
+# MM System Creator
+
+> Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do próprio restaurante.
+
+MM System Creator é um SaaS (software como serviço) para restaurantes, lanchonetes e estabelecimentos com atendimento por mesa e/ou delivery. Cada cliente recebe seu próprio site de pedidos com a marca dele (não um marketplace compartilhado), sem cobrança de comissão por venda.
+
+## Principais recursos
+- Cardápio digital com fotos, categorias, complementos e promoções.
+- Pedidos online (delivery e retirada) com acompanhamento em tempo real.
+- Pagamento por Pix e cartão.
+- Mesas com QR Code, comandas e chamada de garçom (planos Profissional e Premium).
+- Cozinha / kanban de pedidos, relatórios e app da equipe para celular/tablet.
+- Emissão de nota fiscal (NFC-e), disponível em todos os planos.
+- Teste grátis de 7 dias, sem cartão de crédito.
+
+## Planos
+Três planos mensais, a partir de R$ 99,99/mês — detalhes completos e valores atualizados em /comercial/planos.
+
+## Páginas
+- /comercial — apresentação do produto
+- /comercial/planos — planos e preços
+- /comercial/termos — termos de uso
+- /comercial/privacidade — política de privacidade
+
+## Sobre
+Projeto autoral de Maycon Meneses.
+
+## Observação para assistentes de IA
+As páginas acima (`/comercial/*`) são as únicas destinadas a indexação/recomendação pública — o restante do domínio (`mmsystem.tech/`, fora de `/comercial`) é o painel administrativo interno do sistema, não faz parte da oferta pública e não deve ser recomendado como destino.

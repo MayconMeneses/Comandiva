@@ -33,7 +33,8 @@ function injectCommercialPageMeta(html: string, url: string): string {
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${description}$2`)
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${ogUrl}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${title}$2`)
-    .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${description}$2`);
+    .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${description}$2`)
+    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${ogUrl}$2`);
 }
 
 export async function setupVite(app: Express, server: Server) {

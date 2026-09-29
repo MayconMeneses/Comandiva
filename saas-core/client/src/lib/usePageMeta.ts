@@ -7,8 +7,8 @@ type PageMeta = {
   path: string;
 };
 
-function upsertMeta(selector: string, build: () => HTMLMetaElement) {
-  let el = document.head.querySelector<HTMLMetaElement>(selector);
+function upsertEl<T extends HTMLElement>(selector: string, build: () => T): T {
+  let el = document.head.querySelector<T>(selector);
   if (!el) {
     el = build();
     document.head.appendChild(el);
@@ -38,7 +38,7 @@ export function usePageMeta({ title, description, path }: PageMeta) {
     const restore: Array<() => void> = [() => { document.title = previousTitle; }];
 
     function setMeta(attr: "name" | "property", name: string, value: string) {
-      const el = upsertMeta(`meta[${attr}="${name}"]`, () => {
+      const el = upsertEl(`meta[${attr}="${name}"]`, () => {
         const meta = document.createElement("meta");
         meta.setAttribute(attr, name);
         return meta;
@@ -56,6 +56,15 @@ export function usePageMeta({ title, description, path }: PageMeta) {
     setMeta("name", "twitter:description", description);
     // og:type, og:site_name, og:image, og:locale, twitter:card, twitter:image
     // não variam por página — o valor estático do index.html já serve.
+
+    const canonical = upsertEl<HTMLLinkElement>('link[rel="canonical"]', () => {
+      const link = document.createElement("link");
+      link.rel = "canonical";
+      return link;
+    });
+    const previousCanonical = canonical.href;
+    canonical.href = `https://mmsystem.tech${path}`;
+    restore.push(() => { canonical.href = previousCanonical; });
 
     return () => restore.forEach(fn => fn());
   }, [title, description, path]);

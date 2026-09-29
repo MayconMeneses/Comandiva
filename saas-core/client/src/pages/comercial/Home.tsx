@@ -5,21 +5,37 @@ import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
 
+// Organization junto com o SoftwareApplication existente, num único bloco
+// JSON-LD via @graph (forma padrão de combinar mais de uma entidade
+// schema.org na mesma página) — ajuda o Google a reconhecer "MM System
+// Creator" como uma entidade/marca, não só como um produto de software
+// solto. Só dado real/confirmado: nome, URL, logo — nada de endereço,
+// telefone ou perfil social que não exista de verdade.
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "MM System Creator",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  description:
-    "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do seu restaurante.",
-  offers: {
-    "@type": "Offer",
-    price: "99.99",
-    priceCurrency: "BRL",
-    url: "https://mmsystem.tech/comercial/planos",
-  },
-  author: { "@type": "Person", name: "Maycon Meneses" },
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "MM System Creator",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description:
+        "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do seu restaurante.",
+      offers: {
+        "@type": "Offer",
+        price: "99.99",
+        priceCurrency: "BRL",
+        url: "https://mmsystem.tech/comercial/planos",
+      },
+      author: { "@type": "Person", name: "Maycon Meneses" },
+    },
+    {
+      "@type": "Organization",
+      name: "MM System Creator",
+      url: "https://mmsystem.tech/comercial",
+      logo: "https://mmsystem.tech/mm-logo-full.png",
+    },
+  ],
 };
 
 const PRIMARY_LINK_CLASSES =
