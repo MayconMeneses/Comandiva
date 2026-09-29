@@ -25,7 +25,7 @@ const STRUCTURED_DATA = {
         "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do seu restaurante.",
       offers: {
         "@type": "Offer",
-        price: "99.99",
+        price: "99.90",
         priceCurrency: "BRL",
         url: "https://mmsystem.tech/comercial/planos",
       },
@@ -206,17 +206,17 @@ const COMPARISON = [
 const ROTINA: { title: string; image: string; description: string }[] = [
   {
     title: "Pense no crescimento, não na correria",
-    image: "/assets/hero/rotina-crescimento-v2.jpg",
+    image: "/assets/hero/rotina-crescimento-v2-700.jpg",
     description: "Troque hora apagando incêndio por hora pensando em cardápio novo, horário de pico e como girar mais nos dias fracos.",
   },
   {
     title: "Menos trabalho repetitivo",
-    image: "/assets/hero/rotina-menos-trabalho-v2.jpg",
+    image: "/assets/hero/rotina-menos-trabalho-v2-700.jpg",
     description: "O pedido entra sozinho, já com o valor certo. Ninguém mais precisa copiar comanda à mão nem discutir troco no balcão.",
   },
   {
     title: "Tudo numa tela só",
-    image: "/assets/hero/rotina-tudo-tela-v2.jpg",
+    image: "/assets/hero/rotina-tudo-tela-v2-700.jpg",
     description: "Cardápio, mesa, entrega e relatório do mês reunidos no mesmo lugar — chega de abrir três sistemas diferentes pra fechar o caixa.",
   },
 ];
@@ -335,9 +335,14 @@ export default function Home() {
         />
         <div className="relative w-full">
           <img
-            src="/assets/hero/hero-banner.jpg"
+            src="/assets/hero/hero-banner-1600.jpg"
+            srcSet="/assets/hero/hero-banner-640.jpg 640w, /assets/hero/hero-banner-1200.jpg 1200w, /assets/hero/hero-banner-1600.jpg 1600w"
+            sizes="100vw"
+            width={1600}
+            height={900}
             alt="Painel do MM System Creator em uso: vendas, pedidos e financeiro do restaurante em tempo real"
             className="h-auto w-full"
+            fetchPriority="high"
           />
           <a
             href="#diferenciais"
@@ -408,7 +413,7 @@ export default function Home() {
           {ROTINA.map((item, index) => (
             <Reveal key={item.title} delayMs={index * 100} className="group">
               <div className="aspect-[3/2] overflow-hidden rounded-2xl border border-border shadow-lg transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl">
-                <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                <img src={item.image} alt={item.title} width={700} height={467} loading="lazy" className="h-full w-full object-cover" />
               </div>
               <p className="mt-4 text-base text-ink-soft">{item.description}</p>
             </Reveal>

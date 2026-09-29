@@ -10,10 +10,11 @@ import { features, planFeatures, planLimits, plans, type PlanKey } from "../driz
  * container (ver infra/entrypoint.sh).
  */
 
+// Preços reduzidos a pedido do dono em 2026-09-29 (eram 9999/19999/24999).
 const PLANS: { key: PlanKey; name: string; priceCents: number; position: number }[] = [
-  { key: "essencial", name: "Entrada", priceCents: 9999, position: 1 },
-  { key: "profissional", name: "Profissional", priceCents: 19999, position: 2 },
-  { key: "premium", name: "Premium", priceCents: 24999, position: 3 },
+  { key: "essencial", name: "Entrada", priceCents: 9990, position: 1 },
+  { key: "profissional", name: "Profissional", priceCents: 14990, position: 2 },
+  { key: "premium", name: "Premium", priceCents: 19990, position: 3 },
 ];
 
 // Reestruturação 2026-09-11 (pedido do dono): NFC-e deixou de ser

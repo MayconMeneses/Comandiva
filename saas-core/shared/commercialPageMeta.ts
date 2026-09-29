@@ -20,8 +20,8 @@ export const COMMERCIAL_PAGE_META: Record<string, { title: string; description: 
     description: "Sistema completo para restaurante: cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por venda. 7 dias grátis, sem cartão de crédito.",
   },
   "/comercial/planos": {
-    title: "Planos e Preços — Sistema para Restaurante a partir de R$ 99,99/mês | MM System Creator",
-    description: "Compare os planos do MM System Creator: cardápio digital, pedidos online, mesas com QR Code, cozinha e relatórios. A partir de R$ 99,99/mês, sem comissão por pedido. 7 dias grátis.",
+    title: "Planos e Preços — Sistema para Restaurante a partir de R$ 99,90/mês | MM System Creator",
+    description: "Compare os planos do MM System Creator: cardápio digital, pedidos online, mesas com QR Code, cozinha e relatórios. A partir de R$ 99,90/mês, sem comissão por pedido. 7 dias grátis.",
   },
   "/comercial/termos": {
     title: "Termos de Uso | MM System Creator",

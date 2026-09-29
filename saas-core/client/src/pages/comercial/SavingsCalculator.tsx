@@ -5,9 +5,9 @@ const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 // Mesmo número "até 30%" já usado na seção de diferenciais desta mesma
 // página (comissão típica de app de entrega) — não é um dado novo, só
 // reaproveitado aqui de forma interativa. Mensalidade de referência: o
-// plano de entrada (R$ 99,99), o mesmo "a partir de" usado no resto do site.
+// plano de entrada (R$ 99,90), o mesmo "a partir de" usado no resto do site.
 const COMMISSION_RATE = 0.3;
-const BASE_PLAN_CENTS = 9999;
+const BASE_PLAN_CENTS = 9990;
 const MIN_REVENUE_CENTS = 300_000; // R$ 3.000
 const MAX_REVENUE_CENTS = 10_000_000; // R$ 100.000
 const STEP_CENTS = 100_000; // R$ 1.000

@@ -52,7 +52,12 @@ export const ENV = {
   // ponta (Pix/cartão) com valor baixo sem precisar mexer em código; em
   // branco = R$150,00 (padrão real). NUNCA deixar configurada baixa em
   // produção fora de uma janela de teste deliberada.
-  implementationFeeCents: Number(process.env.IMPLEMENTATION_FEE_CENTS) || 15000,
+  // Padrão R$100 (pedido do dono, 2026-09-29) — antes dependia de
+  // IMPLEMENTATION_FEE_CENTS=10000 no .env de produção pra valer R$100 (o
+  // "padrão" de código era R$150); essa variável sumiu do .env em algum
+  // momento e a cobrança voltou pro padrão antigo sem ninguém notar.
+  // Trocado o padrão em si pra não depender de env var pra ficar certo.
+  implementationFeeCents: Number(process.env.IMPLEMENTATION_FEE_CENTS) || 10000,
   // Restaurante(s) de uso interno/demonstração do dono da plataforma (ex.:
   // Pub X) — nunca perdem acesso por fim de trial: em vez de "ended",
   // applyDueScheduledChanges renova o período de 30 dias a partir de agora,

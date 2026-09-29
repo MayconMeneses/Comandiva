@@ -14,7 +14,7 @@ MM System Creator é um SaaS (software como serviço) para restaurantes, lanchon
 - Teste grátis de 7 dias, sem cartão de crédito.
 
 ## Planos
-Três planos mensais, a partir de R$ 99,99/mês — detalhes completos e valores atualizados em /comercial/planos.
+Três planos mensais, a partir de R$ 99,90/mês — detalhes completos e valores atualizados em /comercial/planos.
 
 ## Páginas
 - /comercial — apresentação do produto
