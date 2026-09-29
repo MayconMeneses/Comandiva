@@ -231,7 +231,10 @@ export default function Planos() {
                 Todo plano mostra o sistema inteiro — o que muda é o que já vem liberado. O que ainda não está no
                 seu plano continua visível, só marcado como bloqueado.
               </p>
-              <div className="mt-8 overflow-x-auto rounded-2xl border border-border bg-paper-raised/90 shadow-sm backdrop-blur">
+              <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-ink-soft sm:hidden">
+                Arraste a tabela pro lado pra ver todos os planos →
+              </p>
+              <div className="mt-3 overflow-x-auto rounded-2xl border border-border bg-paper-raised/90 shadow-sm backdrop-blur sm:mt-8">
                 <table className="w-full min-w-[560px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-border">

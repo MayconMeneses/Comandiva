@@ -145,6 +145,24 @@ const IconVideo = (props: SVGProps<SVGSVGElement>) => (
     <path d="m15.5 10.5 5.5-3v9l-5.5-3Z" />
   </Icon>
 );
+const IconChevronDown = (props: SVGProps<SVGSVGElement>) => (
+  <Icon strokeWidth={2.25} {...props}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+);
+
+function FaqItem({ question, answer }: { question: string; answer: string }) {
+  return (
+    <details className="group border-b border-border py-4 first:pt-0 last:border-0">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-ink marker:content-none">
+        {question}
+        <IconChevronDown className="h-4 w-4 shrink-0 text-ink-soft transition-transform duration-200 group-open:rotate-180" />
+      </summary>
+      <p className="mt-3 text-sm text-ink-soft">{answer}</p>
+    </details>
+  );
+}
+
 const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [
   {
     icon: IconBolt,
@@ -266,6 +284,35 @@ const STEPS = [
     number: "3",
     title: "Comece a vender",
     description: "Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis. Pronto, seu teste grátis de 7 dias começa a valer.",
+  },
+];
+
+// Todas as respostas reaproveitam texto já existente noutras seções desta
+// mesma página / em Termos.tsx / Planos.tsx — nada novo sendo prometido aqui.
+const FAQ = [
+  {
+    question: "Preciso saber mexer em sistema?",
+    answer: "Não. Nossa equipe organiza seu cardápio e sua configuração inicial, e você ainda tem WhatsApp direto com quem construiu o sistema, acesso remoto pra resolver travas (sem pedir sua senha) e treinamento ao vivo por chamada de vídeo.",
+  },
+  {
+    question: "Como funciona o teste grátis de 7 dias?",
+    answer: "Assim que sua configuração estiver pronta (em até 10 dias úteis), o teste de 7 dias começa a valer — sem cartão de crédito.",
+  },
+  {
+    question: "Posso cancelar ou trocar de plano quando quiser?",
+    answer: "Sim, direto no seu painel, sem multa e sem fidelidade.",
+  },
+  {
+    question: "Meus dados ficam seguros?",
+    answer: "Cada restaurante roda num deployment isolado — seus dados de cardápio, pedidos e clientes nunca ficam misturados com os de outro restaurante. Conexão sempre criptografada, senhas nunca guardadas em texto puro.",
+  },
+  {
+    question: "Como funciona o pagamento?",
+    answer: "Pix e cartão, processados com segurança pelo Mercado Pago. Nunca pedimos dados de cartão diretamente.",
+  },
+  {
+    question: "O que é a taxa de implementação?",
+    answer: "Cobre a configuração completa: subir seus produtos no sistema, testar tudo até funcionar 100% e entregar pronto pra vender. Cobrada uma única vez, no cadastro.",
   },
 ];
 
@@ -513,6 +560,18 @@ export default function Home() {
             verdade de quem administra um restaurante.
           </p>
           <p className="mt-4 text-sm font-semibold tracking-wide text-accent">Ideias · Sistemas · Soluções</p>
+        </Reveal>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <Reveal className="text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Perguntas frequentes</h2>
+        </Reveal>
+        <Reveal delayMs={100} className="mt-10 rounded-2xl border border-border bg-paper-raised px-6">
+          {FAQ.map(item => (
+            <FaqItem key={item.question} {...item} />
+          ))}
         </Reveal>
       </section>
 
