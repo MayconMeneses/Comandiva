@@ -10119,7 +10119,7 @@
       "file_type": "code",
       "norm_label": "home()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L254"
+      "source_location": "L270"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_icon",
@@ -10131,7 +10131,7 @@
       "file_type": "code",
       "norm_label": "icon()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L30"
+      "source_location": "L46"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconbolt",
@@ -10143,7 +10143,7 @@
       "file_type": "code",
       "norm_label": "iconbolt()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L38"
+      "source_location": "L54"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconcard",
@@ -10155,7 +10155,7 @@
       "file_type": "code",
       "norm_label": "iconcard()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L66"
+      "source_location": "L82"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconcheck",
@@ -10167,7 +10167,7 @@
       "file_type": "code",
       "norm_label": "iconcheck()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L82"
+      "source_location": "L98"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconcheckshield",
@@ -10179,7 +10179,7 @@
       "file_type": "code",
       "norm_label": "iconcheckshield()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L52"
+      "source_location": "L68"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconcoin",
@@ -10191,7 +10191,7 @@
       "file_type": "code",
       "norm_label": "iconcoin()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L92"
+      "source_location": "L108"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_icondevices",
@@ -10203,7 +10203,7 @@
       "file_type": "code",
       "norm_label": "icondevices()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L104"
+      "source_location": "L120"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_icongear",
@@ -10215,7 +10215,7 @@
       "file_type": "code",
       "norm_label": "icongear()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L98"
+      "source_location": "L114"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_icongift",
@@ -10227,7 +10227,7 @@
       "file_type": "code",
       "norm_label": "icongift()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L73"
+      "source_location": "L89"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconheadset",
@@ -10239,7 +10239,7 @@
       "file_type": "code",
       "norm_label": "iconheadset()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L58"
+      "source_location": "L74"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconpalette",
@@ -10251,7 +10251,7 @@
       "file_type": "code",
       "norm_label": "iconpalette()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L43"
+      "source_location": "L59"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconremote",
@@ -10263,7 +10263,7 @@
       "file_type": "code",
       "norm_label": "iconremote()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L117"
+      "source_location": "L133"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconvideo",
@@ -10275,7 +10275,7 @@
       "file_type": "code",
       "norm_label": "iconvideo()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L124"
+      "source_location": "L140"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconwhatsapp",
@@ -10287,7 +10287,7 @@
       "file_type": "code",
       "norm_label": "iconwhatsapp()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L111"
+      "source_location": "L127"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_iconx",
@@ -10299,7 +10299,7 @@
       "file_type": "code",
       "norm_label": "iconx()",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L87"
+      "source_location": "L103"
     },
     {
       "id": "server_core_ratelimit_checkdistinctratelimit",
@@ -12282,14 +12282,14 @@
       "source_location": "L21"
     },
     {
-      "id": "saas_core_client_src_lib_usepagemeta_upsertmeta",
-      "label": "upsertMeta()",
+      "id": "saas_core_client_src_lib_usepagemeta_upsertel",
+      "label": "upsertEl()",
       "_callable": true,
       "_origin": "ast",
       "community": 58,
       "community_name": "Planos.tsx",
       "file_type": "code",
-      "norm_label": "upsertmeta()",
+      "norm_label": "upsertel()",
       "source_file": "saas-core/client/src/lib/usePageMeta.ts",
       "source_location": "L10"
     },
@@ -15963,7 +15963,7 @@
       "file_type": "code",
       "norm_label": "servestatic()",
       "source_file": "saas-core/server/_core/vite.ts",
-      "source_location": "L69"
+      "source_location": "L70"
     },
     {
       "id": "saas_core_server_core_vite_setupvite",
@@ -15975,7 +15975,7 @@
       "file_type": "code",
       "norm_label": "setupvite()",
       "source_file": "saas-core/server/_core/vite.ts",
-      "source_location": "L39"
+      "source_location": "L40"
     },
     {
       "id": "server_db_orders_markorderpaymentfailedbypubliccode",
@@ -24365,7 +24365,7 @@
       "file_type": "code",
       "norm_label": "comparison",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L163"
+      "source_location": "L179"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_diferenciais",
@@ -24376,7 +24376,7 @@
       "file_type": "code",
       "norm_label": "diferenciais",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L130"
+      "source_location": "L146"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_modulos",
@@ -24387,7 +24387,7 @@
       "file_type": "code",
       "norm_label": "modulos",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L188"
+      "source_location": "L204"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_resumo",
@@ -24398,7 +24398,7 @@
       "file_type": "code",
       "norm_label": "resumo",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L208"
+      "source_location": "L224"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_rotina",
@@ -24409,7 +24409,7 @@
       "file_type": "code",
       "norm_label": "rotina",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L170"
+      "source_location": "L186"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_steps",
@@ -24420,7 +24420,7 @@
       "file_type": "code",
       "norm_label": "steps",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L244"
+      "source_location": "L260"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_structured_data",
@@ -24431,7 +24431,7 @@
       "file_type": "code",
       "norm_label": "structured_data",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L8"
+      "source_location": "L14"
     },
     {
       "id": "saas_core_client_src_pages_comercial_home_suporte",
@@ -24442,7 +24442,7 @@
       "file_type": "code",
       "norm_label": "suporte",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L226"
+      "source_location": "L242"
     },
     {
       "id": "drizzle_schema_restauranttables",
@@ -45212,8 +45212,20 @@
       "weight": 1.0
     },
     {
+      "source": "saas_core_client_src_lib_usepagemeta_usepagemeta",
+      "target": "saas_core_client_src_lib_usepagemeta_upsertel",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "saas-core/client/src/lib/usePageMeta.ts",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
       "source": "saas_core_client_src_lib_usepagemeta_usepagemeta_setmeta",
-      "target": "saas_core_client_src_lib_usepagemeta_upsertmeta",
+      "target": "saas_core_client_src_lib_usepagemeta_upsertel",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -45436,7 +45448,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L255",
+      "source_location": "L271",
       "weight": 1.0
     },
     {
@@ -45448,7 +45460,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L259",
+      "source_location": "L275",
       "weight": 1.0
     },
     {
@@ -45460,7 +45472,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L293",
+      "source_location": "L309",
       "weight": 1.0
     },
     {
@@ -45472,7 +45484,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L313",
+      "source_location": "L329",
       "weight": 1.0
     },
     {
@@ -45484,7 +45496,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L400",
+      "source_location": "L416",
       "weight": 1.0
     },
     {
@@ -45496,7 +45508,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L508",
+      "source_location": "L524",
       "weight": 1.0
     },
     {
@@ -45508,7 +45520,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L39",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -45520,7 +45532,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L67",
+      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -45532,7 +45544,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L83",
+      "source_location": "L99",
       "weight": 1.0
     },
     {
@@ -45544,7 +45556,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L53",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -45556,7 +45568,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L93",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -45568,7 +45580,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L105",
+      "source_location": "L121",
       "weight": 1.0
     },
     {
@@ -45580,7 +45592,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L99",
+      "source_location": "L115",
       "weight": 1.0
     },
     {
@@ -45592,7 +45604,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L74",
+      "source_location": "L90",
       "weight": 1.0
     },
     {
@@ -45604,7 +45616,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L59",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -45616,7 +45628,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L44",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -45628,7 +45640,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L118",
+      "source_location": "L134",
       "weight": 1.0
     },
     {
@@ -45640,7 +45652,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L125",
+      "source_location": "L141",
       "weight": 1.0
     },
     {
@@ -45652,7 +45664,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L112",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -45664,7 +45676,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L88",
+      "source_location": "L104",
       "weight": 1.0
     },
     {
@@ -47296,7 +47308,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/server/_core/vite.ts",
-      "source_location": "L85",
+      "source_location": "L86",
       "weight": 1.0
     },
     {
@@ -47308,7 +47320,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "saas-core/server/_core/vite.ts",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -118334,7 +118346,7 @@
     },
     {
       "source": "saas_core_client_src_lib_usepagemeta",
-      "target": "saas_core_client_src_lib_usepagemeta_upsertmeta",
+      "target": "saas_core_client_src_lib_usepagemeta_upsertel",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -118565,101 +118577,13 @@
     },
     {
       "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_diferenciais",
+      "target": "saas_core_client_src_pages_comercial_home_iconx",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L130",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_comparison",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L163",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_rotina",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L170",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_modulos",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L188",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_resumo",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L208",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_suporte",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L226",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_steps",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L244",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_home",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L254",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_icon",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L30",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -118670,7 +118594,106 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L8",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_diferenciais",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L146",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_comparison",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L179",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_rotina",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L186",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_modulos",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L204",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_resumo",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L224",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_suporte",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L242",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_steps",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L260",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_home",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L270",
+      "weight": 1.0
+    },
+    {
+      "source": "saas_core_client_src_pages_comercial_home",
+      "target": "saas_core_client_src_pages_comercial_home_icon",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -118681,18 +118704,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L82",
-      "weight": 1.0
-    },
-    {
-      "source": "saas_core_client_src_pages_comercial_home",
-      "target": "saas_core_client_src_pages_comercial_home_iconx",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L87",
+      "source_location": "L98",
       "weight": 1.0
     },
     {
@@ -122245,7 +122257,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "saas-core/server/_core/vite.ts",
-      "source_location": "L39",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -122256,7 +122268,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "saas-core/server/_core/vite.ts",
-      "source_location": "L69",
+      "source_location": "L70",
       "weight": 1.0
     },
     {
@@ -132259,7 +132271,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L132",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -132271,7 +132283,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L137",
+      "source_location": "L153",
       "weight": 1.0
     },
     {
@@ -132283,7 +132295,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L142",
+      "source_location": "L158",
       "weight": 1.0
     },
     {
@@ -132295,7 +132307,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L147",
+      "source_location": "L163",
       "weight": 1.0
     },
     {
@@ -132307,7 +132319,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L152",
+      "source_location": "L168",
       "weight": 1.0
     },
     {
@@ -132319,7 +132331,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L157",
+      "source_location": "L173",
       "weight": 1.0
     },
     {
@@ -132331,7 +132343,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L210",
+      "source_location": "L226",
       "weight": 1.0
     },
     {
@@ -132343,7 +132355,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L215",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -132355,7 +132367,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L220",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -132367,7 +132379,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L228",
+      "source_location": "L244",
       "weight": 1.0
     },
     {
@@ -132379,7 +132391,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L233",
+      "source_location": "L249",
       "weight": 1.0
     },
     {
@@ -132391,7 +132403,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "saas-core/client/src/pages/comercial/Home.tsx",
-      "source_location": "L238",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -132588,5 +132600,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2c537c24b27ad195f88d6a50cc47ccc34ed0a65a"
+  "built_at_commit": "c991566a4619dcdbc8d594dbd4e61a8c5740ed0f"
 }

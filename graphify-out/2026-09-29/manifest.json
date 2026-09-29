@@ -1380,9 +1380,9 @@
     "semantic_hash": "c89d30be2539ccd3338392e3f90c2fb0"
   },
   "saas-core/client/src/lib/usePageMeta.ts": {
-    "mtime": 1790676814.5844545,
-    "seen": 1790678767.340752,
-    "ast_hash": "0480e1ce85561f526ea88e1cec3fc715",
+    "mtime": 1790678978.234117,
+    "seen": 1790679204.0276618,
+    "ast_hash": "89f34f161478835a5cedec87b346627c",
     "semantic_hash": ""
   },
   "saas-core/client/src/main.tsx": {
@@ -1482,9 +1482,9 @@
     "semantic_hash": "6a6b503ec5d143109dff4ea60861ed63"
   },
   "saas-core/client/src/pages/comercial/Home.tsx": {
-    "mtime": 1790676670.6689234,
-    "seen": 1790678767.3452072,
-    "ast_hash": "a4c8a21839f1af2319bfeed8763e9781",
+    "mtime": 1790678997.0219471,
+    "seen": 1790679204.0301719,
+    "ast_hash": "452f4b921f860120e36d0e541f677e79",
     "semantic_hash": ""
   },
   "saas-core/client/src/pages/comercial/Planos.tsx": {
@@ -1956,9 +1956,9 @@
     "semantic_hash": "3217959dc704a57743d307a78f6d70c7"
   },
   "saas-core/server/_core/vite.ts": {
-    "mtime": 1790676791.5349035,
-    "seen": 1790678767.36727,
-    "ast_hash": "d2f0c7bba4a317736cd17e2e7d81177d",
+    "mtime": 1790678984.652019,
+    "seen": 1790679204.0427341,
+    "ast_hash": "f43bbc3ee9ecf198e787440915af6806",
     "semantic_hash": ""
   },
   "saas-core/server/billing-self-service.test.ts": {
@@ -3366,9 +3366,9 @@
     "semantic_hash": ""
   },
   "saas-core/client/index.html": {
-    "mtime": 1790676722.2784293,
-    "seen": 1790678767.4157062,
-    "ast_hash": "6bb7d59bfaed8417e9a599158fde8e95",
+    "mtime": 1790678953.0182526,
+    "seen": 1790679204.0799835,
+    "ast_hash": "d45e60463984aa6cf1b9199d828d5b11",
     "semantic_hash": ""
   },
   "saas-core/client/public/robots.txt": {
@@ -4077,6 +4077,12 @@
     "mtime": 1788964940.6605835,
     "seen": 1790678767.4161537,
     "ast_hash": "aefd559b2ac7812ba6e00316606c6521",
+    "semantic_hash": ""
+  },
+  "saas-core/client/public/llms.txt": {
+    "mtime": 1790679032.5027738,
+    "seen": 1790679204.079986,
+    "ast_hash": "34d36b2ff18d5fff60d10798ce867536",
     "semantic_hash": ""
   }
 }
