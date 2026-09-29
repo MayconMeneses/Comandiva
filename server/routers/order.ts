@@ -5,18 +5,18 @@ import { z } from "zod";
 import {
   addonGroups,
   addonOptions,
+  categories,
   deliveryRoutes,
   orderItemAddons,
   orderItems,
   orders,
   orderStatusHistory,
   payments,
-  printJobs,
   products,
   promotionProducts,
   promotions,
 } from "../../drizzle/schema";
-import { addressMatchesRoute, calculateCartTotal, formatCurrency, normalizePhone } from "../../shared/orderDomain";
+import { addressMatchesRoute, calculateCartTotal, formatCurrency, isCategoryCurrentlyAvailable } from "../../shared/orderDomain";
 import { CURRENT_TERMS_VERSION } from "../../shared/legal";
 import { getActiveOrdersByPhone, getDb, getOrderByTrackingCode, getStoreSettings, saveCustomerProfile, savePixChargeForOrder, type DbOrTx } from "../db";
 import { getActiveGatewayAndProvider, PaymentConfigError } from "../payments/paymentService";
@@ -108,6 +108,21 @@ export async function priceOrder(input: { items: CheckoutInput["items"]; fulfill
   const unavailable = productRows.find(product => !product.available);
   if (unavailable) throw new TRPCError({ code: "BAD_REQUEST", message: `${unavailable.name} está indisponível no momento.` });
 
+  // Nunca confia no carrinho enviado pelo cliente sobre horário de
+  // disponibilidade — o cardápio público já esconde categorias fora do
+  // horário (LUNCH/DINNER/LUNCH_AND_DINNER, ver fetchCatalog), mas sem essa
+  // checagem aqui um productId de uma categoria "só almoço" continuava
+  // aceitando pedido à noite (achado A1 da auditoria).
+  const settings = await getStoreSettings();
+  const productCategoryIds = Array.from(new Set(productRows.map(product => product.categoryId)));
+  const productCategories = await db.select().from(categories).where(inArray(categories.id, productCategoryIds));
+  const categoriesById = new Map(productCategories.map(category => [category.id, category]));
+  const outOfWindow = productRows.find(product => {
+    const category = categoriesById.get(product.categoryId);
+    return category ? !isCategoryCurrentlyAvailable(category, settings) : false;
+  });
+  if (outOfWindow) throw new TRPCError({ code: "BAD_REQUEST", message: `${outOfWindow.name} não está disponível neste horário.` });
+
   const groups = await db.select().from(addonGroups).where(inArray(addonGroups.productId, productIds));
   const groupIds = groups.map(group => group.id);
   const options = groupIds.length ? await db.select().from(addonOptions).where(inArray(addonOptions.groupId, groupIds)) : [];
@@ -136,7 +151,6 @@ export async function priceOrder(input: { items: CheckoutInput["items"]; fulfill
     return { product, quantity: item.quantity, note: item.note, addons, unitPriceCents, lineTotalCents: unitPriceCents * item.quantity };
   });
 
-  const settings = await getStoreSettings();
   if (!settings?.isAcceptingOrders) throw new TRPCError({ code: "BAD_REQUEST", message: "O restaurante não está recebendo pedidos no momento." });
   const activeRoutes = input.fulfillmentType === "DELIVERY" ? await db.select().from(deliveryRoutes).where(eq(deliveryRoutes.active, true)) : [];
   const selectedRoute = input.deliveryRouteId ? activeRoutes.find(route => route.id === input.deliveryRouteId) : undefined;
@@ -255,10 +269,10 @@ export async function insertPricedOrder(params: {
   } catch (error) {
     // drizzle-orm (0.45.x) embrulha o erro cru do mysql2 num DrizzleQueryError
     // — o `code` do driver (ER_DUP_ENTRY) fica em `error.cause`, não no erro
-    // que a gente pega direto (confirmado rodando contra MySQL de verdade;
-    // markWebhookEventOnce, o padrão que copiei, checa só `error.code` e por
-    // isso pode ter o mesmo problema — não mexido aqui, fora do escopo desta
-    // sessão, mas vale revisar).
+    // que a gente pega direto (confirmado rodando contra MySQL de verdade).
+    // Mesmo padrão usado em markWebhookEventOnce
+    // (server/payments/repositories/webhookEvents.ts), que também já checa
+    // `error.cause?.code`.
     const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
     if (clientOperationId && errorCode === "ER_DUP_ENTRY") {
       const [existing] = await db.select({ id: orders.id, publicCode: orders.publicCode }).from(orders).where(eq(orders.clientOperationId, clientOperationId)).limit(1);

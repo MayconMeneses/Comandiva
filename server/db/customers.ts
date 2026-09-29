@@ -87,19 +87,34 @@ export async function saveCustomerProfile(input: {
       createdAt: now,
     });
   } else {
-    const result = await db.insert(customers).values({
-      phone: input.phone,
-      name: input.name,
-      createdAt: now,
-      updatedAt: now,
-    });
-    customerId = Number(result[0].insertId);
-    await db.insert(customerChangeLogs).values({
-      customerId,
-      changeType: "PROFILE_CREATED",
-      details: JSON.stringify({ source: "checkout" }),
-      createdAt: now,
-    });
+    // customers.phone tem unique index — dois checkouts quase simultâneos
+    // pro mesmo telefone (duplo clique, duas abas) podem ambos passar pelo
+    // getCustomerByPhone acima achando "não existe" e colidir aqui. Sem
+    // tratar, o segundo propagava um erro cru de banco pro cliente final em
+    // vez de reaproveitar o registro que o primeiro acabou de criar — mesmo
+    // padrão de ER_DUP_ENTRY já usado em insertPricedOrder (server/routers/order.ts).
+    try {
+      const result = await db.insert(customers).values({
+        phone: input.phone,
+        name: input.name,
+        createdAt: now,
+        updatedAt: now,
+      });
+      customerId = Number(result[0].insertId);
+      await db.insert(customerChangeLogs).values({
+        customerId,
+        changeType: "PROFILE_CREATED",
+        details: JSON.stringify({ source: "checkout" }),
+        createdAt: now,
+      });
+    } catch (error) {
+      const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
+      if (errorCode !== "ER_DUP_ENTRY") throw error;
+      const raceWinner = await getCustomerByPhone(input.phone);
+      if (!raceWinner) throw error;
+      customerId = raceWinner.id;
+      await db.update(customers).set({ name: input.name, updatedAt: now }).where(eq(customers.id, customerId));
+    }
   }
 
   if (input.address) {

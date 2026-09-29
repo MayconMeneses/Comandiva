@@ -33,11 +33,17 @@ function order(overrides: Record<string, unknown> = {}) {
 }
 
 /** Stub de banco dispatched por tabela — mesmo padrão já usado nos outros arquivos de teste do projeto (ver trial-expiry.test.ts do saas-core). */
-function buildDbStub(options: { existingDocument?: Record<string, unknown> | null; productRows?: Record<string, unknown>[]; categoryRows?: Record<string, unknown>[] } = {}) {
+function buildDbStub(options: { existingDocument?: Record<string, unknown> | null; productRows?: Record<string, unknown>[]; categoryRows?: Record<string, unknown>[]; raceWinnerId?: number } = {}) {
   const inserts: Record<string, unknown>[] = [];
   const updates: Record<string, unknown>[] = [];
   const productRows = options.productRows ?? [product()];
   const categoryRows = options.categoryRows ?? [CATEGORY];
+  // raceWinnerId simula outra chamada de emit() concorrente que já inseriu o
+  // documento fiscal primeiro — a 1ª leitura de fiscalDocuments (no início de
+  // emit()) ainda devolve vazio (options.existingDocument), mas por baixo já
+  // existe uma linha com esse id, achada só quando upsertFiscalDocument
+  // reage ao ER_DUP_ENTRY do insert e reconsulta.
+  let insertAttempts = 0;
   const db = {
     select() {
       return {
@@ -45,7 +51,10 @@ function buildDbStub(options: { existingDocument?: Record<string, unknown> | nul
           const chain = {
             where: () => chain,
             limit: async () => {
-              if (table === fiscalDocuments) return options.existingDocument ? [options.existingDocument] : [];
+              if (table === fiscalDocuments) {
+                if (options.raceWinnerId && insertAttempts > 0) return [{ id: options.raceWinnerId }];
+                return options.existingDocument ? [options.existingDocument] : [];
+              }
               if (table === products) return productRows;
               if (table === fiscalTaxCategories) return categoryRows;
               return [];
@@ -60,7 +69,15 @@ function buildDbStub(options: { existingDocument?: Record<string, unknown> | nul
         },
       };
     },
-    insert: () => ({ values: async (values: Record<string, unknown>) => { inserts.push(values); } }),
+    insert: () => ({
+      values: async (values: Record<string, unknown>) => {
+        insertAttempts++;
+        if (options.raceWinnerId && insertAttempts === 1) {
+          throw Object.assign(new Error("Duplicate entry"), { cause: { code: "ER_DUP_ENTRY" } });
+        }
+        inserts.push(values);
+      },
+    }),
     update: () => ({ set: (values: Record<string, unknown>) => ({ where: async () => { updates.push(values); } }) }),
   };
   return { db, inserts, updates };
@@ -155,6 +172,21 @@ describe("nfceEmission — emitNfceForOrder", () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(stub.inserts).toHaveLength(0);
+    vi.unstubAllGlobals();
+  });
+
+  it("duas emissões quase simultâneas pro mesmo pedido (ex.: 'saiu para entrega' + retry manual): a segunda não propaga erro cru de banco, reaproveita a linha que a primeira criou — achado M5 da auditoria", async () => {
+    mocks.getOrderWithDetails.mockResolvedValue(order());
+    const stub = buildDbStub({ raceWinnerId: 77 });
+    vi.mocked(getDb).mockResolvedValue(stub.db as never);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: "autorizado", chave_nfe: "chave-123", numero: "1", serie: "1" }) }));
+
+    await expect(emitNfceForOrder(1)).resolves.toBeUndefined();
+
+    // Insert falhou com ER_DUP_ENTRY e foi convertido num update na linha do vencedor da corrida (id 77), nunca propagou o erro.
+    expect(stub.inserts).toHaveLength(0);
+    expect(stub.updates).toHaveLength(1);
+    expect(stub.updates[0]).toMatchObject({ status: "AUTHORIZED", chaveAcesso: "chave-123" });
     vi.unstubAllGlobals();
   });
 

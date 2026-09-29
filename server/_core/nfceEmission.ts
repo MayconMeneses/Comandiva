@@ -141,7 +141,7 @@ async function emit(params: EmitParams): Promise<void> {
   const { productById, categoryById } = await loadFiscalDataForProducts(params.items.map(item => item.productId));
   const blockingProduct = findBlockingProduct(params.items, productById, categoryById);
   if (blockingProduct) {
-    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: `Produto "${blockingProduct}" está sem NCM ou categoria fiscal completa. Configure em Admin → Fiscal antes de emitir.`, createdAt: now });
+    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: `Produto "${blockingProduct}" está sem NCM ou categoria fiscal completa. Configure em Admin → Fiscal antes de emitir.`, createdAt: now }, existingWhere);
     return;
   }
 
@@ -170,11 +170,11 @@ async function emit(params: EmitParams): Promise<void> {
     });
     const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
     if (!response.ok || !body) {
-      await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: (body?.mensagem_sefaz as string) || (body?.mensagem as string) || `Provedor respondeu ${response.status}`, createdAt: now });
+      await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: (body?.mensagem_sefaz as string) || (body?.mensagem as string) || `Provedor respondeu ${response.status}`, createdAt: now }, existingWhere);
       return;
     }
     if (body.contingencia_offline) {
-      await upsertFiscalDocument(existing?.id, { ...documentBase, status: "CONTINGENCY", rejectionReason: null, createdAt: now });
+      await upsertFiscalDocument(existing?.id, { ...documentBase, status: "CONTINGENCY", rejectionReason: null, createdAt: now }, existingWhere);
       return;
     }
     if (body.status === "autorizado") {
@@ -191,23 +191,39 @@ async function emit(params: EmitParams): Promise<void> {
         rejectionReason: null,
         createdAt: now,
         authorizedAt: now,
-      });
+      }, existingWhere);
       return;
     }
-    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "REJECTED", rejectionReason: (body.mensagem_sefaz as string) || "Rejeitada pela SEFAZ — verifique os dados fiscais.", createdAt: now });
+    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "REJECTED", rejectionReason: (body.mensagem_sefaz as string) || "Rejeitada pela SEFAZ — verifique os dados fiscais.", createdAt: now }, existingWhere);
   } catch (error) {
-    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: error instanceof Error ? error.message : "Falha de comunicação com o provedor de emissão.", createdAt: now });
+    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: error instanceof Error ? error.message : "Falha de comunicação com o provedor de emissão.", createdAt: now }, existingWhere);
   }
 }
 
-async function upsertFiscalDocument(existingId: number | undefined, values: Partial<typeof fiscalDocuments.$inferInsert> & { createdAt: number }) {
+async function upsertFiscalDocument(existingId: number | undefined, values: Partial<typeof fiscalDocuments.$inferInsert> & { createdAt: number }, lookupWhere?: ReturnType<typeof eq>) {
   const db = await getDb();
   if (!db) return;
   if (existingId) {
     await db.update(fiscalDocuments).set(values).where(eq(fiscalDocuments.id, existingId));
     return;
   }
-  await db.insert(fiscalDocuments).values(values as typeof fiscalDocuments.$inferInsert);
+  try {
+    await db.insert(fiscalDocuments).values(values as typeof fiscalDocuments.$inferInsert);
+  } catch (error) {
+    // fiscal_documents_order_unique — duas chamadas de emit() pra mesma
+    // pedido/mesa quase ao mesmo tempo (ex.: "saiu para entrega" disparando
+    // emissão junto de um clique em "tentar emitir de novo") podiam ambas
+    // ler "nenhum documento ainda" antes da chamada de rede à Focus NFe
+    // terminar, e as duas tentar inserir — sem tratar, a segunda propagava
+    // o erro cru de banco, quebrando a garantia documentada de `emit` de
+    // nunca lançar erro pra quem chama (achado M5 da auditoria). Mesmo
+    // padrão de ER_DUP_ENTRY já usado em insertPricedOrder/saveCustomerProfile.
+    const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
+    if (errorCode !== "ER_DUP_ENTRY" || !lookupWhere) throw error;
+    const [raceWinner] = await db.select({ id: fiscalDocuments.id }).from(fiscalDocuments).where(lookupWhere).limit(1);
+    if (!raceWinner) throw error;
+    await db.update(fiscalDocuments).set(values).where(eq(fiscalDocuments.id, raceWinner.id));
+  }
 }
 
 /** Pedido avulso (delivery/retirada/balcão) — ver "Quando emitir" no plano: chamado no pagamento confirmado (Pix/cartão online) ou ao sair pra entrega/ficar pronto pra retirada (dinheiro/cartão na entrega), nunca no aceite. */

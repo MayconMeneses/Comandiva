@@ -24,7 +24,7 @@ const OPEN_SESSION_STATUSES = ["OPEN", "AWAITING_PAYMENT"] as const;
  * mesa que já tinha sido ocupada de novo por outra comanda nesse meio-tempo.
  * Só funciona de dentro de db.transaction().
  */
-async function lockTableRow(tx: DbOrTx, tableId: number) {
+export async function lockTableRow(tx: DbOrTx, tableId: number) {
   await tx.select({ id: restaurantTables.id }).from(restaurantTables).where(eq(restaurantTables.id, tableId)).limit(1).for("update");
 }
 

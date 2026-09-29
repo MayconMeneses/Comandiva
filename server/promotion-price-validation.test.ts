@@ -67,6 +67,6 @@ describe("validação de preço promocional (produtos vinculados)", () => {
   it("rejeita promoção sem nenhum produto vinculado", async () => {
     await expect(adminRouter.createCaller(adminContext).savePromotion({
       title: "Promoção vazia", productIds: [], active: true, sortOrder: 0,
-    })).rejects.toBeTruthy();
+    })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

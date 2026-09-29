@@ -32,6 +32,18 @@ export async function sendSms(phone: string, message: string): Promise<{ sent: b
     return { sent: true };
   }
 
-  console.warn(`[sms] SMS_PROVIDER não configurado — código não enviado de verdade. Telefone: ${phone}. Mensagem: ${message}`);
+  // Em produção, NUNCA loga a mensagem completa (contém o código de 6
+  // dígitos, a única prova de posse do telefone que libera dataRights.myData/
+  // deleteMyData) — sem isso, qualquer operador/ferramenta com acesso ao log
+  // (docker compose logs, observabilidade) conseguia gerar+ler o código de
+  // qualquer telefone e disparar exclusão de dados de outro cliente, achado
+  // da auditoria de segurança. Em dev (sem Twilio, sem risco real), continua
+  // logando o código de propósito, pra dar pra testar o fluxo inteiro sem
+  // depender de provedor pago.
+  if (ENV.isProduction) {
+    console.warn(`[sms] SMS_PROVIDER não configurado em produção — código NÃO enviado de verdade pro telefone ${phone}. Configure TWILIO_* antes de expor este fluxo a clientes reais.`);
+  } else {
+    console.warn(`[sms] SMS_PROVIDER não configurado — código não enviado de verdade. Telefone: ${phone}. Mensagem: ${message}`);
+  }
   return { sent: false, reason: "not_configured" };
 }

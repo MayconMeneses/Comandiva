@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
-import { addonGroups, orders, payments, products } from "../drizzle/schema";
+import { addonGroups, categories, orders, payments, products } from "../drizzle/schema";
 
 /**
  * Prova a parte de `order.create` que insertPricedOrder sozinho não cobre:
@@ -53,7 +53,8 @@ function makeFakeDb() {
     return {
       select: () => ({
         from: (table: unknown) => {
-          if (table === products) return { where: async () => [{ id: 1, name: "Produto Teste", priceCents: 1000, available: true }] };
+          if (table === products) return { where: async () => [{ id: 1, name: "Produto Teste", priceCents: 1000, available: true, categoryId: 1 }] };
+          if (table === categories) return { where: async () => [] };
           if (table === addonGroups) return { where: async () => [] };
           // Busca de dedup dentro do catch de ER_DUP_ENTRY (insertPricedOrder)
           // — devolve o pedido já existente pra aquele clientOperationId.
