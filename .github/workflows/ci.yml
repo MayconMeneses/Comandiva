@@ -30,26 +30,33 @@ jobs:
           --health-retries=10
     steps:
       - uses: actions/checkout@v4
-      # Versão fixa (10.4.1), igual ao "packageManager" do package.json da
+      # Versão fixa (10.34.5), igual ao "packageManager" do package.json da
       # raiz — evitar auto-detecção porque o job do saas-core (abaixo) usa
-      # uma versão diferente do pnpm no próprio package.json dele.
+      # uma versão diferente do pnpm no próprio package.json dele. Bumpada
+      # de 10.4.1 em 2026-09 junto da correção do CVE alto do próprio pnpm
+      # (ver step de auditoria abaixo) — se o "packageManager" mudar nesse
+      # package.json de novo, atualizar aqui junto, senão o CI quebra por
+      # incompatibilidade de formato do lockfile.
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.4.1
+          version: 10.34.5
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      # Auditoria de vulnerabilidades de dependências — hoje (2026-09) o app
-      # principal tem 82 vulnerabilidades conhecidas (3 críticas) ainda não
-      # corrigidas. `continue-on-error: true` de propósito: isso é só pra dar
-      # visibilidade no log do CI, ainda NÃO bloqueia merge. Trocar pra
-      # bloqueante depois que as críticas existentes forem corrigidas.
-      - name: Auditoria de vulnerabilidades (não bloqueia ainda)
+      # Auditoria de vulnerabilidades de dependências — zero críticas desde a
+      # rodada de atualização de 2026-09 (vitest/vite/drizzle-kit/tailwind/
+      # AWS SDK/nodemailer/jsdom bumpados; 82→29 vulnerabilidades totais, as
+      # que sobraram são moderadas/altas sem correção disponível ainda:
+      # esbuild via drizzle-kit>@esbuild-kit — upstream, não depende deste
+      # repo; picomatch via vite-plugin-pwa>tinyglobby — override do pnpm
+      # não alcança essa dependência peer; pnpm CLI em si). Agora que não há
+      # crítica pendente, o passo passa a bloquear de verdade (sem
+      # continue-on-error) — reavaliar se uma crítica nova aparecer aqui.
+      - name: Auditoria de vulnerabilidades (bloqueia em CRITICAL)
         run: pnpm audit --audit-level=critical
-        continue-on-error: true
       - name: Lint
         run: pnpm run lint
       - run: pnpm run check
@@ -110,12 +117,15 @@ jobs:
           cache: pnpm
           cache-dependency-path: saas-core/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      # Auditoria de vulnerabilidades — saas-core tem 9 vulnerabilidades
-      # conhecidas hoje (1 crítica), ainda não corrigidas. Mesma lógica do
-      # job acima: só visibilidade por enquanto, não bloqueia merge.
-      - name: Auditoria de vulnerabilidades (não bloqueia ainda)
+      # Auditoria de vulnerabilidades — zero críticas desde a rodada de
+      # atualização de 2026-09 (vitest/vite/drizzle-kit/tailwind bumpados;
+      # 7→1 vulnerabilidade). A que sobrou é o mesmo caso do app principal
+      # (esbuild via drizzle-kit>@esbuild-kit, upstream, sem correção ainda).
+      # Agora que não há crítica pendente, o passo passa a bloquear de
+      # verdade (sem continue-on-error) — reavaliar se uma crítica nova
+      # aparecer aqui.
+      - name: Auditoria de vulnerabilidades (bloqueia em CRITICAL)
         run: pnpm audit --audit-level=critical
-        continue-on-error: true
       - name: Lint
         run: pnpm run lint
       - run: pnpm run check
