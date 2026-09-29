@@ -12,11 +12,29 @@
     -->
     <title>MM System Creator — Painel Master</title>
     <!--
-      Descrição padrão — só serve de fallback pro instante antes do React montar
-      (ou pra um crawler que não execute JS); cada página do site comercial
-      sobrescreve título/descrição/OG em tempo de execução via usePageMeta.ts.
+      Título/descrição/OG abaixo são o fallback ESTÁTICO — o que qualquer
+      crawler que não execute JavaScript de verdade vê (preview de link do
+      WhatsApp/Instagram/LinkedIn, por exemplo). Pra quem executa JS, cada
+      página do site comercial sobrescreve em tempo de execução via
+      usePageMeta.ts. Pras páginas listadas em shared/commercialPageMeta.ts
+      (hoje: /comercial, /comercial/planos), o servidor TAMBÉM substitui
+      esses valores direto no HTML antes de responder — ver
+      server/_core/vite.ts — porque sem isso o preview compartilhado dessas
+      páginas mostrava sempre este texto genérico do Painel Master, mesmo
+      pra quem compartilha o link comercial no Instagram.
     -->
     <meta name="description" content="Sistema para restaurante com cardápio digital, pedidos online e pagamento por Pix e cartão, sem comissão por venda." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MM System Creator" />
+    <meta property="og:title" content="MM System Creator — Painel Master" />
+    <meta property="og:description" content="Sistema para restaurante com cardápio digital, pedidos online e pagamento por Pix e cartão, sem comissão por venda." />
+    <meta property="og:image" content="https://mmsystem.tech/mm-logo-full.png" />
+    <meta property="og:url" content="https://mmsystem.tech/" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MM System Creator — Painel Master" />
+    <meta name="twitter:description" content="Sistema para restaurante com cardápio digital, pedidos online e pagamento por Pix e cartão, sem comissão por venda." />
+    <meta name="twitter:image" content="https://mmsystem.tech/mm-logo-full.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   </head>

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import type { ReactNode, SVGProps } from "react";
+import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
 import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
@@ -251,12 +252,7 @@ const STEPS = [
 ];
 
 export default function Home() {
-  usePageMeta({
-    title: "Sistema para Restaurante sem Comissão — Cardápio Digital e Pedidos Online | MM System Creator",
-    description:
-      "Sistema completo para restaurante: cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por venda. 7 dias grátis, sem cartão de crédito.",
-    path: "/comercial",
-  });
+  usePageMeta({ ...COMMERCIAL_PAGE_META["/comercial"], path: "/comercial" });
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
