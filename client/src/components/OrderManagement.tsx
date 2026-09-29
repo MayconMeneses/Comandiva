@@ -9,7 +9,7 @@ import { compressImageFile } from "@/lib/imageCompression";
 import { getDeviceId } from "@/lib/deviceId";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { trpc } from "@/lib/trpc";
-import { Archive, CheckCircle2, ChevronRight, CookingPot, ImagePlus, Loader2, MapPin, MapPinned, PackageCheck, Pencil, Phone, ReceiptText, ShoppingBag, Trash2, X } from "lucide-react";
+import { Archive, CheckCircle2, ChevronRight, CookingPot, ImagePlus, Loader2, MapPin, MapPinned, PackageCheck, Pencil, ReceiptText, Trash2, X } from "lucide-react";
 import React, { ChangeEvent, FormEvent, useState } from "react";
 import { toast } from "sonner";
 

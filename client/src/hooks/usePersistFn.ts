@@ -1,5 +1,9 @@
 import { useRef } from "react";
 
+// `any` de propósito aqui: é a restrição de generic mais permissiva possível
+// pra "qualquer função" — trocar por `unknown[]`/`unknown` quebraria a
+// inferência do tipo concreto de T em `usePersistFn<T extends noop>`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type noop = (...args: any[]) => any;
 
 /**

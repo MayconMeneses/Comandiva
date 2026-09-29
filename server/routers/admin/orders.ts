@@ -31,6 +31,7 @@ export const adminOrdersRouter = router({
     // Suporte) — chave/QR Pix não podem viajar nessa resposta; quem precisa
     // deles de verdade (tela de Conta) usa admin.getAccountSettings, que exige
     // adminOnlyProcedure de verdade (nunca staff, nunca Modo Suporte).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructuring só pra EXCLUIR essas 2 chaves do resto (ver comentário acima), não são "esquecidas"
     const settings = rawSettings ? (({ pixKey: _pixKey, pixQrCodeUrl: _pixQrCodeUrl, ...safeSettings }) => safeSettings)(rawSettings) : rawSettings;
     return { ...metrics, recentOrders, settings, startAt, endAt };
   }),

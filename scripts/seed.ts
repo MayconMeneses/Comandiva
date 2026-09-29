@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { addonGroups, addonOptions, categories, products, restaurantSettings } from "../drizzle/schema";
 import { createRestaurantAccessAccount, getDb, listRestaurantAccessAccounts } from "../server/db";
 import { ENV } from "../server/_core/env";

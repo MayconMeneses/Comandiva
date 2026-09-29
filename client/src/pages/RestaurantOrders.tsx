@@ -11,7 +11,7 @@ import TeamLoginCard from "@/components/TeamLoginCard";
 import { LockedFeatureFullPage } from "@/components/admin/LockedFeature";
 import { trpc } from "@/lib/trpc";
 import { getDeviceId } from "@/lib/deviceId";
-import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, CookingPot, Loader2, LogOut, MapPinned, MessageSquareWarning, PackageCheck, Phone, Plus, Printer, RefreshCw, ShieldCheck, ShoppingBag, UserCog } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, CookingPot, Loader2, LogOut, MapPinned, MessageSquareWarning, PackageCheck, Phone, Plus, Printer, RefreshCw, ShoppingBag, UserCog } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { toast } from "sonner";
@@ -35,7 +35,7 @@ function TeamLogin() {
 
 function StaffAccessManager() {
   const [open, setOpen] = useState(false); const [name, setName] = useState(""); const [username, setUsername] = useState(""); const [password, setPassword] = useState("");
-  const utils = trpc.useUtils(); const accounts = trpc.team.list.useQuery(undefined, { enabled: open });
+  const accounts = trpc.team.list.useQuery(undefined, { enabled: open });
   const create = trpc.team.create.useMutation({ onSuccess: () => { setName(""); setUsername(""); setPassword(""); void accounts.refetch(); } });
   const setActive = trpc.team.setActive.useMutation({ onSuccess: () => void accounts.refetch() });
   const submit = (event: FormEvent) => { event.preventDefault(); create.mutate({ name, username, password }); };
