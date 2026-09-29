@@ -43,7 +43,13 @@ export default function Checkout() {
   const [autoDetectDisabled, setAutoDetectDisabled] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [lastAutoFix, setLastAutoFix] = useState<{ from: string; to: string } | null>(null);
-  const deliveryRoutes = trpc.catalog.deliveryRoutes.useQuery(); const activeRoutes = deliveryRoutes.data ?? []; const selectedRoute = activeRoutes.find(route => route.id === deliveryRouteId); const routeRequired = fulfillmentType === "DELIVERY" && activeRoutes.length > 0;
+  const deliveryRoutes = trpc.catalog.deliveryRoutes.useQuery();
+  // useMemo pra manter a referência estável entre renders — sem isso,
+  // `?? []` cria um array novo toda vez que deliveryRoutes.data ainda não
+  // resolveu, fazendo o useMemo de routeMatch logo abaixo recalcular à toa
+  // a cada render enquanto carrega.
+  const activeRoutes = useMemo(() => deliveryRoutes.data ?? [], [deliveryRoutes.data]);
+  const selectedRoute = activeRoutes.find(route => route.id === deliveryRouteId); const routeRequired = fulfillmentType === "DELIVERY" && activeRoutes.length > 0;
   const routeMatch = useMemo(() => (routeRequired ? findBestRouteMatch(activeRoutes, address.neighborhood, address.city) : { confidence: "none" as const }), [routeRequired, activeRoutes, address.neighborhood, address.city]);
   useEffect(() => {
     if (autoDetectDisabled) return;

@@ -38,6 +38,19 @@ const billMethodSchema = z.enum(["PIX", "CASH", "CARD_ON_DELIVERY", "CARD_ONLINE
 // já faz esse cuidado do lado público e chama esse tipo de furo pelo nome).
 const tablesRestaurantProcedure = restaurantProcedure.use(requireFeature("tables_qr"));
 const tablesAdminProcedure = adminProcedure.use(requireFeature("tables_qr"));
+// `commands`/`reservations` eram featureIds "fantasma" no catálogo de planos
+// — cadastrados e vendidos, mas nunca checados por ninguém (nem frontend nem
+// backend), só pegando carona no gate de tables_qr por estarem sempre no
+// mesmo plano hoje. Gate próprio adicionado por correção/futuro-prova (se um
+// dia forem vendidos separado de tables_qr, o comportamento já está certo).
+// Escopo escolhido pra "commands": o CICLO DE VIDA da comanda depois de
+// aberta (fechar, cancelar, reabrir, dividir a conta) — abrir a comanda
+// (seatTable) continua só atrás de tables_qr, porque é pré-requisito pro
+// pedido via QR funcionar (a própria razão de ser de tables_qr), não uma
+// capacidade extra de gestão de comanda.
+const commandsRestaurantProcedure = tablesRestaurantProcedure.use(requireFeature("commands"));
+const commandsAdminProcedure = tablesAdminProcedure.use(requireFeature("commands"));
+const reservationsRestaurantProcedure = tablesRestaurantProcedure.use(requireFeature("reservations"));
 
 export const adminTablesRouter = router({
   tables: tablesRestaurantProcedure.query(() => listTablesWithOpenSessions()),
@@ -72,13 +85,13 @@ export const adminTablesRouter = router({
     await resolveServiceRequest(input.id, input.status, ctx.user?.id ?? null);
     return { success: true };
   }),
-  recordBillPayment: tablesRestaurantProcedure
+  recordBillPayment: commandsRestaurantProcedure
     .input(z.object({ sessionId: z.number().int().positive(), method: billMethodSchema, amountCents: z.number().int().positive(), payerLabel: z.string().max(60).optional() }))
     .mutation(async ({ input }) => {
       await recordBillPayment(input.sessionId, input);
       return getSessionWithOrders(input.sessionId);
     }),
-  closeSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
+  closeSession: commandsRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
     let result;
     try {
       result = await closeTableSession(input.sessionId, ctx.user?.id ?? null);
@@ -102,12 +115,12 @@ export const adminTablesRouter = router({
     await retryNfceForTableSession(input.sessionId);
     return getFiscalDocumentByTableSessionId(input.sessionId);
   }),
-  cancelSession: tablesRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
+  cancelSession: commandsRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
     await cancelTableSession(input.sessionId);
     return { success: true };
   }),
   recentClosedSessions: tablesAdminProcedure.query(() => listRecentClosedSessions()),
-  reopenSession: tablesAdminProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
+  reopenSession: commandsAdminProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input }) => {
     try {
       await reopenTableSession(input.sessionId);
       return { success: true };
@@ -115,8 +128,8 @@ export const adminTablesRouter = router({
       throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível reabrir a comanda." });
     }
   }),
-  reservations: tablesRestaurantProcedure.input(z.object({ fromAt: z.number().optional(), toAt: z.number().optional() }).optional()).query(({ input }) => listReservations(input ?? {})),
-  createReservation: tablesRestaurantProcedure
+  reservations: reservationsRestaurantProcedure.input(z.object({ fromAt: z.number().optional(), toAt: z.number().optional() }).optional()).query(({ input }) => listReservations(input ?? {})),
+  createReservation: reservationsRestaurantProcedure
     .input(z.object({ customerName: safeText(z.string().trim().min(2).max(160)), customerPhone: phoneSchema, partySize: z.number().int().min(1).max(50), reservedFor: z.number().int().positive(), tableId: z.number().int().positive().optional(), notes: safeText(z.string().max(500)).optional() }))
     .mutation(async ({ input }) => {
       try {
@@ -125,7 +138,7 @@ export const adminTablesRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível criar a reserva." });
       }
     }),
-  updateReservation: tablesRestaurantProcedure
+  updateReservation: reservationsRestaurantProcedure
     .input(z.object({ id: z.number().int().positive(), status: reservationStatusSchema.optional(), tableId: z.number().int().positive().nullable().optional(), notes: z.string().max(500).optional() }))
     .mutation(async ({ input: { id, ...rest } }) => {
       try {

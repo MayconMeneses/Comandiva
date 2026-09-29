@@ -40,12 +40,17 @@ const addonKey = (productId: number, groupId: number): AddonDefaultKey => `${pro
 
 function ProductPicker({ products, categories, selectedIds, onToggle }: { products: CatalogProduct[]; categories: CatalogCategory[]; selectedIds: number[]; onToggle: (id: number) => void }) {
   const [search, setSearch] = useState("");
-  const categoryName = (categoryId: number) => categories.find(category => category.id === categoryId)?.name ?? "";
+  // Mapa memoizado em vez de find() por chamada — corrige também o aviso do
+  // exhaustive-deps: `categoryName` era uma função recriada a cada render
+  // (fechando sobre `categories`), então o lint não conseguia provar que o
+  // useMemo abaixo dependia só de `categories`, mesmo já dependendo.
+  const categoryNameById = useMemo(() => new Map(categories.map(category => [category.id, category.name])), [categories]);
+  const categoryName = (categoryId: number) => categoryNameById.get(categoryId) ?? "";
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return products;
-    return products.filter(product => product.name.toLowerCase().includes(term) || categoryName(product.categoryId).toLowerCase().includes(term));
-  }, [products, search, categories]);
+    return products.filter(product => product.name.toLowerCase().includes(term) || (categoryNameById.get(product.categoryId) ?? "").toLowerCase().includes(term));
+  }, [products, search, categoryNameById]);
   return <div>
     <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar produto do cardápio…" className="h-10 rounded-xl pl-9" /></div>
     <div className="mt-2 max-h-60 space-y-1 overflow-y-auto rounded-xl border border-border bg-card p-1.5">

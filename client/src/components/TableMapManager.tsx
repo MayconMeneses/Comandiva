@@ -146,8 +146,14 @@ export default function TableMapManager() {
     onError: error => toast.error(error.message),
   });
   const bySector = useMemo(() => {
-    const groups = new Map<string, NonNullable<typeof tables.data>>();
-    for (const row of tables.data ?? []) { const key = row.table.sector || "Sem setor"; if (!groups.has(key)) groups.set(key, []); groups.get(key)!.push(row); }
+    // `data` extraído numa variável local antes de usar em posição de tipo
+    // (`typeof data`) — referenciar `tables.data` direto num tipo dentro do
+    // callback confundia o exhaustive-deps, que pedia a dependência em
+    // `tables` inteiro (identidade instável a cada render do react-query,
+    // recalcularia à toa) em vez de só `tables.data` (já suficiente aqui).
+    const data = tables.data ?? [];
+    const groups = new Map<string, typeof data>();
+    for (const row of data) { const key = row.table.sector || "Sem setor"; if (!groups.has(key)) groups.set(key, []); groups.get(key)!.push(row); }
     return Array.from(groups.entries());
   }, [tables.data]);
 

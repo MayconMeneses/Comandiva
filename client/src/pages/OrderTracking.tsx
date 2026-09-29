@@ -53,7 +53,11 @@ export default function OrderTracking() {
   const settings = trpc.catalog.settings.useQuery();
   const marca = isMarcaBackground(settings.data?.customBackgroundColor);
   useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
-  const trackingOrders = query.data ?? [];
+  // useMemo pra manter a referência estável — sem isso, `?? []` cria um
+  // array novo a cada render enquanto query.data ainda não resolveu,
+  // fazendo o useEffect logo abaixo (que depende de trackingOrders)
+  // reexecutar à toa a cada render durante o carregamento.
+  const trackingOrders = useMemo(() => query.data ?? [], [query.data]);
   const order = trackingOrders.find(item => item.id === selectedOrderId) ?? trackingOrders[0];
   const history = order?.history ?? []; const done = order?.status === "COMPLETED"; const cancelled = order?.status === "CANCELLED";
   useEffect(() => { window.scrollTo(0, 0); }, []);
