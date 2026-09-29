@@ -4,6 +4,8 @@ import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
 import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
+import { Reveal } from "./Reveal";
+import { SavingsCalculator } from "./SavingsCalculator";
 
 // Organization junto com o SoftwareApplication existente, num único bloco
 // JSON-LD via @graph (forma padrão de combinar mais de uma entidade
@@ -338,20 +340,31 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Calculadora de economia */}
+      <section className="mx-auto max-w-5xl px-6 pb-20">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Quanto você deixa de pagar em comissão?</h2>
+          <p className="mt-3 text-ink-soft">Arraste pro faturamento mensal do seu restaurante e veja a diferença.</p>
+        </Reveal>
+        <Reveal className="mt-10" delayMs={100}>
+          <SavingsCalculator />
+        </Reveal>
+      </section>
+
       {/* Rotina */}
       <section className="mx-auto max-w-5xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-bold text-ink sm:text-3xl">Seu tempo vale mais que planilha e comanda de papel</h2>
           <p className="mt-3 text-ink-soft">Você cuida do restaurante. O sistema cuida da correria.</p>
-        </div>
+        </Reveal>
         <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {ROTINA.map(item => (
-            <div key={item.title}>
-              <div className="aspect-[3/2] overflow-hidden rounded-2xl border border-border shadow-lg">
+          {ROTINA.map((item, index) => (
+            <Reveal key={item.title} delayMs={index * 100} className="group">
+              <div className="aspect-[3/2] overflow-hidden rounded-2xl border border-border shadow-lg transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl">
                 <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
               </div>
               <p className="mt-4 text-base text-ink-soft">{item.description}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -361,14 +374,14 @@ export default function Home() {
         <div className="mx-auto max-w-5xl px-6 py-16">
           <h2 className="text-center text-2xl font-bold text-ink sm:text-3xl">Por que escolher o MM System Creator?</h2>
           <div className="mt-12 grid gap-10 sm:grid-cols-3">
-            {RESUMO.map(item => (
-              <div key={item.title} className="text-center">
-                <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+            {RESUMO.map((item, index) => (
+              <Reveal key={item.title} delayMs={index * 100} className="group text-center">
+                <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                   <item.icon className="h-8 w-8" />
                 </div>
                 <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
                 <p className="mx-auto mt-2 max-w-xs text-sm text-ink-soft">{item.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -376,19 +389,19 @@ export default function Home() {
 
       {/* Diferenciais */}
       <section id="diferenciais" className="mx-auto max-w-5xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-bold text-ink sm:text-3xl">Por que trocar o app de entrega pelo seu próprio sistema</h2>
           <p className="mt-3 text-ink-soft">O que faz diferença de verdade no fim do mês.</p>
-        </div>
+        </Reveal>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {DIFERENCIAIS.map(item => (
-            <div key={item.title} className="rounded-2xl border border-border bg-paper-raised p-6">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          {DIFERENCIAIS.map((item, index) => (
+            <Reveal key={item.title} delayMs={(index % 3) * 100} className="group rounded-2xl border border-border bg-paper-raised p-6 transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110">
                 <item.icon className="h-5 w-5" />
               </div>
               <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
               <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -396,18 +409,18 @@ export default function Home() {
       {/* Comparação */}
       <section className="border-y border-border bg-paper-raised/60">
         <div className="mx-auto max-w-4xl px-6 py-20">
-          <div className="mx-auto max-w-2xl text-center">
+          <Reveal className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-bold text-ink sm:text-3xl">Sistema próprio x aplicativo de entrega</h2>
             <p className="mt-3 text-ink-soft">Nada contra os apps — só que quem carrega o restaurante no ombro é você.</p>
-          </div>
-          <div className="mt-10 overflow-hidden rounded-2xl border border-border bg-paper-raised">
+          </Reveal>
+          <Reveal delayMs={150} className="mt-10 overflow-hidden rounded-2xl border border-border bg-paper-raised">
             <div className="grid grid-cols-3 border-b border-border bg-paper text-sm font-semibold text-ink">
               <div className="px-4 py-3">&nbsp;</div>
               <div className="px-4 py-3 text-accent">Com sistema próprio</div>
               <div className="px-4 py-3 text-ink-soft">App de entrega comum</div>
             </div>
             {COMPARISON.map(row => (
-              <div key={row.label} className="grid grid-cols-3 border-b border-border text-sm last:border-b-0">
+              <div key={row.label} className="grid grid-cols-3 border-b border-border text-sm transition-colors last:border-b-0 hover:bg-accent/5">
                 <div className="px-4 py-4 font-medium text-ink">{row.label}</div>
                 <div className="flex items-center gap-2 px-4 py-4 text-ink">
                   <IconCheck className="h-4 w-4 shrink-0 text-emerald-400" /> {row.us}
@@ -417,19 +430,19 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Módulos */}
       <section className="mx-auto max-w-5xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-bold text-ink sm:text-3xl">Um sistema completo, sem juntar outros por fora</h2>
           <p className="mt-3 text-ink-soft">Seis frentes cobertas dentro do mesmo painel — cresce junto com o plano escolhido.</p>
-        </div>
+        </Reveal>
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {MODULOS.map(item => (
-            <div key={item.title} className="rounded-2xl border border-border bg-paper-raised p-6">
+          {MODULOS.map((item, index) => (
+            <Reveal key={item.title} delayMs={(index % 3) * 100} className="rounded-2xl border border-border bg-paper-raised p-6 transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-ink">{item.title}</h3>
                 {item.badge && (
@@ -437,7 +450,7 @@ export default function Home() {
                 )}
               </div>
               <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
         <div className="mt-10 text-center">
@@ -449,44 +462,45 @@ export default function Home() {
 
       {/* Como funciona */}
       <section className="mx-auto max-w-5xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-bold text-ink sm:text-3xl">Como funciona</h2>
-        </div>
-        <div className="mt-12 grid gap-8 sm:grid-cols-3">
-          {STEPS.map(step => (
-            <div key={step.number} className="text-center sm:text-left">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-white">
+        </Reveal>
+        <div className="relative mt-12 grid gap-8 sm:grid-cols-3">
+          <div aria-hidden="true" className="absolute top-[18px] left-0 right-0 hidden h-px bg-border sm:block" />
+          {STEPS.map((step, index) => (
+            <Reveal key={step.number} delayMs={index * 150} className="relative text-center sm:text-left">
+              <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-white ring-4 ring-paper">
                 {step.number}
               </span>
               <h3 className="mt-4 font-semibold text-ink">{step.title}</h3>
               <p className="mt-2 text-sm text-ink-soft">{step.description}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* Suporte */}
       <section className="mx-auto max-w-5xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-bold text-ink sm:text-3xl">Suporte que não deixa você na mão</h2>
           <p className="mt-3 text-ink-soft">Sem central de atendimento genérica — você fala direto com quem construiu o sistema.</p>
-        </div>
+        </Reveal>
         <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {SUPORTE.map(item => (
-            <div key={item.title} className="rounded-2xl border border-border bg-paper-raised p-6 text-center">
-              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+          {SUPORTE.map((item, index) => (
+            <Reveal key={item.title} delayMs={index * 100} className="group rounded-2xl border border-border bg-paper-raised p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-transform duration-300 group-hover:scale-110">
                 <item.icon className="h-6 w-6" />
               </div>
               <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
               <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* Sobre o criador */}
       <section className="border-y border-border bg-paper-raised/60">
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+        <Reveal className="mx-auto max-w-3xl px-6 py-20 text-center">
           <span className="text-xs font-semibold uppercase tracking-wider text-accent">Quem criou</span>
           <div className="mt-4 flex items-center justify-center">
             <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-16 w-16 rounded-2xl shadow-sm" />
@@ -499,12 +513,12 @@ export default function Home() {
             verdade de quem administra um restaurante.
           </p>
           <p className="mt-4 text-sm font-semibold tracking-wide text-accent">Ideias · Sistemas · Soluções</p>
-        </div>
+        </Reveal>
       </section>
 
       {/* CTA final */}
       <section className="mx-auto max-w-5xl px-6 pb-24">
-        <div
+        <Reveal
           className="rounded-2xl px-8 py-14 text-center text-white shadow-xl shadow-[#6146fd]/10"
           style={{ background: "linear-gradient(135deg, #008cfe, #6146fd)" }}
         >
@@ -518,7 +532,7 @@ export default function Home() {
               Ver planos e começar agora
             </Link>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       <ComercialFooter />
