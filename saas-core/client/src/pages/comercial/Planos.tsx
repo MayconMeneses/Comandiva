@@ -5,6 +5,7 @@ import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
 import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
+import { Reveal } from "./Reveal";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
@@ -100,31 +101,33 @@ export default function Planos() {
         />
 
         <div className="mx-auto max-w-5xl px-6 py-16 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-accent shadow-sm backdrop-blur">
-            <IconShieldCheck className="h-3.5 w-3.5" />
-            Ambiente de cadastro seguro
-          </span>
-          <h1 className="mt-4 text-3xl font-bold text-ink sm:text-4xl">Escolha o plano do seu restaurante</h1>
-          <p className="mt-4 text-ink-soft">
-            <strong>7 dias de teste grátis</strong> assim que seu sistema estiver pronto (em até 10 dias
-            úteis), sem cartão de crédito. Sem comissão por pedido — a mensalidade cobre o aluguel do
-            sistema e a hospedagem, ponto final.
-          </p>
-          <p className="mx-auto mt-3 w-fit rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-400">
-            🎉 Lançamento: 20% de desconto na mensalidade nos 2 primeiros meses
-          </p>
+          <Reveal>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-accent shadow-sm backdrop-blur">
+              <IconShieldCheck className="h-3.5 w-3.5" />
+              Ambiente de cadastro seguro
+            </span>
+            <h1 className="mt-4 text-3xl font-bold text-ink sm:text-4xl">Escolha o plano do seu restaurante</h1>
+            <p className="mt-4 text-ink-soft">
+              <strong>7 dias de teste grátis</strong> assim que seu sistema estiver pronto (em até 10 dias
+              úteis), sem cartão de crédito. Sem comissão por pedido — a mensalidade cobre o aluguel do
+              sistema e a hospedagem, ponto final.
+            </p>
+            <p className="mx-auto mt-3 w-fit rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-400">
+              🎉 Lançamento: 20% de desconto na mensalidade nos 2 primeiros meses
+            </p>
 
-          <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-ink-soft">
-            <span className="inline-flex items-center gap-1.5">
-              <IconLock className="h-4 w-4 text-emerald-400" /> Pagamento 100% seguro — Mercado Pago
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <IconShieldCheck className="h-4 w-4 text-emerald-400" /> Seus dados protegidos
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <IconCheck className="h-4 w-4 text-emerald-400" /> Sem fidelidade — cancele quando quiser
-            </span>
-          </div>
+            <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-ink-soft">
+              <span className="inline-flex items-center gap-1.5">
+                <IconLock className="h-4 w-4 text-emerald-400" /> Pagamento 100% seguro — Mercado Pago
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <IconShieldCheck className="h-4 w-4 text-emerald-400" /> Seus dados protegidos
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <IconCheck className="h-4 w-4 text-emerald-400" /> Sem fidelidade — cancele quando quiser
+              </span>
+            </div>
+          </Reveal>
 
           {plansQuery.isLoading && <p className="mt-12 text-ink-soft">Carregando planos...</p>}
           {plansQuery.isError && (
@@ -136,7 +139,7 @@ export default function Planos() {
               const highlighted = index === 1 && (plans?.length ?? 0) > 1;
               const maintenanceIncluded = plan.key !== "essencial";
               return (
-                <div key={plan.id} className="relative">
+                <Reveal key={plan.id} delayMs={index * 100} className="relative">
                   {highlighted && (
                     <div
                       className="pointer-events-none absolute -inset-3 -z-10 rounded-[2rem] opacity-60 blur-2xl"
@@ -144,8 +147,8 @@ export default function Planos() {
                     />
                   )}
                   <div
-                    className={`relative flex h-full flex-col rounded-2xl border p-6 text-left ${
-                      highlighted ? "border-accent shadow-xl ring-1 ring-accent" : "border-border bg-paper-raised shadow-sm"
+                    className={`relative flex h-full flex-col rounded-2xl border p-6 text-left transition-all duration-300 hover:-translate-y-1 ${
+                      highlighted ? "border-accent shadow-xl ring-1 ring-accent hover:shadow-2xl" : "border-border bg-paper-raised shadow-sm hover:shadow-lg"
                     }`}
                     style={
                       highlighted
@@ -216,13 +219,13 @@ export default function Planos() {
                       Assinar {plan.name}
                     </Link>
                   </div>
-                </div>
+                </Reveal>
               );
             })}
           </div>
 
           {plans && plans.length > 0 && (
-            <div className="mx-auto mt-14 max-w-4xl text-left">
+            <Reveal className="mx-auto mt-14 max-w-4xl text-left">
               <h2 className="text-center text-2xl font-bold text-ink">Compare tudo que o MM System Creator oferece</h2>
               <p className="mx-auto mt-2 max-w-xl text-center text-sm text-ink-soft">
                 Todo plano mostra o sistema inteiro — o que muda é o que já vem liberado. O que ainda não está no
@@ -243,7 +246,7 @@ export default function Planos() {
                   </thead>
                   <tbody>
                     {BASE_INCLUDES.map(item => (
-                      <tr key={item} className="border-b border-border/60 last:border-0">
+                      <tr key={item} className="border-b border-border/60 transition-colors last:border-0 hover:bg-accent/5">
                         <td className="p-4 text-ink-soft">{item}</td>
                         {plans.map(plan => (
                           <td key={plan.id} className="p-4 text-center">
@@ -253,7 +256,7 @@ export default function Planos() {
                       </tr>
                     ))}
                     {allFeatures.map(feature => (
-                      <tr key={feature.featureId} className="border-b border-border/60 last:border-0">
+                      <tr key={feature.featureId} className="border-b border-border/60 transition-colors last:border-0 hover:bg-accent/5">
                         <td className="p-4">
                           <span className="text-ink-soft">{feature.name}</span>
                           {FEATURE_DESCRIPTIONS[feature.featureId] && (
@@ -277,10 +280,10 @@ export default function Planos() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Reveal>
           )}
 
-          <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
+          <Reveal className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
             <p className="text-sm font-semibold text-ink">
               Taxa de implementação: <span className="text-accent">{money(implementationFeeCents)}</span>
             </p>
@@ -288,7 +291,7 @@ export default function Planos() {
               Cobrimos a configuração completa: subir seus produtos no sistema, testar tudo até funcionar
               100% e entregar pronto pra vender. Cobrada uma única vez, no cadastro.
             </p>
-          </div>
+          </Reveal>
 
           <p className="mt-6 text-sm text-ink-soft">Pode trocar de plano quando quiser, direto no seu painel — sem multa.</p>
         </div>
