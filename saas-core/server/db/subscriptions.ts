@@ -7,6 +7,7 @@ import { getPlanByKey } from "./plans";
 import { PLATFORM_NAME } from "../../shared/branding";
 import { sendEmailAsync } from "../_core/emailService";
 import {
+  alertSystemError,
   buildSubscriptionCanceledMessage,
   buildSubscriptionPastDueGraceExpiredMessage,
   buildSubscriptionPastDueMessage,
@@ -81,6 +82,21 @@ export async function assignPlan(input: { restaurantId: number; planKey: string;
 
   await db.update(subscriptions).set({ planId: nextPlan.id, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
   await recordEvent(current.subscription.id, "plan_changed", { planKey: current.plan.key }, { planKey: nextPlan.key }, input.actor ?? "operator:cli");
+  // Sem isso, uma troca manual de plano pelo Painel Master (diferente do
+  // self-service em startOrChangePlan, que já sincroniza) deixava o valor
+  // cobrado de verdade no Mercado Pago preso no plano antigo pra sempre —
+  // restaurante com acesso ao plano novo mas cobrança automática continuando
+  // no preço errado, sem nenhum aviso (achado M3 da auditoria).
+  if (current.subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
+    await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: current.subscription.gatewaySubscriptionId, amountCents: nextPlan.priceCents }).catch(error =>
+      alertSystemError(
+        "Falha ao atualizar valor da preapproval no Mercado Pago (troca manual de plano pelo Painel Master)",
+        `Restaurante #${input.restaurantId}, assinatura #${current.subscription.id}, novo plano "${nextPlan.key}". Cobrança automática pode ter ficado no valor do plano antigo. ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+        "assignPlan:updatePreapproval",
+        "Cobrança de assinatura (Painel Master)",
+      ),
+    );
+  }
   return { success: true };
 }
 
@@ -304,7 +320,14 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
     await db.update(subscriptions).set({ status: "canceled", canceledAt: now, updatedAt: now }).where(eq(subscriptions.id, subscription.id));
     await recordEvent(subscription.id, "cancellation_finalized", { status: subscription.status }, { status: "canceled" }, "system:reconciliation");
     if (subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
-      await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, status: "cancelled" }).catch(error => console.warn("[billing] Falha ao cancelar preapproval no Mercado Pago:", error));
+      await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, status: "cancelled" }).catch(error =>
+        alertSystemError(
+          "Falha ao cancelar preapproval no Mercado Pago",
+          `Restaurante #${subscription.restaurantId}, assinatura #${subscription.id}. ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+          "applyDueScheduledChanges:cancelPreapproval",
+          "Cobrança de assinatura (reconciliação)",
+        ),
+      );
     }
     const contact = await getRestaurantContact(subscription.restaurantId);
     if (contact?.contactEmail) {
@@ -360,7 +383,14 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
     if (subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
       const [targetPlan] = await db.select().from(plans).where(eq(plans.id, targetPlanId)).limit(1);
       if (targetPlan) {
-        await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, amountCents: targetPlan.priceCents }).catch(error => console.warn("[billing] Falha ao atualizar valor da preapproval no Mercado Pago:", error));
+        await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, amountCents: targetPlan.priceCents }).catch(error =>
+          alertSystemError(
+            "Falha ao atualizar valor da preapproval no Mercado Pago (downgrade agendado aplicado)",
+            `Restaurante #${subscription.restaurantId}, assinatura #${subscription.id}, novo plano #${targetPlanId}. ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+            "applyDueScheduledChanges:downgradePreapproval",
+            "Cobrança de assinatura (reconciliação)",
+          ),
+        );
       }
     }
     return;
@@ -385,7 +415,12 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
           const [currentPlan] = await db.select().from(plans).where(eq(plans.id, subscription.planId)).limit(1);
           if (currentPlan) {
             await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, amountCents: currentPlan.priceCents }).catch(error =>
-              console.warn("[billing] Falha ao restaurar preço cheio após promoção de lançamento:", error),
+              alertSystemError(
+                "Falha ao restaurar preço cheio após fim da promoção de lançamento",
+                `Restaurante #${subscription.restaurantId}, assinatura #${subscription.id}. ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+                "applyDueScheduledChanges:restoreFullPrice",
+                "Cobrança de assinatura (reconciliação)",
+              ),
             );
           }
         }
@@ -604,15 +639,22 @@ export async function computeSnapshotForRestaurant(restaurantId: number): Promis
   // Bloqueia TODAS as features quando a assinatura não está em dia — trial
   // encerrado sem pagamento ('ended'), assinatura cancelada ('canceled',
   // fim do ciclo pago já passou), preapproval pausada no Mercado Pago
-  // ('suspended') ou mensalidade recusada há mais de 5 dias sem regularizar
-  // (ver markSubscriptionPastDue/isPastDueGraceExpired). Antes desta
-  // auditoria, só 'ended'/past_due-vencido bloqueavam — uma assinatura
-  // cancelada ou suspensa pelo Mercado Pago continuava com acesso total
-  // pra sempre, porque nada mais reavaliava esse estado (achado H1). O laço
-  // abaixo joga toda feature bloqueada em lockedFeatures automaticamente,
-  // sem duplicar lógica.
+  // ('suspended'), pagamento ainda não confirmado pelo Mercado Pago
+  // ('payment_pending') ou mensalidade recusada há mais de 5 dias sem
+  // regularizar (ver markSubscriptionPastDue/isPastDueGraceExpired). Antes
+  // desta auditoria, só 'ended'/past_due-vencido bloqueavam — uma
+  // assinatura cancelada ou suspensa pelo Mercado Pago continuava com
+  // acesso total pra sempre, porque nada mais reavaliava esse estado
+  // (achado H1). 'payment_pending' tinha o mesmo problema, só que pior: o
+  // Mercado Pago sempre cria a preapproval como 'pending' ANTES do cliente
+  // sequer autorizar o pagamento (ver applyPreapprovalStatus acima), então
+  // um checkout simplesmente abandonado (o cliente nunca autoriza) deixava
+  // o restaurante com acesso pago liberado de graça pra sempre — bastava
+  // iniciar a troca de plano e não terminar (achado C1). O laço abaixo joga
+  // toda feature bloqueada em lockedFeatures automaticamente, sem duplicar
+  // lógica.
   const isTrialExpiredUnpaid = subscription.status === "ended";
-  const isSubscriptionInactive = subscription.status === "canceled" || subscription.status === "suspended";
+  const isSubscriptionInactive = subscription.status === "canceled" || subscription.status === "suspended" || subscription.status === "payment_pending";
   const isPastDueBlocked = await isPastDueGraceExpired(subscription);
   const currentPlanFeatureIds = isTrialExpiredUnpaid || isSubscriptionInactive || isPastDueBlocked ? new Set<string>() : new Set(allPlanFeatures.filter(row => row.planId === plan.id).map(row => row.featureId));
 

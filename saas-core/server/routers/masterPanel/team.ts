@@ -49,6 +49,12 @@ export const masterPanelTeamRouter = router({
     .mutation(async ({ input, ctx }) => {
       const before = await getPlatformAdminById(input.adminId);
       if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada." });
+      // Mesma regra de create: só uma conta "owner" pode alterar outra conta
+      // "owner" (nome/senha) — senão um "member" com a área "equipe" liberada
+      // conseguiria trocar a senha do dono real da plataforma.
+      if (before.role === "owner" && ctx.platformAdmin.role !== "owner") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Só uma conta owner pode alterar outra conta owner." });
+      }
       await updatePlatformAdmin(input.adminId, { name: input.name, password: input.password, permissions: before.role === "member" ? input.permissions : undefined });
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,
@@ -67,7 +73,13 @@ export const masterPanelTeamRouter = router({
     .input(z.object({ adminId: z.number().int().positive(), active: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
       if (input.adminId === ctx.platformAdmin.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Você não pode pausar sua própria conta." });
-      if (!(await getPlatformAdminById(input.adminId))) throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada." });
+      const before = await getPlatformAdminById(input.adminId);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Conta não encontrada." });
+      // Mesma regra de create/update: um "member" não pode pausar/reativar
+      // uma conta "owner" — senão vira vetor de lockout do dono real.
+      if (before.role === "owner" && ctx.platformAdmin.role !== "owner") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Só uma conta owner pode pausar ou reativar outra conta owner." });
+      }
       await setPlatformAdminActive(input.adminId, input.active);
       await recordPlatformAuditLog({
         actorAdminId: ctx.platformAdmin.id,

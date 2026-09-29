@@ -191,4 +191,15 @@ describe("computeSnapshotForRestaurant — bloqueio de acesso com trial 'ended'"
     expect(snapshot.status).toBe("suspended");
     expect(snapshot.features).toEqual([]);
   });
+
+  it("status 'payment_pending' (preapproval criada, cliente ainda não autorizou no Mercado Pago): zera features e bloqueia todas — achado C1 da auditoria, antes dava acesso pago de graça pra sempre bastando abandonar o checkout", async () => {
+    const stub = buildSnapshotDbStub({ id: 10, restaurantId: 7, planId: PLAN_PRO.id, status: "payment_pending", currentPeriodEnd: Date.now() + 500_000, scheduledPlanId: PLAN_PRO.id, gatewaySubscriptionId: "pre-1" });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    const snapshot = await computeSnapshotForRestaurant(7);
+
+    expect(snapshot.status).toBe("payment_pending");
+    expect(snapshot.features).toEqual([]);
+    expect(Object.keys(snapshot.lockedFeatures)).toEqual(expect.arrayContaining(["tables_qr", "audit"]));
+  });
 });
