@@ -26,7 +26,7 @@ export function ComercialFooter() {
   return (
     <footer className="border-t border-border py-10">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-5 px-6 text-center">
-        <img src="/mm-logo-icon.png" alt="" aria-hidden="true" className="h-9 w-9 rounded-md" />
+        <img src="/mm-logo-icon-160.png" alt="" aria-hidden="true" width={36} height={36} loading="lazy" className="h-9 w-9 rounded-md" />
 
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-ink-soft">
           <span className="inline-flex items-center gap-1.5">
