@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Troque "https://seudominio.com.br" pelo domínio real depois do deploy
-  (ver docs/production-deploy.md). O protocolo de sitemap exige URLs
-  absolutas, então este arquivo não pode usar caminhos relativos.
--->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://seudominio.com.br/</loc>
+    <loc>https://pubx.mmsystem.tech/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://seudominio.com.br/sobre</loc>
+    <loc>https://pubx.mmsystem.tech/sobre</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://seudominio.com.br/faq</loc>
+    <loc>https://pubx.mmsystem.tech/faq</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://pubx.mmsystem.tech/politica-de-privacidade</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://pubx.mmsystem.tech/termos-de-uso</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
   </url>
 </urlset>
