@@ -2,13 +2,14 @@ import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
 import { usePageMeta } from "@/lib/usePageMeta";
 import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
+import { Reveal } from "./Reveal";
 
 export default function Termos() {
   usePageMeta({ ...COMMERCIAL_PAGE_META["/comercial/termos"], path: "/comercial/termos" });
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
-      <div className="mx-auto max-w-2xl px-6 py-16">
+      <Reveal className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-2xl font-bold text-ink">Termos de uso</h1>
         <p className="mt-1 text-sm text-ink-soft">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
 
@@ -41,7 +42,7 @@ export default function Termos() {
             </p>
           </div>
         </div>
-      </div>
+      </Reveal>
       <ComercialFooter />
     </div>
   );
