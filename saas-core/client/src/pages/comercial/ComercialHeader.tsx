@@ -16,7 +16,14 @@ export function ComercialHeader({ showNav = true }: { showNav?: boolean }) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
+    <>
+      <a
+        href="#main-content"
+        className="sr-only rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50"
+      >
+        Pular para o conteúdo
+      </a>
+      <header className="sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
       <div className="flex w-full items-center justify-between px-6 py-3">
         <Link href="/comercial" className="inline-flex items-center rounded-lg bg-[#1a1a1a] px-3 py-1.5">
           <img src="/mm-logo-full.png" alt="MM System Creator" className="h-7 w-auto sm:h-8" />
@@ -33,5 +40,6 @@ export function ComercialHeader({ showNav = true }: { showNav?: boolean }) {
         )}
       </div>
     </header>
+    </>
   );
 }

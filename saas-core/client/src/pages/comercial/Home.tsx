@@ -324,7 +324,7 @@ export default function Home() {
       <ComercialHeader />
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section id="main-content" tabIndex={-1} className="relative overflow-hidden">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] opacity-70"
           // var(--accent)/var(--paper) raw, não os aliases --color-* do @theme inline: o
@@ -342,7 +342,7 @@ export default function Home() {
           <a
             href="#diferenciais"
             aria-label="Conheça o sistema"
-            className="absolute"
+            className="absolute rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             style={{ left: "3%", top: "63%", width: "24%", height: "12%" }}
           />
         </div>

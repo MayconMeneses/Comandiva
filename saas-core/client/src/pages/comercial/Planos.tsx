@@ -79,7 +79,7 @@ export default function Planos() {
       {/* Faixa de destaque — assinatura visual logo abaixo do cabeçalho */}
       <div className="h-1" style={{ background: "linear-gradient(90deg, #008cfe, #6146fd, #008cfe)" }} />
 
-      <section className="relative overflow-hidden">
+      <section id="main-content" tabIndex={-1} className="relative overflow-hidden">
         {/* Textura de pontos — dá profundidade e um ar "premium" sem competir com o conteúdo */}
         <div
           className="pointer-events-none absolute inset-0 -z-20"
@@ -254,6 +254,7 @@ export default function Planos() {
                         {plans.map(plan => (
                           <td key={plan.id} className="p-4 text-center">
                             <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
+                            <span className="sr-only">Incluído</span>
                           </td>
                         ))}
                       </tr>
@@ -271,9 +272,15 @@ export default function Planos() {
                           return (
                             <td key={plan.id} className="p-4 text-center">
                               {included ? (
-                                <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
+                                <>
+                                  <IconCheck className="mx-auto h-4 w-4 text-emerald-400" />
+                                  <span className="sr-only">Incluído</span>
+                                </>
                               ) : (
-                                <IconLock className="mx-auto h-4 w-4 text-ink-soft/50" />
+                                <>
+                                  <IconLock className="mx-auto h-4 w-4 text-ink-soft/50" />
+                                  <span className="sr-only">Não incluído neste plano</span>
+                                </>
                               )}
                             </td>
                           );
