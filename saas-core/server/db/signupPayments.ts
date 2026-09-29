@@ -139,11 +139,9 @@ export async function confirmSignupPaymentAndCreateRestaurant(signupPaymentId: n
     }),
   );
 
-  // Mesmo raciocínio fogo-e-esquece — subir o ambiente Docker do zero pode
-  // levar minutos (build incluído), nunca pode segurar a resposta do
-  // webhook do Mercado Pago. Sem SYSTEM_REPO_PATH/SYSTEM_DEPLOYMENTS_DIR
-  // configuradas, fica desligado sozinho (ver systemProvisioning.ts).
-  void provisionSystemInstance({ restaurantId: result.restaurantId, restaurantName: payload.name, apiKey: result.apiKey });
+  // Provisionamento fica manual de propósito (ver systemProvisioning.ts) —
+  // isto só manda pro Telegram o comando pronto pra equipe rodar na VPS.
+  provisionSystemInstance({ restaurantId: result.restaurantId, restaurantName: payload.name, apiKey: result.apiKey });
 
   return { found: true as const, alreadyProcessed: false as const, restaurantId: result.restaurantId };
 }

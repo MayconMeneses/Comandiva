@@ -108,28 +108,20 @@ export function buildMenuReferenceCaption(params: { restaurantId: number; restau
   return trimmedNotes ? `${base}\n\n💬 <b>Observações do cliente:</b>\n${escapeHtml(trimmedNotes)}` : base;
 }
 
-export function buildEnvironmentProvisionedMessage(params: {
-  restaurantId: number;
-  restaurantName: string;
-  url: string;
-  adminUsername: string;
-  adminPassword: string;
-}): string {
+/**
+ * Provisionamento continua manual de propósito (decisão do dono,
+ * 2026-09-29): automatizar de verdade exigiria dar ao container do
+ * saas-core acesso ao socket do Docker (ou a uma peça nova de infra),
+ * risco desproporcional pro volume atual (~1 cliente real). Esta mensagem
+ * só entrega o comando PRONTO — a equipe cola na VPS e roda.
+ */
+export function buildProvisionCommandMessage(params: { restaurantId: number; restaurantName: string; command: string }): string {
   return [
-    "🚀 <b>Ambiente técnico provisionado</b>",
+    "🛠 <b>Provisionar ambiente novo</b>",
     `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
-    `URL: ${escapeHtml(params.url)}`,
-    `Login admin: <code>${escapeHtml(params.adminUsername)}</code> / <code>${escapeHtml(params.adminPassword)}</code>`,
-    "Agora é organizar o cardápio e marcar como entregue quando terminar.",
-  ].join("\n");
-}
-
-export function buildEnvironmentProvisioningFailedMessage(params: { restaurantId: number; restaurantName: string; error: string }): string {
-  return [
-    "⚠️ <b>Falha ao provisionar ambiente automaticamente</b>",
-    `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
-    `Erro: ${escapeHtml(params.error.slice(0, 400))}`,
-    "Precisa subir o ambiente na mão pra este cliente.",
+    "Rode isto na VPS, dentro do repositório do sistema:",
+    `<code>${escapeHtml(params.command)}</code>`,
+    "Depois, cole a URL final em Restaurantes → este cliente → Editar, no Painel Master.",
   ].join("\n");
 }
 

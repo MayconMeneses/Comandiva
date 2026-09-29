@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { computeDeploymentPorts, slugifyRestaurantName } from "./systemProvisioning";
+import { describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  sendTelegramMessageAsync: vi.fn(),
+  buildProvisionCommandMessage: vi.fn().mockReturnValue("mensagem de teste"),
+}));
+vi.mock("./telegramService", () => ({
+  sendTelegramMessageAsync: mocks.sendTelegramMessageAsync,
+  buildProvisionCommandMessage: mocks.buildProvisionCommandMessage,
+}));
+
+const { computeDeploymentPorts, provisionSystemInstance, slugifyRestaurantName } = await import("./systemProvisioning");
 
 describe("slugifyRestaurantName", () => {
   it("minúsculas, sem acento, espaços viram hífen", () => {
@@ -48,5 +58,26 @@ describe("computeDeploymentPorts", () => {
     const ports = computeDeploymentPorts(4);
     const values = [ports.appPort, ports.mysqlPort, ports.s3Port, ports.s3ConsolePort];
     expect(new Set(values).size).toBe(values.length);
+  });
+});
+
+describe("provisionSystemInstance", () => {
+  it("não executa nada — só monta o comando e manda pro Telegram (provisionamento é manual de propósito)", () => {
+    vi.clearAllMocks();
+    provisionSystemInstance({ restaurantId: 12, restaurantName: "Restaurante da Maria", apiKey: "chave-secreta-123" });
+
+    expect(mocks.buildProvisionCommandMessage).toHaveBeenCalledTimes(1);
+    const [call] = mocks.buildProvisionCommandMessage.mock.calls[0] as [{ restaurantId: number; restaurantName: string; command: string }];
+    expect(call.restaurantId).toBe(12);
+    expect(call.restaurantName).toBe("Restaurante da Maria");
+    // O comando usa as mesmas variáveis que scripts/provision-client.mjs
+    // sempre esperou, com os valores determinísticos certos pra este id.
+    expect(call.command).toContain("CLIENT_SLUG=restaurante-da-maria-12");
+    expect(call.command).toContain(`APP_PORT=${computeDeploymentPorts(12).appPort}`);
+    expect(call.command).toContain("SAAS_CORE_API_KEY=chave-secreta-123");
+    expect(call.command).toContain("node scripts/provision-client.mjs");
+
+    expect(mocks.sendTelegramMessageAsync).toHaveBeenCalledTimes(1);
+    expect(mocks.sendTelegramMessageAsync).toHaveBeenCalledWith("mensagem de teste");
   });
 });

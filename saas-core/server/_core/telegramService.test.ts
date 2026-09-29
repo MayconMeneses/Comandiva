@@ -15,8 +15,7 @@ const {
   buildNewPaidSignupMessage,
   buildRestaurantDeliveredMessage,
   buildMenuReferenceCaption,
-  buildEnvironmentProvisionedMessage,
-  buildEnvironmentProvisioningFailedMessage,
+  buildProvisionCommandMessage,
   buildSystemErrorMessage,
   buildSubscriptionRenewedMessage,
   buildSubscriptionPastDueMessage,
@@ -117,24 +116,15 @@ describe("telegramService — mensagens", () => {
     expect(caption).toContain("&lt;script&gt;");
   });
 
-  it("buildEnvironmentProvisionedMessage inclui URL e credenciais de admin", () => {
-    const message = buildEnvironmentProvisionedMessage({
+  it("buildProvisionCommandMessage inclui o comando pronto pra rodar na VPS", () => {
+    const message = buildProvisionCommandMessage({
       restaurantId: 5,
       restaurantName: "Restaurante Teste",
-      url: "http://localhost:5050",
-      adminUsername: "admin",
-      adminPassword: "senha123",
+      command: "CLIENT_SLUG=restaurante-teste-5 APP_PORT=5050 node scripts/provision-client.mjs",
     });
-    expect(message).toContain("http://localhost:5050");
-    expect(message).toContain("admin");
-    expect(message).toContain("senha123");
+    expect(message).toContain("CLIENT_SLUG=restaurante-teste-5");
+    expect(message).toContain("node scripts/provision-client.mjs");
     expect(message).toContain("#5");
-  });
-
-  it("buildEnvironmentProvisioningFailedMessage inclui o motivo da falha", () => {
-    const message = buildEnvironmentProvisioningFailedMessage({ restaurantId: 6, restaurantName: "Restaurante Teste", error: "Timeout esperando o container responder" });
-    expect(message).toContain("Timeout esperando");
-    expect(message).toContain("#6");
   });
 
   it("buildSystemErrorMessage inclui o assunto e o detalhe do erro", () => {
