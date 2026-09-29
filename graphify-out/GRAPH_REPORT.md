@@ -1,17 +1,17 @@
 # Graph Report - Pubx  (2026-09-29)
 
 ## Corpus Check
-- 613 files · ~994,187 words
+- 613 files · ~994,583 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 16 file(s) not represented in the graph (top: (none) 9, .xml 2, .css 2)
 
 ## Summary
-- 3006 nodes · 8322 edges · 127 communities (109 shown, 18 thin omitted)
+- 3006 nodes · 8323 edges · 127 communities (109 shown, 18 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2c537c24`
+- Built from commit: `c991566a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -405,8 +405,8 @@ Cohesion: 0.09
 Nodes (22): body-parser, express>path-to-regexp, fast-xml-parser, qs, pnpm, overrides, scripts, backup (+14 more)
 
 ### Community 58 - "Planos.tsx"
-Cohesion: 0.20
-Nodes (14): PageMeta, upsertMeta(), usePageMeta(), setMeta(), BASE_INCLUDES, FEATURE_DESCRIPTIONS, Icon(), IconCheck() (+6 more)
+Cohesion: 0.21
+Nodes (14): PageMeta, upsertEl(), usePageMeta(), setMeta(), BASE_INCLUDES, FEATURE_DESCRIPTIONS, Icon(), IconCheck() (+6 more)
 
 ### Community 59 - "saas-core/package.json"
 Cohesion: 0.05
@@ -621,7 +621,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `lucide-react` connect `lucide-react` to `ref_react`, `client/src/lib/trpc.ts`, `cn`, `package.json`, `sidebar.tsx`, `client/src/App.tsx`, `TableSession.tsx`, `RestaurantOrders.tsx`, `utils.ts`, `item.tsx`, `alert-dialog.tsx`, `PromotionManager.tsx`, `dropdown-menu.tsx`, `carousel.tsx`, `TableMapManager.tsx`, `ThemeContext.tsx`, `select.tsx`, `navigation-menu.tsx`, `card.tsx`, `menubar.tsx`, `context-menu.tsx`, `ErrorBoundary.tsx`?**
   _High betweenness centrality (0.049) - this node is a cross-community bridge._
 - **Why does `dependencies` connect `dependencies` to `package.json`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+  _High betweenness centrality (0.047) - this node is a cross-community bridge._
 - **What connects `client`, `policy`, `UseAuthOptions` to the rest of the system?**
   _918 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ref_react` be split into smaller, more focused modules?**
