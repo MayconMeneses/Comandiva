@@ -150,6 +150,33 @@ const IconChevronDown = (props: SVGProps<SVGSVGElement>) => (
     <path d="m6 9 6 6 6-6" />
   </Icon>
 );
+const IconTable = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M2.5 8h19M4 8v11M20 8v11" />
+    <rect x="6.5" y="3" width="11" height="5" rx="1" />
+  </Icon>
+);
+const IconBag = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M6 8h12l-1 12.5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 20.5L6 8Z" />
+    <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+  </Icon>
+);
+const IconSprout = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M12 21V11" />
+    <path d="M12 11C12 6.5 8 5 4 5c0 4.5 3.5 6.5 8 6" />
+    <path d="M12 14c0-3.5 3-4.7 6.5-4.7 0 3.7-2.9 5.4-6.5 4.7Z" />
+  </Icon>
+);
+const IconUsers = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6" />
+    <path d="M16 8.3a3 3 0 1 1 0 5.9" />
+    <path d="M19 14.3c2 .5 3.5 2.4 3.5 5.7" />
+  </Icon>
+);
 
 function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
@@ -274,6 +301,33 @@ const SUPORTE: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: str
     icon: IconVideo,
     title: "Treinamento ao vivo",
     description: "Chamada de vídeo ensinando a usar o sistema, junto com a entrega do seu restaurante.",
+  },
+];
+
+// Grounded direto no que o sistema já tem: mesas/QR Code (módulo real,
+// Profissional e Premium), delivery/pedido online (o produto inteiro), e os
+// limites de usuário por plano já citados em RESUMO (Entrada até 3,
+// Profissional até 8, Premium sem limite) — nenhum segmento novo inventado.
+const PARA_QUEM: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [
+  {
+    icon: IconTable,
+    title: "Tem salão e mesas",
+    description: "Cliente pede pela própria mesa com QR Code, chama a equipe e fecha a conta pelo celular, sem levantar.",
+  },
+  {
+    icon: IconBag,
+    title: "Trabalha só com delivery",
+    description: "Cardápio e pedidos direto no seu sistema, com a sua marca — sem comissão por venda.",
+  },
+  {
+    icon: IconSprout,
+    title: "Está começando agora",
+    description: "Plano de entrada pra até 3 usuários, com 7 dias grátis pra testar sem compromisso.",
+  },
+  {
+    icon: IconUsers,
+    title: "Já tem uma equipe maior",
+    description: "Planos com até 8 usuários ou sem limite nenhum, com permissões separadas por área.",
   },
 ];
 
@@ -436,6 +490,25 @@ export default function Home() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Para quem é */}
+      <section className="mx-auto max-w-5xl px-6 py-20">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl font-bold text-ink sm:text-3xl">Serve pro seu restaurante, seja qual for o formato</h2>
+          <p className="mt-3 text-ink-soft">Salão, delivery, começando agora ou com equipe grande — o sistema se adapta.</p>
+        </Reveal>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {PARA_QUEM.map((item, index) => (
+            <Reveal key={item.title} delayMs={(index % 4) * 100} className="group rounded-2xl border border-border bg-paper-raised p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg">
+              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110">
+                <item.icon className="h-6 w-6" />
+              </div>
+              <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
+              <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
+            </Reveal>
+          ))}
         </div>
       </section>
 
