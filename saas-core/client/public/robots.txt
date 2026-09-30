@@ -1,5 +1,6 @@
 User-agent: *
 Disallow: /
 Allow: /comercial
+Allow: /sitemap.xml
 
 Sitemap: https://mmsystem.tech/sitemap.xml
