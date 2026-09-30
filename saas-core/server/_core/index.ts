@@ -26,15 +26,18 @@ import { alertSystemError } from "./telegramService";
 // fingerprint coletado o motor de risco do Checkout Pro deles pode nunca
 // liberar o botão de pagar (exatamente o bug que esse hook foi escrito pra
 // evitar, ver comentário lá — CSP adicionado depois reintroduziu o mesmo
-// problema sem querer). connect-src também precisa da mesma origem: o
-// script faz suas próprias chamadas de rede pra mandar o fingerprint.
+// problema sem querer). api.mercadopago.com (subdomínio SEPARADO de
+// www.mercadopago.com) também precisa estar em connect-src: é pra lá que o
+// script manda o fingerprint coletado (/v1/device_sessions/web_device) —
+// só apareceu no console depois do primeiro fix, script-src sozinho não
+// bastava.
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self' https://www.mercadopago.com",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data: blob:",
-  "connect-src 'self' https://www.mercadopago.com",
+  "connect-src 'self' https://www.mercadopago.com https://api.mercadopago.com",
   "object-src 'none'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
