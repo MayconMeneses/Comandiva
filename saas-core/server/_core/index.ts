@@ -19,14 +19,22 @@ import { alertSystemError } from "./telegramService";
 // site comercial não guardam dado operacional de restaurante, ver
 // CLAUDE.md) — diferente do app principal, essa política pode ser estática.
 // 'unsafe-inline' só em style-src: o client usa `style={{...}}` em alguns
-// componentes; script-src continua estrito (nenhum <script> inline/externo).
+// componentes; script-src continua estrito, com UMA exceção: o script
+// antifraude do Mercado Pago (`useMercadoPagoSecurity.ts`, injetado na
+// página de cadastro antes de criar a preferência de pagamento) — sem essa
+// origem liberada, o CSP bloqueava o próprio `security.js` deles, e sem
+// fingerprint coletado o motor de risco do Checkout Pro deles pode nunca
+// liberar o botão de pagar (exatamente o bug que esse hook foi escrito pra
+// evitar, ver comentário lá — CSP adicionado depois reintroduziu o mesmo
+// problema sem querer). connect-src também precisa da mesma origem: o
+// script faz suas próprias chamadas de rede pra mandar o fingerprint.
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' https://www.mercadopago.com",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data: blob:",
-  "connect-src 'self'",
+  "connect-src 'self' https://www.mercadopago.com",
   "object-src 'none'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
