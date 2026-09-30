@@ -124,11 +124,21 @@ button:disabled { cursor: not-allowed; }
 }
 
 @media print {
+  /* `content: url(...)` cria um elemento substituído no tamanho NATIVO da
+     imagem — `height`/`width` em CSS não têm efeito garantido sobre ele em
+     vários navegadores (gotcha conhecido de CSS). O ícone é 512×512px reais;
+     sem essa correção, ele imprimia enorme, cobrindo o comprovante inteiro
+     como se fosse marca d'água (reportado pelo usuário). `background-image`
+     com `background-size` respeita as dimensões de verdade. */
   article .font-display::before {
-    content: url("/mm-logo-icon.png");
+    content: "";
     display: block;
+    width: 28px;
     height: 28px;
     margin-bottom: 4px;
+    background-image: url("/mm-logo-icon.png");
+    background-size: 28px 28px;
+    background-repeat: no-repeat;
   }
 }
 
