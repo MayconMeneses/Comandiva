@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { clearOperationalSnapshot } from "@/lib/operationalSnapshotCache";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
 
@@ -42,6 +43,11 @@ export function useAuth(options?: UseAuthOptions) {
       try {
         sessionStorage.removeItem("local-cookie");
       } catch {}
+      // Cache offline (Fase A, ver plano em
+      // C:\Users\maico\.claude\plans\curried-sprouting-wirth.md) tem
+      // nome/telefone de cliente em alguns pedidos — não pode sobreviver
+      // troca de usuário no mesmo tablet.
+      void clearOperationalSnapshot();
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }

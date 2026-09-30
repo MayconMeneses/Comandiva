@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import ProductDialog from "@/components/ProductDialog";
 import ProductSearch from "@/components/ProductSearch";
 import { getFeatureLockedInfo, UpgradeNudgeModal } from "@/components/admin/LockedFeature";
+import { OfflineSnapshotBanner } from "@/components/OfflineSnapshotBanner";
+import { useOperationalSnapshot } from "@/hooks/useOperationalSnapshot";
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, BellRing, CalendarClock, CheckCheck, ChevronDown, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -41,7 +43,7 @@ function ServiceRequestsPanel() {
   // Mesma consulta que TableMapManager/RestaurantOrders.tsx pedem (mesmo
   // input `undefined`, mesmo refetchInterval) — o React Query compartilha a
   // rede entre os três em vez de disparar 3 pollings de 10s concorrentes.
-  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { refetchInterval: 10000 });
+  const snapshot = useOperationalSnapshot({ enabled: true });
   const requests = snapshot.data?.pendingServiceRequests;
   const resolve = trpc.admin.resolveServiceRequest.useMutation({ onSuccess: () => void utils.admin.operationalSnapshot.invalidate(), onError: error => toast.error(error.message) });
   if (snapshot.error) return <section className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Não foi possível carregar os chamados de garçom agora. {snapshot.error.message}</section>;
@@ -132,7 +134,7 @@ export default function TableMapManager() {
   // Mesma consulta de RestaurantOrders.tsx/ServiceRequestsPanel acima (mesmo
   // input `undefined`, mesmo refetchInterval) — compartilhada via cache do
   // React Query, não é um 3º polling separado.
-  const snapshot = trpc.admin.operationalSnapshot.useQuery(undefined, { refetchInterval: 10000 });
+  const snapshot = useOperationalSnapshot({ enabled: true });
   const tables = { data: snapshot.data?.tables, isLoading: snapshot.isLoading, error: snapshot.error };
   const [openSessionId, setOpenSessionId] = useState<{ id: number; label: string } | null>(null);
   const [openSectors, setOpenSectors] = useState<Set<string>>(new Set());
@@ -163,6 +165,7 @@ export default function TableMapManager() {
 
   const now = Date.now();
   return <div className="space-y-6">
+    {snapshot.isOffline && <OfflineSnapshotBanner cachedAt={snapshot.cachedAt} />}
     <ServiceRequestsPanel />
     {bySector.map(([sector, rows]) => {
       const isOpen = openSectors.has(sector);

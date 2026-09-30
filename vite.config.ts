@@ -46,13 +46,24 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,ico,png,woff2}"],
         // Chunks exclusivos de equipe (nunca carregados no load inicial de
         // "/", graças ao React.lazy em App.tsx) — sem isso, o precache do
-        // install baixava ~319KB desses chunks em segundo plano pra QUALQUER
+        // install baixava esses chunks em segundo plano pra QUALQUER
         // visitante anônimo do cardápio, reintroduzindo pela porta do Service
         // Worker o mesmo desperdício que o code-splitting resolveu no bundle
         // da página. TableSession (/mesa) e DataRights (/meus-dados) ficam de
         // fora desta lista de propósito — são rotas públicas de verdade, só
         // não fazem parte do load inicial.
-        globIgnores: ["**/Admin-*.js", "**/RestaurantOrders-*.js", "**/SupportEntry-*.js", "**/TeamLoginCard-*.js"],
+        //
+        // Admin-*.js e RestaurantOrders-*.js SAÍRAM da lista (Fase A do
+        // offline-first do painel, ver plano em
+        // C:\Users\maico\.claude\plans\curried-sprouting-wirth.md): pedido
+        // explícito do dono é o admin funcionar offline depois de instalado
+        // como app — sem pré-cachear o bundle, o app nem abre sem rede na
+        // primeira tela. Kitchen-*.js já não estava nesta lista (já
+        // pré-cacheado); os dois ficam alinhados com o mesmo comportamento
+        // agora. O custo (bundle maior no install) só afeta quem de fato
+        // instala o app como equipe/admin, não o visitante anônimo do
+        // cardápio (que nunca navega pra essas rotas).
+        globIgnores: ["**/SupportEntry-*.js", "**/TeamLoginCard-*.js"],
         // Cardápio é uma SPA (wouter) — toda navegação cai no mesmo
         // index.html; nunca deixar isso interceptar chamadas de API.
         navigateFallback: "/index.html",
