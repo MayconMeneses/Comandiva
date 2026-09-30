@@ -12,3 +12,8 @@ overrides:
   # já vinham patcheados por causa do express@4.22.2, mais novo que o do
   # app principal; ver auditoria V-36).
   qs: "6.16.0"
+  # esbuild <=0.24.2 vulnerável (CORS do dev server) puxado só pela cadeia
+  # depreciada drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils
+  # (drizzle-kit já usa esbuild ^0.25.4 direto — isso força a MESMA versão
+  # segura pra dedupar a cópia antiga em vez de conviver com duas).
+  esbuild: "^0.25.4"
