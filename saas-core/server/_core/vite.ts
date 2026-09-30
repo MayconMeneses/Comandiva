@@ -37,6 +37,24 @@ function injectCommercialPageMeta(html: string, url: string): string {
     .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${ogUrl}$2`);
 }
 
+/**
+ * Preload do hero da Home (/comercial) — medido via trace de performance
+ * (2026-09-30): sem isso, o LCP fica em ~4,9s porque o navegador só
+ * "descobre" a <img> depois que o bundle JS inteiro baixa e o React
+ * renderiza (LCPDiscovery insight: "Request discoverable in initial
+ * document: FAILED"). Com o preload no HTML cru, o download começa em
+ * paralelo ao JS, sem esperar hidratação — mesma imagem/srcset/sizes já
+ * usados no <img> real de Home.tsx, pra o navegador reaproveitar o
+ * download em vez de baixar duas vezes.
+ */
+function injectHeroPreload(html: string, url: string): string {
+  const requestPath = url.split("?")[0]?.split("#")[0] ?? url;
+  if (requestPath !== "/comercial") return html;
+  const preload =
+    '<link rel="preload" as="image" href="/assets/hero/hero-banner-1600.jpg" imagesrcset="/assets/hero/hero-banner-640.jpg 640w, /assets/hero/hero-banner-1200.jpg 1200w, /assets/hero/hero-banner-1600.jpg 1600w" imagesizes="100vw" fetchpriority="high" />\n  </head>';
+  return html.replace("</head>", preload);
+}
+
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
@@ -58,7 +76,7 @@ export async function setupVite(app: Express, server: Server) {
     try {
       const clientTemplate = path.resolve(import.meta.dirname, "../..", "client", "index.html");
       const template = await fs.promises.readFile(clientTemplate, "utf-8");
-      const page = injectCommercialPageMeta(await vite.transformIndexHtml(url, template), url);
+      const page = injectHeroPreload(injectCommercialPageMeta(await vite.transformIndexHtml(url, template), url), url);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
@@ -83,7 +101,7 @@ export function serveStatic(app: Express) {
   app.use("*", async (req, res, next) => {
     try {
       const template = await fs.promises.readFile(path.resolve(distPath, "index.html"), "utf-8");
-      res.status(200).set({ "Content-Type": "text/html" }).end(injectCommercialPageMeta(template, req.originalUrl));
+      res.status(200).set({ "Content-Type": "text/html" }).end(injectHeroPreload(injectCommercialPageMeta(template, req.originalUrl), req.originalUrl));
     } catch (e) {
       next(e);
     }
