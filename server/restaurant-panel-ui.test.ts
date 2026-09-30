@@ -11,7 +11,8 @@ const { mutateMock } = vi.hoisted(() => ({ mutateMock: vi.fn() }));
 vi.mock("../client/src/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ admin: { orders: { invalidate: vi.fn() }, dashboard: { invalidate: vi.fn() } } }),
-    admin: { updateOrderStatus: { useMutation: () => ({ isPending: false, error: null, mutate: mutateMock }) } },
+    admin: { updateOrderStatus: { useMutation: () => ({ isPending: false, isPaused: false, failureCount: 0, error: null, mutate: mutateMock }) } },
+    catalog: { settings: { useQuery: () => ({ data: undefined }) } },
   },
 }));
 vi.mock("../client/src/lib/deviceId", () => ({ getDeviceId: () => "device-test-123" }));

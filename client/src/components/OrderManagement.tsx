@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { advanceOrderStatus, getNextOrderStatus } from "@/lib/orderStatus";
 import { compressImageFile } from "@/lib/imageCompression";
 import { getDeviceId } from "@/lib/deviceId";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
+import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, persistPendingOrder } from "@/lib/pendingOrderQueue";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { trpc } from "@/lib/trpc";
 import { Archive, CheckCircle2, ChevronRight, CookingPot, ImagePlus, Loader2, MapPin, MapPinned, PackageCheck, Pencil, ReceiptText, Trash2, X } from "lucide-react";
@@ -28,15 +30,25 @@ export function OrderStatusActions({ order }: { order: Pick<OrderRecord, "id" | 
   // outro dispositivo da equipe (/painel-pedidos, /cozinha) pode ter mudado
   // este pedido enquanto esta tela (/admin/pedidos) ainda mostrava o status
   // antigo.
+  // Dedupe com a mesma consulta já feita em RestaurantOrders.tsx/Kitchen.tsx
+  // — React Query compartilha o cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
+      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id, payload: variables, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => { if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id }); },
     onSuccess: () => { void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate(); },
     onError: error => {
       void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate();
-      if (error.data?.code === "CONFLICT") toast.error("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+      if (error.data?.code === "CONFLICT") toast.error("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
     },
   });
   const action = getNextOrderStatus(order); const Icon = action ? (action.status === "ACCEPTED" || action.status === "COMPLETED" ? CheckCircle2 : action.status === "PREPARING" ? CookingPot : action.status === "OUT_FOR_DELIVERY" ? MapPinned : PackageCheck) : null;
-  return <div className="mt-3 border-t border-[#eee5d9] pt-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#806f61]">Próxima etapa</span>{action && Icon ? <Button size="sm" disabled={updateStatus.isPending} onClick={() => advanceOrderStatus(order, input => updateStatus.mutate({ ...input, deviceId: getDeviceId() }))} className="h-9 rounded-lg bg-primary px-3 text-xs hover:bg-primary-hover">{updateStatus.isPending ? "Atualizando…" : action.label}<Icon className="ml-1.5 h-3.5 w-3.5" /><ChevronRight className="h-3.5 w-3.5" /></Button> : <span className="text-xs text-muted-foreground">Sem novas ações</span>}</div>{updateStatus.error ? <p className="mt-2 text-xs text-red-700">{updateStatus.error.message}</p> : null}</div>;
+  return <div className="mt-3 border-t border-[#eee5d9] pt-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#806f61]">Próxima etapa</span>{action && Icon ? <Button size="sm" disabled={updateStatus.isPending} onClick={() => advanceOrderStatus(order, input => updateStatus.mutate({ ...input, deviceId: getDeviceId() }))} className="h-9 rounded-lg bg-primary px-3 text-xs hover:bg-primary-hover">{isRetryingOffline(updateStatus) ? "Tentando de novo…" : updateStatus.isPending ? "Atualizando…" : action.label}<Icon className="ml-1.5 h-3.5 w-3.5" /><ChevronRight className="h-3.5 w-3.5" /></Button> : <span className="text-xs text-muted-foreground">Sem novas ações</span>}</div>{isRetryingOffline(updateStatus) ? <p className="mt-2 text-xs text-amber-700">Sem conexão. Tentando de novo…</p> : updateStatus.error ? <p className="mt-2 text-xs text-red-700">{updateStatus.error.message}</p> : null}</div>;
 }
 
 function EditOrderDialog({ order, onClose }: { order: OrderRecord; onClose: () => void }) {

@@ -117,6 +117,38 @@ describe("pendingOrderQueue", () => {
       expect(found).toHaveLength(1);
       expect(found[0]).toMatchObject({ tableId: 8 });
     });
+
+    it("admin.updateOrderStatus (Fase C, por orderId): round-trip persiste e lê de volta", () => {
+      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: 42, payload: { orderId: 42, status: "ACCEPTED", expectedStatus: "PENDING" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      const found = readValidPendingOrders();
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ type: "admin.updateOrderStatus", orderId: 42 });
+    });
+
+    it("clearPendingOrder do admin.updateOrderStatus remove só a chave daquele pedido", () => {
+      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: 42, payload: { orderId: 42, status: "ACCEPTED" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: 43, payload: { orderId: 43, status: "ACCEPTED" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      clearPendingOrder({ type: "admin.updateOrderStatus", orderId: 42 });
+      const found = readValidPendingOrders();
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ orderId: 43 });
+    });
+
+    it("admin.recordBillPayment (Fase C, por tableSessionId): round-trip persiste e lê de volta", () => {
+      persistPendingOrder({ type: "admin.recordBillPayment", tableSessionId: 5, payload: { sessionId: 5, method: "PIX", amountCents: 1500, operationId: "op-pay-1" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      const found = readValidPendingOrders();
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ type: "admin.recordBillPayment", tableSessionId: 5 });
+    });
+
+    it("clearPendingOrder do admin.recordBillPayment remove só a chave daquela comanda", () => {
+      persistPendingOrder({ type: "admin.recordBillPayment", tableSessionId: 5, payload: { sessionId: 5, method: "PIX", amountCents: 1500, operationId: "op-a" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      persistPendingOrder({ type: "admin.recordBillPayment", tableSessionId: 6, payload: { sessionId: 6, method: "PIX", amountCents: 2000, operationId: "op-b" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      clearPendingOrder({ type: "admin.recordBillPayment", tableSessionId: 5 });
+      const found = readValidPendingOrders();
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ tableSessionId: 6 });
+    });
   });
 
   describe("resumeOrCreateOperationId", () => {
@@ -150,6 +182,16 @@ describe("pendingOrderQueue", () => {
     it("admin.addManualRound: NÃO reusa pendência de outra mesa (tableId diferente)", () => {
       persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-mesa-7" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
       expect(resumeOrCreateOperationId({ type: "admin.addManualRound", tableId: 8 })).not.toBe("op-mesa-7");
+    });
+
+    it("admin.recordBillPayment: reusa o operationId salvo pra MESMA comanda", () => {
+      persistPendingOrder({ type: "admin.recordBillPayment", tableSessionId: 5, payload: { sessionId: 5, method: "PIX", amountCents: 1500, operationId: "op-pay-5" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      expect(resumeOrCreateOperationId({ type: "admin.recordBillPayment", tableSessionId: 5 })).toBe("op-pay-5");
+    });
+
+    it("admin.recordBillPayment: NÃO reusa pendência de outra comanda (tableSessionId diferente)", () => {
+      persistPendingOrder({ type: "admin.recordBillPayment", tableSessionId: 5, payload: { sessionId: 5, method: "PIX", amountCents: 1500, operationId: "op-pay-5" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      expect(resumeOrCreateOperationId({ type: "admin.recordBillPayment", tableSessionId: 6 })).not.toBe("op-pay-5");
     });
   });
 });

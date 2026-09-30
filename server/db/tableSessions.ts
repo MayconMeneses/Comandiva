@@ -139,20 +139,43 @@ export async function requestSessionBill(sessionId: number) {
   });
 }
 
-export async function recordBillPayment(sessionId: number, input: { method: "PIX" | "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE"; amountCents: number; payerLabel?: string }) {
+/**
+ * `clientOperationId` (opcional) é a chave de idempotência gerada pelo
+ * cliente — mesmo padrão de insertPricedOrder (server/routers/order.ts):
+ * antes deste dedupe, um retry automático depois de queda de conexão (Fase C
+ * do offline-first do painel admin, ver plano em
+ * C:\Users\maico\.claude\plans\curried-sprouting-wirth.md) duplicava o
+ * registro de pagamento — sem trava, sem transação, um insert simples. Aqui é
+ * dinheiro, então precisa do mesmo cuidado já usado em pedidos/rodadas.
+ * Quando `clientOperationId` não é informado, comportamento idêntico a antes.
+ */
+export async function recordBillPayment(sessionId: number, input: { method: "PIX" | "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE"; amountCents: number; payerLabel?: string; clientOperationId?: string | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const now = Date.now();
-  await db.insert(tableBillPayments).values({
-    tableSessionId: sessionId,
-    method: input.method,
-    amountCents: input.amountCents,
-    payerLabel: input.payerLabel ?? null,
-    status: "PAID",
-    paidAt: now,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    await db.insert(tableBillPayments).values({
+      tableSessionId: sessionId,
+      method: input.method,
+      amountCents: input.amountCents,
+      payerLabel: input.payerLabel ?? null,
+      status: "PAID",
+      paidAt: now,
+      createdAt: now,
+      updatedAt: now,
+      clientOperationId: input.clientOperationId ?? null,
+    });
+  } catch (error) {
+    // Mesmo padrão de captura de insertPricedOrder — o `code` do driver
+    // (ER_DUP_ENTRY) fica em `error.cause`, não no erro que a gente pega
+    // direto (drizzle-orm embrulha num DrizzleQueryError).
+    const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
+    if (input.clientOperationId && errorCode === "ER_DUP_ENTRY") {
+      const [existing] = await db.select({ id: tableBillPayments.id }).from(tableBillPayments).where(eq(tableBillPayments.clientOperationId, input.clientOperationId)).limit(1);
+      if (existing) return;
+    }
+    throw error;
+  }
 }
 
 /**

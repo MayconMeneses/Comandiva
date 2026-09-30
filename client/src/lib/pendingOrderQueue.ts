@@ -36,9 +36,45 @@ export type PendingAdminRoundEntry = {
   schemaVersion: number;
 };
 
-export type PendingQueueEntry = PendingCheckoutEntry | PendingAddRoundEntry | PendingAdminRoundEntry;
+// Identidade por `orderId` — sem operationId de propósito: o dedupe aqui já
+// vem de outro mecanismo (expectedStatus/CONFLICT em admin.updateOrderStatus,
+// ver server/routers/admin/orders.ts), não de uma chave de idempotência.
+// Reenviar o MESMO payload depois de reconectar é seguro pra qualquer
+// intervalo de tempo — se já tiver sido aplicado, o servidor rejeita com
+// CONFLICT (tratado como "já atualizado", não como falha real) em vez de
+// duplicar nada. Fase C do offline-first, ver plano em
+// C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+export type PendingOrderStatusEntry = {
+  type: "admin.updateOrderStatus";
+  orderId: number;
+  payload: RouterInputs["admin"]["updateOrderStatus"];
+  createdAt: number;
+  itemCount: number;
+  schemaVersion: number;
+};
 
-type PendingContext = { type: "order.create"; screen: "checkout" | "counter" } | { type: "table.addRound"; token: string } | { type: "admin.addManualRound"; tableId: number };
+// Identidade por `tableSessionId` — dinheiro, por isso ganha fila de
+// recuperação completa (não só retry em memória) igual às outras 2 entradas
+// acima, ao contrário das ações de ciclo de vida da mesa (seatTable/
+// closeSession/cancelSession/reopenSession/resolveServiceRequest), que são
+// seguras por natureza e só precisam de retry, sem esse rastro.
+export type PendingBillPaymentEntry = {
+  type: "admin.recordBillPayment";
+  tableSessionId: number;
+  payload: RouterInputs["admin"]["recordBillPayment"];
+  createdAt: number;
+  itemCount: number;
+  schemaVersion: number;
+};
+
+export type PendingQueueEntry = PendingCheckoutEntry | PendingAddRoundEntry | PendingAdminRoundEntry | PendingOrderStatusEntry | PendingBillPaymentEntry;
+
+type PendingContext =
+  | { type: "order.create"; screen: "checkout" | "counter" }
+  | { type: "table.addRound"; token: string }
+  | { type: "admin.addManualRound"; tableId: number }
+  | { type: "admin.updateOrderStatus"; orderId: number }
+  | { type: "admin.recordBillPayment"; tableSessionId: number };
 
 // Janela curta de propósito: priceOrder (server/routers/order.ts) recalcula
 // preço/disponibilidade/pedido mínimo do zero a cada order.create, sem
@@ -59,13 +95,17 @@ const KEY_PREFIX = "mm-pending-order:";
 function keyFor(context: PendingContext): string {
   if (context.type === "order.create") return `${KEY_PREFIX}order.create:${context.screen}`;
   if (context.type === "table.addRound") return `${KEY_PREFIX}table.addRound:${context.token}`;
-  return `${KEY_PREFIX}admin.addManualRound:${context.tableId}`;
+  if (context.type === "admin.addManualRound") return `${KEY_PREFIX}admin.addManualRound:${context.tableId}`;
+  if (context.type === "admin.updateOrderStatus") return `${KEY_PREFIX}admin.updateOrderStatus:${context.orderId}`;
+  return `${KEY_PREFIX}admin.recordBillPayment:${context.tableSessionId}`;
 }
 
 function contextOf(entry: PendingQueueEntry): PendingContext {
   if (entry.type === "order.create") return { type: "order.create", screen: entry.screen };
   if (entry.type === "table.addRound") return { type: "table.addRound", token: entry.token };
-  return { type: "admin.addManualRound", tableId: entry.tableId };
+  if (entry.type === "admin.addManualRound") return { type: "admin.addManualRound", tableId: entry.tableId };
+  if (entry.type === "admin.updateOrderStatus") return { type: "admin.updateOrderStatus", orderId: entry.orderId };
+  return { type: "admin.recordBillPayment", tableSessionId: entry.tableSessionId };
 }
 
 export function isEntryExpired(entry: Pick<PendingQueueEntry, "createdAt">, now: number = Date.now()): boolean {
@@ -80,6 +120,8 @@ function isEntryValid(entry: unknown): entry is PendingQueueEntry {
   if (candidate.type === "order.create") return candidate.screen === "checkout" || candidate.screen === "counter";
   if (candidate.type === "table.addRound") return typeof candidate.token === "string" && candidate.token.length > 0;
   if (candidate.type === "admin.addManualRound") return typeof candidate.tableId === "number" && candidate.tableId > 0;
+  if (candidate.type === "admin.updateOrderStatus") return typeof candidate.orderId === "number" && candidate.orderId > 0;
+  if (candidate.type === "admin.recordBillPayment") return typeof candidate.tableSessionId === "number" && candidate.tableSessionId > 0;
   return false;
 }
 
@@ -151,7 +193,10 @@ export function resumeOrCreateOperationId(context: PendingContext): string {
   // Uma entrada malformada (localStorage editado manualmente, payload sem
   // operationId) não pode virar um `operationId: undefined` enviado ao
   // servidor — isso falharia a validação Zod pra sempre até recarregar a
-  // página. Só reusa quando o id salvo é de fato uma string usável.
-  if (existing && typeof existing.payload.operationId === "string" && existing.payload.operationId.length > 0) return existing.payload.operationId;
+  // página. Só reusa quando o id salvo é de fato uma string usável. `in`
+  // funciona como type guard aqui porque nem todo variant do payload tem
+  // `operationId` (ex.: admin.updateOrderStatus, que não usa essa chave de
+  // idempotência — dedupe lá é via expectedStatus/CONFLICT, não operationId).
+  if (existing && "operationId" in existing.payload && typeof existing.payload.operationId === "string" && existing.payload.operationId.length > 0) return existing.payload.operationId;
   return generateClientId();
 }

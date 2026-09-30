@@ -302,6 +302,13 @@
       "when": 1790208717142,
       "tag": "0042_parched_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1790784442858,
+      "tag": "0043_empty_iron_patriot",
+      "breakpoints": true
     }
   ]
 }

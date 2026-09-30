@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getDeviceId } from "@/lib/deviceId";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
+import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, persistPendingOrder } from "@/lib/pendingOrderQueue";
 import { trpc } from "@/lib/trpc";
 import { ChevronRight, ClipboardList, Printer } from "lucide-react";
 import { toast } from "sonner";
@@ -15,11 +17,21 @@ export function OrderActions({ order }: { order: { id: number; status: string; f
   // esta tabela (Visão Geral) pode estar aberta num dispositivo enquanto
   // outro membro da equipe mexe no mesmo pedido por /painel-pedidos ou
   // /cozinha.
+  // Dedupe com a mesma consulta já feita em RestaurantOrders.tsx/Kitchen.tsx
+  // — React Query compartilha o cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const update = trpc.admin.updateOrderStatus.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
+      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id, payload: variables, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => { if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id }); },
     onSuccess: () => { void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate(); },
     onError: error => {
       void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate();
-      if (error.data?.code === "CONFLICT") toast.error("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+      if (error.data?.code === "CONFLICT") toast.error("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
     },
   });
   const action = order.status === "PREPARING"
@@ -29,7 +41,7 @@ export function OrderActions({ order }: { order: { id: number; status: string; f
     : order.status === "READY_FOR_PICKUP" && order.fulfillmentType === "DINE_IN" ? { status: "COMPLETED" as const, label: "Marcar como servido" }
     : nextAction[order.status];
   const canCancel = ["PENDING", "ACCEPTED", "PREPARING"].includes(order.status);
-  return <div className="flex items-center justify-end gap-2"><button type="button" onClick={() => window.open(`/admin/comprovante/${order.id}`, "_blank", "noopener,noreferrer")} className="rounded-lg border border-border p-1.5 text-muted-foreground hover:border-primary hover:text-primary" aria-label="Abrir comprovante para impressão"><Printer className="h-3.5 w-3.5" /></button>{canCancel && <button type="button" disabled={update.isPending} onClick={() => update.mutate({ orderId: order.id, status: "CANCELLED", note: "Cancelado pelo restaurante", expectedStatus: order.status as "PENDING" | "ACCEPTED" | "PREPARING", deviceId: getDeviceId() })} className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-50">Cancelar</button>}{action ? <Button size="sm" disabled={update.isPending} onClick={() => update.mutate({ orderId: order.id, status: action.status, expectedStatus: order.status as "PENDING" | "ACCEPTED" | "PREPARING" | "OUT_FOR_DELIVERY" | "READY_FOR_PICKUP", deviceId: getDeviceId() })} className="h-8 rounded-lg bg-primary text-xs hover:bg-primary-hover">{update.isPending ? "Atualizando…" : action.label}<ChevronRight className="ml-1 h-3.5 w-3.5" /></Button> : <span className="text-xs text-muted-foreground">Sem novas ações</span>}</div>;
+  return <div className="flex items-center justify-end gap-2"><button type="button" onClick={() => window.open(`/admin/comprovante/${order.id}`, "_blank", "noopener,noreferrer")} className="rounded-lg border border-border p-1.5 text-muted-foreground hover:border-primary hover:text-primary" aria-label="Abrir comprovante para impressão"><Printer className="h-3.5 w-3.5" /></button>{canCancel && <button type="button" disabled={update.isPending} onClick={() => update.mutate({ orderId: order.id, status: "CANCELLED", note: "Cancelado pelo restaurante", expectedStatus: order.status as "PENDING" | "ACCEPTED" | "PREPARING", deviceId: getDeviceId() })} className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-50">Cancelar</button>}{action ? <Button size="sm" disabled={update.isPending} onClick={() => update.mutate({ orderId: order.id, status: action.status, expectedStatus: order.status as "PENDING" | "ACCEPTED" | "PREPARING" | "OUT_FOR_DELIVERY" | "READY_FOR_PICKUP", deviceId: getDeviceId() })} className="h-8 rounded-lg bg-primary text-xs hover:bg-primary-hover">{isRetryingOffline(update) ? "Tentando de novo…" : update.isPending ? "Atualizando…" : action.label}<ChevronRight className="ml-1 h-3.5 w-3.5" /></Button> : <span className="text-xs text-muted-foreground">Sem novas ações</span>}</div>;
 }
 
 export default function OrdersTable({ compact = false }: { compact?: boolean }) {

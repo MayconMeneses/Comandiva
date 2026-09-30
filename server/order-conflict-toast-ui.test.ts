@@ -36,10 +36,14 @@ vi.mock("@/lib/trpc", () => ({
       updateOrderStatus: {
         useMutation: (opts: { onSuccess?: () => void; onError?: (error: { message: string; data?: { code?: string } }) => void }) => {
           capturedOnError = opts.onError;
-          return { isPending: false, error: null, mutate: (input: unknown) => mutateMocks.current?.(input) };
+          return { isPending: false, isPaused: false, failureCount: 0, error: null, mutate: (input: unknown) => mutateMocks.current?.(input) };
         },
       },
     },
+    // offlineResilienceEnabled fica false (settings.data undefined) — este
+    // teste prova só o toast/payload, não o retry offline (ver
+    // offline-resilience-ui.test.ts pra isso).
+    catalog: { settings: { useQuery: () => ({ data: undefined }) } },
   },
 }));
 vi.mock("@/lib/deviceId", () => ({ getDeviceId: () => "device-test-123" }));
@@ -62,7 +66,7 @@ describe("toast de conflito em updateOrderStatus (painel da equipe)", () => {
 
     capturedOnError!({ message: "erro genérico qualquer", data: { code: "CONFLICT" } });
     expect(invalidateMock).toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
   });
 
   it("OrderCard: erro que NÃO é CONFLICT não mostra o toast de conflito", () => {
@@ -81,7 +85,7 @@ describe("toast de conflito em updateOrderStatus (painel da equipe)", () => {
 
     capturedOnError!({ message: "erro genérico qualquer", data: { code: "CONFLICT" } });
     expect(invalidateMock).toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
   });
 
   it("advance()/next() mandam expectedStatus e deviceId na mutation, não só orderId/status", () => {
@@ -98,7 +102,7 @@ describe("toast de conflito em updateOrderStatus (painel da equipe)", () => {
 
     capturedOnError!({ message: "erro genérico qualquer", data: { code: "CONFLICT" } });
     expect(invalidateMock).toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
   });
 
   it("OrderStatusActions: manda expectedStatus e deviceId na mutation", () => {
@@ -115,7 +119,7 @@ describe("toast de conflito em updateOrderStatus (painel da equipe)", () => {
 
     capturedOnError!({ message: "erro genérico qualquer", data: { code: "CONFLICT" } });
     expect(invalidateMock).toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+    expect(toastErrorMock).toHaveBeenCalledWith("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
   });
 
   it("OrderActions: manda expectedStatus e deviceId tanto no botão de ação quanto no Cancelar", () => {

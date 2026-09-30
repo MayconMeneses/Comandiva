@@ -6,6 +6,8 @@ import { OfflineSnapshotBanner } from "@/components/OfflineSnapshotBanner";
 import { useOperationalSnapshot } from "@/hooks/useOperationalSnapshot";
 import { trpc } from "@/lib/trpc";
 import { getDeviceId } from "@/lib/deviceId";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
+import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, persistPendingOrder } from "@/lib/pendingOrderQueue";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { ArrowLeft, ChevronRight, Clock3, Loader2, LogOut, MessageSquareWarning, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
@@ -40,11 +42,21 @@ export function QueueCard({ order, position }: { order: KitchenOrder; position: 
   // pessoa conseguir ler um texto de erro embaixo do card, então só o toast
   // (que não depende do ciclo de vida deste componente) garante que a
   // mensagem seja vista.
+  // Dedupe com a mesma consulta já feita em RestaurantOrders.tsx/AddRoundForm
+  // — React Query compartilha o cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
+      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id, payload: variables, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => { if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id }); },
     onSuccess: () => void utils.admin.operationalSnapshot.invalidate(),
     onError: error => {
       void utils.admin.operationalSnapshot.invalidate();
-      if (error.data?.code === "CONFLICT") toast.error("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+      if (error.data?.code === "CONFLICT") toast.error("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
     },
   });
   const next = nextKitchenStep(order);
@@ -58,8 +70,8 @@ export function QueueCard({ order, position }: { order: KitchenOrder; position: 
       </div>
       <ul className="mt-3 space-y-1 border-t border-[#eee4d8] pt-3 text-sm leading-6 text-[#3a2e24]">{order.items.map(item => <li key={item.id}><strong>{item.quantity}×</strong> {item.productName}</li>)}</ul>
       {(order.customerNote || itemNotes.length > 0) && <div className="mt-2 space-y-1.5 rounded-xl border border-amber-300 bg-amber-50 p-3"><div className="flex items-start gap-2 text-xs font-semibold text-amber-900"><MessageSquareWarning className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div className="space-y-1">{order.customerNote && <p>{order.customerNote}</p>}{itemNotes.map(item => <p key={item.id} className="font-normal">{item.productName}: {item.note}</p>)}</div></div></div>}
-      <div className="mt-4 flex items-center justify-between gap-3"><span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Pedido às {new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>{next && <Button disabled={updateStatus.isPending} onClick={() => updateStatus.mutate({ orderId: order.id, status: next.status, expectedStatus: order.status as "ACCEPTED" | "PREPARING", deviceId: getDeviceId() })} className="h-10 rounded-xl bg-primary text-sm hover:bg-primary-hover">{updateStatus.isPending ? "Atualizando…" : next.label}<ChevronRight className="ml-1.5 h-4 w-4" /></Button>}</div>
-      {updateStatus.error && <p className="mt-2 text-xs text-red-700">{updateStatus.error.message}</p>}
+      <div className="mt-4 flex items-center justify-between gap-3"><span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Pedido às {new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>{next && <Button disabled={updateStatus.isPending} onClick={() => updateStatus.mutate({ orderId: order.id, status: next.status, expectedStatus: order.status as "ACCEPTED" | "PREPARING", deviceId: getDeviceId() })} className="h-10 rounded-xl bg-primary text-sm hover:bg-primary-hover">{isRetryingOffline(updateStatus) ? "Tentando de novo…" : updateStatus.isPending ? "Atualizando…" : next.label}<ChevronRight className="ml-1.5 h-4 w-4" /></Button>}</div>
+      {isRetryingOffline(updateStatus) ? <p className="mt-2 text-xs text-amber-700">Sem conexão. Tentando de novo…</p> : updateStatus.error && <p className="mt-2 text-xs text-red-700">{updateStatus.error.message}</p>}
     </div>
   </article>;
 }

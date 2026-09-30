@@ -49,7 +49,15 @@ function ServiceRequestsPanel() {
   // rede entre os três em vez de disparar 3 pollings de 10s concorrentes.
   const snapshot = useOperationalSnapshot({ enabled: true });
   const requests = snapshot.data?.pendingServiceRequests;
-  const resolve = trpc.admin.resolveServiceRequest.useMutation({ onSuccess: () => void utils.admin.operationalSnapshot.invalidate(), onError: error => toast.error(error.message) });
+  // Sobrescrita incondicional (resolveServiceRequest, server/db/
+  // tableServiceRequests.ts) — seguro repetir, só retry automático, sem fila
+  // de recuperação (não há "chamado perdido" se a aba fechar no meio de uma
+  // queda: reabrir a tela já mostra se ainda está pendente ou não). Fase C do
+  // offline-first, ver plano em
+  // C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
+  const resolve = trpc.admin.resolveServiceRequest.useMutation({ ...offlineResilienceMutationOptions(offlineResilienceEnabled), onSuccess: () => void utils.admin.operationalSnapshot.invalidate(), onError: error => toast.error(error.message) });
   if (snapshot.error) return <section className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Não foi possível carregar os chamados de garçom agora. {snapshot.error.message}</section>;
   if (!requests?.length) return null;
   return <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
@@ -115,24 +123,59 @@ function RecordPaymentForm({ sessionId, balanceDueCents }: { sessionId: number; 
   const [method, setMethod] = useState<"PIX" | "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE">("PIX");
   const [amount, setAmount] = useState(() => (balanceDueCents / 100).toFixed(2).replace(".", ","));
   const [payerLabel, setPayerLabel] = useState("");
+  // Dedupe com a mesma consulta já feita em AddRoundForm/NewCounterOrder.tsx
+  // — React Query compartilha o cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
+  // É dinheiro — mesmo tratamento completo de AddRoundForm (dedupe por
+  // clientOperationId no servidor, fila de recuperação se a aba fechar no
+  // meio de uma queda), não só retry em memória. Fase C do offline-first, ver
+  // plano em C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "admin.recordBillPayment", tableSessionId: sessionId }) : generateClientId());
+  const startedAtRef = useRef<number | null>(null);
   const record = trpc.admin.recordBillPayment.useMutation({
-    onSuccess: () => { void utils.admin.operationalSnapshot.invalidate(); void utils.admin.sessionDetail.invalidate({ sessionId }); toast.success("Pagamento registrado."); setPayerLabel(""); },
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
+      const now = Date.now();
+      startedAtRef.current = now;
+      persistPendingOrder({ type: "admin.recordBillPayment", tableSessionId: sessionId, payload: variables, createdAt: now, itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => {
+      startedAtRef.current = null;
+      if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.recordBillPayment", tableSessionId: sessionId });
+    },
+    onSuccess: () => {
+      operationIdRef.current = generateClientId();
+      void utils.admin.operationalSnapshot.invalidate();
+      void utils.admin.sessionDetail.invalidate({ sessionId });
+      toast.success("Pagamento registrado.");
+      setPayerLabel("");
+    },
     onError: error => toast.error(error.message),
   });
+  const recordStale = useStaleRetryWarning(isRetryingOffline(record), startedAtRef.current);
   const amountCents = Math.round(Number(amount.replace(",", ".")) * 100 || 0);
   return <div className="rounded-xl border border-[#e4d8c8] bg-white p-3">
     <p className="text-xs font-semibold uppercase tracking-[.1em] text-[#806f61]">Registrar pagamento (divida em quantas partes precisar)</p>
     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{([["PIX", "Pix"], ["CASH", "Dinheiro"], ["CARD_ON_DELIVERY", "Cartão"], ["CARD_ONLINE", "Online"]] as const).map(([value, label]) => <button type="button" key={value} onClick={() => setMethod(value)} className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${method === value ? "border-primary bg-[#fdf1eb] text-[#9f3d26]" : "border-[#e0d5c5]"}`}>{label}</button>)}</div>
     <div className="mt-2 grid grid-cols-2 gap-2"><div><Label className="text-xs">Valor</Label><Input value={amount} onChange={event => setAmount(event.target.value)} inputMode="decimal" className="mt-1 h-9 rounded-lg bg-white text-sm" /></div><div><Label className="text-xs">Quem pagou (opcional)</Label><Input value={payerLabel} onChange={event => setPayerLabel(event.target.value)} placeholder="Ex.: Pessoa 1" className="mt-1 h-9 rounded-lg bg-white text-sm" /></div></div>
-    <Button size="sm" disabled={record.isPending || amountCents <= 0} onClick={() => record.mutate({ sessionId, method, amountCents, payerLabel: payerLabel || undefined })} className="mt-2 h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{record.isPending ? "Registrando…" : "Registrar pagamento"}</Button>
+    <Button size="sm" disabled={record.isPending || amountCents <= 0} onClick={() => record.mutate({ sessionId, method, amountCents, payerLabel: payerLabel || undefined, operationId: operationIdRef.current })} className="mt-2 h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{isRetryingOffline(record) ? "Tentando de novo…" : record.isPending ? "Registrando…" : "Registrar pagamento"}</Button>
+    {isRetryingOffline(record) ? <p className="mt-2 text-xs text-amber-700">{recordStale ? "Conexão perdida há muito tempo — confira o pagamento na comanda antes de repetir." : "Sem conexão. Tentando de novo…"}</p> : record.error && <p className="mt-2 text-xs text-red-700">{record.error.message}</p>}
   </div>;
 }
 
 function SessionDrawer({ sessionId, tableLabel, onClose }: { sessionId: number; tableLabel: string; onClose: () => void }) {
   const utils = trpc.useUtils();
   const detail = trpc.admin.sessionDetail.useQuery({ sessionId }, { refetchInterval: 8000 });
-  const closeSession = trpc.admin.closeSession.useMutation({ onSuccess: () => { void utils.admin.operationalSnapshot.invalidate(); toast.success("Comanda fechada."); onClose(); }, onError: error => toast.error(error.message) });
-  const cancelSession = trpc.admin.cancelSession.useMutation({ onSuccess: () => { void utils.admin.operationalSnapshot.invalidate(); toast.success("Comanda cancelada."); onClose(); }, onError: error => toast.error(error.message) });
+  // Guard explícito de status (no-op se repetido, ver closeTableSession/
+  // cancelTableSession em server/db/tableSessions.ts) — seguro repetir, só
+  // retry automático, sem fila de recuperação. Fase C do offline-first, ver
+  // plano em C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
+  const closeSession = trpc.admin.closeSession.useMutation({ ...offlineResilienceMutationOptions(offlineResilienceEnabled), onSuccess: () => { void utils.admin.operationalSnapshot.invalidate(); toast.success("Comanda fechada."); onClose(); }, onError: error => toast.error(error.message) });
+  const cancelSession = trpc.admin.cancelSession.useMutation({ ...offlineResilienceMutationOptions(offlineResilienceEnabled), onSuccess: () => { void utils.admin.operationalSnapshot.invalidate(); toast.success("Comanda cancelada."); onClose(); }, onError: error => toast.error(error.message) });
   const data = detail.data;
   return <Dialog open onOpenChange={value => { if (!value) onClose(); }}><DialogContent className="max-h-[92vh] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-2xl bg-[#fffdf8] sm:max-w-2xl">
     <DialogHeader><p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Comanda</p><DialogTitle className="font-display text-3xl">{tableLabel}</DialogTitle></DialogHeader>
@@ -168,7 +211,15 @@ export default function TableMapManager() {
   const [openSessionId, setOpenSessionId] = useState<{ id: number; label: string } | null>(null);
   const [openSectors, setOpenSectors] = useState<Set<string>>(new Set());
   const toggleSector = (sector: string) => setOpenSectors(current => { const next = new Set(current); if (next.has(sector)) next.delete(sector); else next.add(sector); return next; });
+  // Idempotente (getOrOpenSessionForTable, server/db/tableSessions.ts):
+  // retorna a comanda já aberta da mesa em vez de abrir outra — seguro
+  // repetir, só retry automático, sem fila de recuperação. Fase C do
+  // offline-first, ver plano em
+  // C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const seatTable = trpc.admin.seatTable.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
     onSuccess: (result, variables) => {
       void utils.admin.operationalSnapshot.invalidate();
       const label = tables.data?.find(row => row.table.id === variables.tableId)?.table.label ?? "Mesa";

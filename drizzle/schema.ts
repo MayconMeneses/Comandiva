@@ -816,8 +816,17 @@ export const tableBillPayments = mysqlTable(
     paidAt: bigint("paidAt", { mode: "number", unsigned: true }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
+    // Chave de idempotência gerada pelo cliente — mesmo padrão de
+    // orders.clientOperationId (ver comentário lá): nulo pra registros
+    // antigos, protege um retry automático depois de queda de conexão contra
+    // duplicar um pagamento. Fase C do offline-first do painel admin, ver
+    // plano em C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+    clientOperationId: varchar("clientOperationId", { length: 64 }),
   },
-  table => [index("table_bill_payments_session_idx").on(table.tableSessionId)],
+  table => [
+    index("table_bill_payments_session_idx").on(table.tableSessionId),
+    uniqueIndex("table_bill_payments_client_operation_id_unique").on(table.clientOperationId),
+  ],
 );
 
 /** Reservas de mesa registradas pela equipe (telefone/WhatsApp), não um formulário público. */

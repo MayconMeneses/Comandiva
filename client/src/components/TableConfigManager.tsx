@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { offlineResilienceMutationOptions } from "@/lib/offlineRetry";
 import { trpc } from "@/lib/trpc";
 import QRCode from "qrcode";
 import { Loader2, Plus, QrCode as QrCodeIcon, RefreshCw, RotateCcw } from "lucide-react";
@@ -12,7 +13,15 @@ import { toast } from "sonner";
 function RecentClosedSessions() {
   const utils = trpc.useUtils();
   const closed = trpc.admin.recentClosedSessions.useQuery();
+  // Falha graciosamente em replay (reopenTableSession, server/db/
+  // tableSessions.ts: rejeita se a mesa já tiver outra comanda aberta) —
+  // seguro repetir, só retry automático, sem fila de recuperação. Fase C do
+  // offline-first, ver plano em
+  // C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const reopen = trpc.admin.reopenSession.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
     onSuccess: () => { void utils.admin.recentClosedSessions.invalidate(); void utils.admin.tables.invalidate(); void utils.admin.operationalSnapshot.invalidate(); toast.success("Comanda reaberta."); },
     onError: error => toast.error(error.message),
   });

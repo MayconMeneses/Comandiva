@@ -102,9 +102,19 @@ export const adminTablesRouter = router({
     return { success: true };
   }),
   recordBillPayment: commandsRestaurantProcedure
-    .input(z.object({ sessionId: z.number().int().positive(), method: billMethodSchema, amountCents: z.number().int().positive(), payerLabel: z.string().max(60).optional() }))
+    .input(z.object({
+      sessionId: z.number().int().positive(),
+      method: billMethodSchema,
+      amountCents: z.number().int().positive(),
+      payerLabel: z.string().max(60).optional(),
+      // Chave de idempotência gerada pelo cliente — mesmo raciocínio de
+      // `operationId` em addManualRound (dedupe contra retry automático
+      // depois de queda de conexão). Fase C do offline-first, ver plano em
+      // C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+      operationId: z.string().min(8).max(64).regex(/^[a-zA-Z0-9-]+$/).optional(),
+    }))
     .mutation(async ({ input }) => {
-      await recordBillPayment(input.sessionId, input);
+      await recordBillPayment(input.sessionId, { ...input, clientOperationId: input.operationId });
       return getSessionWithOrders(input.sessionId);
     }),
   closeSession: commandsRestaurantProcedure.input(z.object({ sessionId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {

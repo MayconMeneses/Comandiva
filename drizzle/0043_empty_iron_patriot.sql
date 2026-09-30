@@ -1,0 +1,2 @@
+ALTER TABLE `table_bill_payments` ADD `clientOperationId` varchar(64);--> statement-breakpoint
+ALTER TABLE `table_bill_payments` ADD CONSTRAINT `table_bill_payments_client_operation_id_unique` UNIQUE(`clientOperationId`);

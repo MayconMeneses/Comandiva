@@ -13,6 +13,8 @@ import { OfflineSnapshotBanner } from "@/components/OfflineSnapshotBanner";
 import { useOperationalSnapshot } from "@/hooks/useOperationalSnapshot";
 import { trpc } from "@/lib/trpc";
 import { getDeviceId } from "@/lib/deviceId";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
+import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, persistPendingOrder } from "@/lib/pendingOrderQueue";
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, CookingPot, Loader2, LogOut, MapPinned, MessageSquareWarning, PackageCheck, Phone, Plus, Printer, RefreshCw, ShoppingBag, UserCog } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
@@ -67,11 +69,22 @@ export function OrderCard({ order }: { order: { id: number; publicCode: string; 
   // um card novo monta no lugar, sem o estado de erro da mutation antiga, e o
   // texto embaixo do card some antes da pessoa conseguir ler. O toast
   // (sonner) não depende do ciclo de vida deste componente, então sobrevive.
-  const utils = trpc.useUtils(); const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+  const utils = trpc.useUtils();
+  // Dedupe com a mesma consulta já feita no componente pai (RestaurantOrders)
+  // — React Query compartilha o cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
+  const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
+      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id, payload: variables, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => { if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id }); },
     onSuccess: () => void utils.admin.operationalSnapshot.invalidate(),
     onError: error => {
       void utils.admin.operationalSnapshot.invalidate();
-      if (error.data?.code === "CONFLICT") toast.error("Esse pedido foi atualizado por outro dispositivo — a tela foi atualizada com o status mais recente.");
+      if (error.data?.code === "CONFLICT") toast.error("Esse pedido já foi atualizado — a tela foi atualizada com o status mais recente.");
     },
   }); const meta = statusMeta[order.status as ActiveStatus]; if (!meta) return null;
   const next = order.status === "PREPARING"
@@ -98,7 +111,7 @@ export function OrderCard({ order }: { order: { id: number; publicCode: string; 
   ? <div className="mt-3"><PrepTimeProgress since={order.createdAt} label="Aceite" /></div>
   : order.status === "ACCEPTED"
   ? <div className="mt-3"><PrepTimeProgress since={order.acceptedAt ?? order.createdAt} orangeAtMinutes={5} redAtMinutes={10} /></div>
-  : <div className="mt-3"><PrepTimeProgress since={order.preparingAt ?? order.acceptedAt ?? order.createdAt} label="Produção" orangeAtMinutes={20} redAtMinutes={40} /></div>}<p className="mt-3 line-clamp-2 border-t border-[#eee4d8] pt-3 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p>{(order.customerNote || itemNotes.length > 0) && <div className="mt-2 space-y-1.5 rounded-xl border border-amber-300 bg-amber-50 p-3"><div className="flex items-start gap-2 text-xs font-semibold text-amber-900"><MessageSquareWarning className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div className="space-y-1"> {order.customerNote && <p>{order.customerNote}</p>} {itemNotes.map(item => <p key={item.id} className="font-normal">{item.productName}: {item.note}</p>)}</div></div></div>}<div className="mt-4 flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#695b50]">{FULFILLMENT_LABEL[order.fulfillmentType]}{ORIGIN_TAG[order.origin] ? ` · ${ORIGIN_TAG[order.origin]}` : ""}</span><div className="flex items-center gap-2">{order.status !== "PENDING" && <button type="button" onClick={() => window.open(`/admin/comprovante/${order.id}`, "_blank", "noopener,noreferrer")} className="grid h-9 w-9 place-items-center rounded-lg border border-[#d9c9b4] text-[#725645] transition hover:border-primary hover:text-primary" aria-label="Imprimir comprovante"><Printer className="h-4 w-4" /></button>}{next ? <Button size="sm" disabled={updateStatus.isPending} onClick={advance} className="h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{updateStatus.isPending ? "Atualizando…" : next.label}<ChevronRight className="ml-1 h-3.5 w-3.5" /></Button> : null}</div></div>{updateStatus.error ? <p className="mt-3 text-xs text-red-700">{updateStatus.error.message}</p> : null}</article>;
+  : <div className="mt-3"><PrepTimeProgress since={order.preparingAt ?? order.acceptedAt ?? order.createdAt} label="Produção" orangeAtMinutes={20} redAtMinutes={40} /></div>}<p className="mt-3 line-clamp-2 border-t border-[#eee4d8] pt-3 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p>{(order.customerNote || itemNotes.length > 0) && <div className="mt-2 space-y-1.5 rounded-xl border border-amber-300 bg-amber-50 p-3"><div className="flex items-start gap-2 text-xs font-semibold text-amber-900"><MessageSquareWarning className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div className="space-y-1"> {order.customerNote && <p>{order.customerNote}</p>} {itemNotes.map(item => <p key={item.id} className="font-normal">{item.productName}: {item.note}</p>)}</div></div></div>}<div className="mt-4 flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#695b50]">{FULFILLMENT_LABEL[order.fulfillmentType]}{ORIGIN_TAG[order.origin] ? ` · ${ORIGIN_TAG[order.origin]}` : ""}</span><div className="flex items-center gap-2">{order.status !== "PENDING" && <button type="button" onClick={() => window.open(`/admin/comprovante/${order.id}`, "_blank", "noopener,noreferrer")} className="grid h-9 w-9 place-items-center rounded-lg border border-[#d9c9b4] text-[#725645] transition hover:border-primary hover:text-primary" aria-label="Imprimir comprovante"><Printer className="h-4 w-4" /></button>}{next ? <Button size="sm" disabled={updateStatus.isPending} onClick={advance} className="h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{isRetryingOffline(updateStatus) ? "Tentando de novo…" : updateStatus.isPending ? "Atualizando…" : next.label}<ChevronRight className="ml-1 h-3.5 w-3.5" /></Button> : null}</div></div>{isRetryingOffline(updateStatus) ? <p className="mt-3 text-xs text-amber-700">Sem conexão. Tentando de novo…</p> : updateStatus.error ? <p className="mt-3 text-xs text-red-700">{updateStatus.error.message}</p> : null}</article>;
 }
 
 export default function RestaurantOrders() {

@@ -185,8 +185,14 @@ export const adminOrdersRouter = router({
       // chamador manda o campo (retrocompatível) e quando o divergente é de
       // fato OUTRO valor — um resubmit do mesmo dispositivo com o mesmo
       // expectedStatus, se ainda não tiver sido processado, segue normal.
+      // Texto neutro de propósito (não presume "outra pessoa"/"outro
+      // dispositivo"): depois de uma reconexão (Fase C offline-first, ver
+      // plano em C:\Users\maico\.claude\plans\curried-sprouting-wirth.md),
+      // este CONFLICT pode ser a PRÓPRIA tentativa anterior deste mesmo
+      // dispositivo que na verdade já tinha dado certo (só a resposta se
+      // perdeu na queda) — não uma corrida real com outro dispositivo.
       if (input.expectedStatus && input.expectedStatus !== row.status) {
-        throw new TRPCError({ code: "CONFLICT", message: `Esse pedido já foi atualizado por outra pessoa — o status atual é "${STATUS_LABELS[row.status]}".` });
+        throw new TRPCError({ code: "CONFLICT", message: `Esse pedido já foi atualizado — o status atual é "${STATUS_LABELS[row.status]}".` });
       }
       if (!ALLOWED_STATUS_TRANSITIONS[row.status].includes(input.status)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: `Não é possível alterar de “${STATUS_LABELS[row.status]}” para “${STATUS_LABELS[input.status]}”.` });
