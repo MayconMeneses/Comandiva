@@ -73,14 +73,6 @@ const IconCheckShield = (props: SVGProps<SVGSVGElement>) => (
     <path d="m9 12 2 2 4-4" />
   </Icon>
 );
-const IconHeadset = (props: SVGProps<SVGSVGElement>) => (
-  <Icon {...props}>
-    <path d="M4 13a8 8 0 0 1 16 0" />
-    <rect x="3" y="13" width="4" height="6" rx="1.5" />
-    <rect x="17" y="13" width="4" height="6" rx="1.5" />
-    <path d="M19 19v1a3 3 0 0 1-3 3h-2" />
-  </Icon>
-);
 const IconCard = (props: SVGProps<SVGSVGElement>) => (
   <Icon {...props}>
     <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
@@ -145,6 +137,14 @@ const IconVideo = (props: SVGProps<SVGSVGElement>) => (
     <path d="m15.5 10.5 5.5-3v9l-5.5-3Z" />
   </Icon>
 );
+const IconWifi = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M2 8.5c5.5-5 14.5-5 20 0" />
+    <path d="M5.5 12.5c3.7-3.3 9.3-3.3 13 0" />
+    <path d="M9 16.5c2-1.7 4-1.7 6 0" />
+    <circle cx="12" cy="20" r="1" fill="currentColor" stroke="none" />
+  </Icon>
+);
 const IconChevronDown = (props: SVGProps<SVGSVGElement>) => (
   <Icon strokeWidth={2.25} {...props}>
     <path d="m6 9 6 6 6-6" />
@@ -190,7 +190,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [
+const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string; badge?: string }[] = [
   {
     icon: IconBolt,
     title: "Zero comissão por pedido",
@@ -207,9 +207,10 @@ const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title
     description: "Não é protótipo nem MVP de vitrine: é o mesmo sistema que roda a operação real de um restaurante, todo santo dia.",
   },
   {
-    icon: IconHeadset,
-    title: "Sua equipe não fica sozinha",
-    description: "A gente acompanha a configuração inicial e pode entrar no seu painel pra ajudar quando você travar — sem pedir sua senha.",
+    icon: IconWifi,
+    title: "Aguenta internet ruim na hora do pedido",
+    badge: "Profissional e Premium",
+    description: "Se a conexão do cliente cair bem no meio do pedido, o sistema tenta enviar de novo sozinho — sem duplicar e sem perder a venda.",
   },
   {
     icon: IconCard,
@@ -524,7 +525,10 @@ export default function Home() {
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110">
                 <item.icon className="h-5 w-5" />
               </div>
-              <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
+              <div className="mt-4 flex items-center gap-2">
+                <h3 className="font-semibold text-ink">{item.title}</h3>
+                {item.badge && <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">{item.badge}</span>}
+              </div>
               <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
             </Reveal>
           ))}
