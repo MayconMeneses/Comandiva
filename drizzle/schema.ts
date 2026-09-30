@@ -505,10 +505,11 @@ export const orders = mysqlTable(
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
     // Chave de idempotência gerada pelo cliente (checkout público, balcão,
-    // rodada de mesa) — nulo pra chamadas que ainda não mandam isso (ex.:
-    // admin.tables.addManualRound). Protege contra clique duplo/resubmit
-    // criando dois pedidos: ver insertPricedOrder em server/routers/order.ts.
-    // Pré-requisito da Fase 3 (Outbox offline) do roadmap offline-first.
+    // rodada de mesa via QR Code, rodada lançada pelo admin — todos os
+    // caminhos que criam pedido hoje já mandam isso) — nulo só pra registros
+    // antigos, criados antes desse campo existir. Protege contra clique
+    // duplo/resubmit criando dois pedidos: ver insertPricedOrder em
+    // server/routers/order.ts.
     clientOperationId: varchar("clientOperationId", { length: 64 }),
   },
   table => [

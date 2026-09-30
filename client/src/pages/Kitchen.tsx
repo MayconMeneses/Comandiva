@@ -4,10 +4,10 @@ import TeamLoginCard from "@/components/TeamLoginCard";
 import { LockedFeatureFullPage } from "@/components/admin/LockedFeature";
 import { OfflineSnapshotBanner } from "@/components/OfflineSnapshotBanner";
 import { useOperationalSnapshot } from "@/hooks/useOperationalSnapshot";
+import { useOrderStatusOfflineQueue } from "@/hooks/useOrderStatusOfflineQueue";
 import { trpc } from "@/lib/trpc";
 import { getDeviceId } from "@/lib/deviceId";
-import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, persistPendingOrder } from "@/lib/pendingOrderQueue";
+import { isRetryingOffline } from "@/lib/offlineRetry";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
 import { ArrowLeft, ChevronRight, Clock3, Loader2, LogOut, MessageSquareWarning, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
@@ -42,17 +42,8 @@ export function QueueCard({ order, position }: { order: KitchenOrder; position: 
   // pessoa conseguir ler um texto de erro embaixo do card, então só o toast
   // (que não depende do ciclo de vida deste componente) garante que a
   // mensagem seja vista.
-  // Dedupe com a mesma consulta já feita em RestaurantOrders.tsx/AddRoundForm
-  // — React Query compartilha o cache, sem requisição extra.
-  const settings = trpc.catalog.settings.useQuery();
-  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const updateStatus = trpc.admin.updateOrderStatus.useMutation({
-    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
-    onMutate: variables => {
-      if (!offlineResilienceEnabled) return;
-      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id, payload: variables, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
-    },
-    onSettled: () => { if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id }); },
+    ...useOrderStatusOfflineQueue(order.id),
     onSuccess: () => void utils.admin.operationalSnapshot.invalidate(),
     onError: error => {
       void utils.admin.operationalSnapshot.invalidate();

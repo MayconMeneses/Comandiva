@@ -69,6 +69,14 @@ describe("pendingOrderQueue", () => {
       expect(localStorage.getItem("mm-pending-order:order.create:checkout")).toBeNull();
     });
 
+    it("tolera payload adulterado (não-objeto) sem lançar, e limpa a entrada — regressão: 'operationId' in payload lançava TypeError quando payload era string/número", () => {
+      localStorage.setItem("mm-pending-order:admin.recordBillPayment:5", JSON.stringify({ type: "admin.recordBillPayment", tableSessionId: 5, payload: "não é um objeto", createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION }));
+      expect(() => readValidPendingOrders()).not.toThrow();
+      expect(readValidPendingOrders()).toHaveLength(0);
+      expect(localStorage.getItem("mm-pending-order:admin.recordBillPayment:5")).toBeNull();
+      expect(() => resumeOrCreateOperationId({ type: "admin.recordBillPayment", tableSessionId: 5 })).not.toThrow();
+    });
+
     it("ignora chaves de outros usos do localStorage (prefixo diferente)", () => {
       localStorage.setItem("outra-coisa-qualquer", JSON.stringify({ x: 1 }));
       persistPendingOrder(checkoutEntry());

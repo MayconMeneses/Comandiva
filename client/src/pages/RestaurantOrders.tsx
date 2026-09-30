@@ -11,10 +11,10 @@ import TeamLoginCard from "@/components/TeamLoginCard";
 import { LockedFeatureFullPage } from "@/components/admin/LockedFeature";
 import { OfflineSnapshotBanner } from "@/components/OfflineSnapshotBanner";
 import { useOperationalSnapshot } from "@/hooks/useOperationalSnapshot";
+import { useOrderStatusOfflineQueue } from "@/hooks/useOrderStatusOfflineQueue";
 import { trpc } from "@/lib/trpc";
 import { getDeviceId } from "@/lib/deviceId";
-import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, persistPendingOrder } from "@/lib/pendingOrderQueue";
+import { isRetryingOffline } from "@/lib/offlineRetry";
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, CookingPot, Loader2, LogOut, MapPinned, MessageSquareWarning, PackageCheck, Phone, Plus, Printer, RefreshCw, ShoppingBag, UserCog } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { PrepTimeProgress } from "@/components/PrepTimeProgress";
@@ -70,17 +70,8 @@ export function OrderCard({ order }: { order: { id: number; publicCode: string; 
   // texto embaixo do card some antes da pessoa conseguir ler. O toast
   // (sonner) não depende do ciclo de vida deste componente, então sobrevive.
   const utils = trpc.useUtils();
-  // Dedupe com a mesma consulta já feita no componente pai (RestaurantOrders)
-  // — React Query compartilha o cache, sem requisição extra.
-  const settings = trpc.catalog.settings.useQuery();
-  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const updateStatus = trpc.admin.updateOrderStatus.useMutation({
-    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
-    onMutate: variables => {
-      if (!offlineResilienceEnabled) return;
-      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id, payload: variables, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
-    },
-    onSettled: () => { if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id }); },
+    ...useOrderStatusOfflineQueue(order.id),
     onSuccess: () => void utils.admin.operationalSnapshot.invalidate(),
     onError: error => {
       void utils.admin.operationalSnapshot.invalidate();

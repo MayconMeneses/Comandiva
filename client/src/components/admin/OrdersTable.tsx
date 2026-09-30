@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getDeviceId } from "@/lib/deviceId";
-import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, persistPendingOrder } from "@/lib/pendingOrderQueue";
+import { isRetryingOffline } from "@/lib/offlineRetry";
+import { useOrderStatusOfflineQueue } from "@/hooks/useOrderStatusOfflineQueue";
 import { trpc } from "@/lib/trpc";
 import { ChevronRight, ClipboardList, Printer } from "lucide-react";
 import { toast } from "sonner";
@@ -17,17 +17,8 @@ export function OrderActions({ order }: { order: { id: number; status: string; f
   // esta tabela (Visão Geral) pode estar aberta num dispositivo enquanto
   // outro membro da equipe mexe no mesmo pedido por /painel-pedidos ou
   // /cozinha.
-  // Dedupe com a mesma consulta já feita em RestaurantOrders.tsx/Kitchen.tsx
-  // — React Query compartilha o cache, sem requisição extra.
-  const settings = trpc.catalog.settings.useQuery();
-  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const update = trpc.admin.updateOrderStatus.useMutation({
-    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
-    onMutate: variables => {
-      if (!offlineResilienceEnabled) return;
-      persistPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id, payload: variables, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
-    },
-    onSettled: () => { if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.updateOrderStatus", orderId: order.id }); },
+    ...useOrderStatusOfflineQueue(order.id),
     onSuccess: () => { void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate(); },
     onError: error => {
       void utils.admin.orders.invalidate(); void utils.admin.dashboard.invalidate();

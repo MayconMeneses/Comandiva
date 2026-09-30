@@ -116,7 +116,13 @@ function isEntryValid(entry: unknown): entry is PendingQueueEntry {
   if (!entry || typeof entry !== "object") return false;
   const candidate = entry as Partial<PendingQueueEntry>;
   if (candidate.schemaVersion !== PENDING_ORDER_SCHEMA_VERSION) return false;
-  if (typeof candidate.createdAt !== "number" || typeof candidate.itemCount !== "number" || !candidate.payload) return false;
+  // `payload` precisa ser um objeto de verdade, não só "truthy" — uma entrada
+  // adulterada (editada no devtools) com `payload` como string/número passava
+  // essa checagem antes e derrubava `resumeOrCreateOperationId` mais adiante
+  // (`"operationId" in candidate.payload` lança TypeError quando o lado
+  // direito não é objeto), travando a tela no meio do render em vez de só
+  // descartar a pendência corrompida como o resto desta função já faz.
+  if (typeof candidate.createdAt !== "number" || typeof candidate.itemCount !== "number" || !candidate.payload || typeof candidate.payload !== "object") return false;
   if (candidate.type === "order.create") return candidate.screen === "checkout" || candidate.screen === "counter";
   if (candidate.type === "table.addRound") return typeof candidate.token === "string" && candidate.token.length > 0;
   if (candidate.type === "admin.addManualRound") return typeof candidate.tableId === "number" && candidate.tableId > 0;
