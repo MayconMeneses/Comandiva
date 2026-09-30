@@ -19,8 +19,7 @@ const checkoutSource = readFileSync(resolve(import.meta.dirname, "../client/src/
 const counterSource = readFileSync(resolve(import.meta.dirname, "../client/src/components/NewCounterOrder.tsx"), "utf8");
 const tableSessionSource = readFileSync(resolve(import.meta.dirname, "../client/src/pages/TableSession.tsx"), "utf8");
 const appSource = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
-
-const STALE_MESSAGE = "Conexão perdida há muito tempo — os preços podem ter mudado. Recarregue a página antes de continuar.";
+const offlineRetryNoticeSource = readFileSync(resolve(import.meta.dirname, "../client/src/components/OfflineRetryNotice.tsx"), "utf8");
 
 describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", () => {
   it("Checkout.tsx: onMutate persiste com screen \"checkout\" (só quando offlineResilienceEnabled), onSettled limpa", () => {
@@ -75,10 +74,25 @@ describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", 
       }
     });
 
-    it("as 3 telas mostram a mensagem de conexão perdida há muito tempo quando stale", () => {
+    it("as 3 telas usam o componente compartilhado OfflineRetryNotice (não texto inline duplicado)", () => {
       for (const source of [checkoutSource, counterSource, tableSessionSource]) {
-        expect(source).toContain(STALE_MESSAGE);
+        expect(source).toContain('import { OfflineRetryNotice } from "@/components/OfflineRetryNotice";');
+        expect(source).toMatch(/<OfflineRetryNotice stale=\{(createOrderStale|addRoundStale)\}/);
       }
+    });
+
+    // OfflineRetryNotice.tsx: React Query 5.90.2 não suporta cancelar uma
+    // mutation pausada de verdade (reset() só desanexa o observer da UI, a
+    // Mutation/Retryer internos continuam existindo esperando a internet
+    // voltar — ver comentário no próprio componente), então a única forma
+    // seguramente comprovada de abandonar uma tentativa presa é recarregar a
+    // página. Reportado ao vivo pelo dono do produto (2026-09-30): testando
+    // 100% offline, ficou preso em "Tentando de novo…" sem conseguir fazer
+    // outro pedido pela mesma tela.
+    it("OfflineRetryNotice: avisa que o pedido está salvo e oferece recarregar a página como saída segura", () => {
+      expect(offlineRetryNoticeSource).toContain("Esse pedido já está salvo. Para fazer outro agora, recarregue a página — nada se perde.");
+      expect(offlineRetryNoticeSource).toContain("Conexão perdida há muito tempo — os preços podem ter mudado.");
+      expect(offlineRetryNoticeSource).toMatch(/onClick=\{\(\) => window\.location\.reload\(\)\}/);
     });
 
     it("as 3 telas trocam o toast/mensagem de sucesso quando a confirmação demorou mais que PENDING_ORDER_WINDOW_MS", () => {
