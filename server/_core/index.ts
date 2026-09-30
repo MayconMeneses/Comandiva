@@ -68,15 +68,24 @@ function buildContentSecurityPolicy(): string {
   })();
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'"],
+    // https://www.mercadopago.com: script antifraude oficial deles
+    // (useMercadoPagoSecurity.ts, injetado em PlanAdmin.tsx antes de criar
+    // pagamento) — sem essa origem liberada (script-src E connect-src, o
+    // script faz sua própria chamada de rede), o CSP bloqueava o próprio
+    // `security.js`, e sem o fingerprint do dispositivo o motor de risco do
+    // Checkout Pro deles pode nunca liberar o botão de pagar — exatamente o
+    // bug que esse hook existe pra evitar (ver comentário lá). Mesmo fix
+    // aplicado no saas-core, onde o mesmo bug apareceu de verdade no
+    // cadastro de restaurante novo.
+    "script-src": ["'self'", "https://www.mercadopago.com"],
     // 'unsafe-inline' só pra style-src: o app usa `style={{...}}` em vários
     // componentes (ex.: barra de progresso de preparo) — sem isso, todo
     // estilo inline seria bloqueado. script-src continua estrito (sem
-    // 'unsafe-inline', sem script externo, nenhum <script> inline no HTML).
+    // 'unsafe-inline', sem script externo além do Mercado Pago acima).
     "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
     "img-src": ["'self'", "data:", "blob:", ...(storageOrigin ? [storageOrigin] : [])],
-    "connect-src": ["'self'", ...(storageOrigin ? [storageOrigin] : [])],
+    "connect-src": ["'self'", "https://www.mercadopago.com", "https://api.mercadopago.com", ...(storageOrigin ? [storageOrigin] : [])],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     // Reforça X-Frame-Options: DENY (frame-ancestors é a versão CSP, com
