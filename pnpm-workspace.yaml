@@ -23,19 +23,15 @@ overrides:
   # fora porque usa um express mais antigo; fechando isso agora.
   qs: "6.16.0"
   # esbuild <=0.24.2 vulnerável (CORS do dev server) puxado pela cadeia
-  # depreciada drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils —
-  # isso converge toda instância NORMAL de esbuild na árvore pra versão
-  # segura (drizzle-kit já usa ^0.25.4 direto). A única que sobra é a de
-  # dentro do @esbuild-kit/core-utils@3.3.2 (ele fixa "esbuild": "~0.18.20"
-  # no próprio manifesto) — tentado bare override, override com path de 1
-  # nível (com e sem versão do pai), packageExtensions e até `pnpm patch`
-  # direto no package.json instalado; nenhum method força essa ocorrência
-  # específica, mesmo com lockfile+store limpos do zero (não é cache: é uma
-  # limitação real do pnpm nessa versão pra esse pacote — ver
-  # https://github.com/pnpm/pnpm/issues/8467). Risco prático residual muito
-  # baixo: o CVE é sobre o dev server do esbuild ficar exposto num CORS mal
-  # configurado, e nada aqui chama esbuild em modo `serve()` — só
-  # `transform`/`build`, usado só pelo drizzle-kit pra carregar TS config.
+  # depreciada drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils
+  # (drizzle-kit já usa esbuild ^0.25.4 direto — isso converge tudo pra
+  # essa versão segura). Sob pnpm 10.34.5 esse override nunca pegava
+  # especificamente pra essa ocorrência (bare, path de 1 nível, com/sem
+  # versão do pai, packageExtensions, `pnpm patch` direto no pacote — nada
+  # funcionava, mesmo com lockfile+store zerados — bug real do pnpm nessa
+  # versão: https://github.com/pnpm/pnpm/issues/8467). Resolvido de vez
+  # subindo o `packageManager` pra pnpm@11.24.0 (mesma major que o
+  # saas-core já usa) — ver commit que trocou a versão do pnpm.
   esbuild: "^0.25.4"
   # picomatch <4.0.4 vulnerável (ReDoS + method injection) puxado pela
   # cadeia vite-plugin-pwa>tinyglobby@0.2.15. tinyglobby@0.2.17 (atual)
@@ -43,3 +39,6 @@ overrides:
   # tinyglobby (não o picomatch direto, que já foi tentado e não pegou por
   # causa de como o fdir resolve o peer dependency) resolve de verdade.
   vite-plugin-pwa>tinyglobby: "^0.2.17"
+
+allowBuilds:
+  esbuild: true
