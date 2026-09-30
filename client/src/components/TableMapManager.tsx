@@ -9,9 +9,13 @@ import ProductSearch from "@/components/ProductSearch";
 import { getFeatureLockedInfo, UpgradeNudgeModal } from "@/components/admin/LockedFeature";
 import { OfflineSnapshotBanner } from "@/components/OfflineSnapshotBanner";
 import { useOperationalSnapshot } from "@/hooks/useOperationalSnapshot";
+import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
+import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
+import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS, persistPendingOrder, resumeOrCreateOperationId } from "@/lib/pendingOrderQueue";
+import { generateClientId } from "@/lib/randomId";
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, BellRing, CalendarClock, CheckCheck, ChevronDown, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { MenuProduct } from "@/lib/menuTypes";
 
@@ -59,12 +63,36 @@ function AddRoundForm({ tableId, sessionId, onDone }: { tableId: number; session
   const { items, subtotalCents, updateQuantity, removeItem, clearCart } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<MenuProduct | null>(null);
   const [lockInfo, setLockInfo] = useState<ReturnType<typeof getFeatureLockedInfo>>(null);
+  // Dedupe com a mesma query já feita em RestaurantOrders.tsx/NewCounterOrder.tsx
+  // (telas que costumam montar este formulário) — React Query compartilha o
+  // cache, sem requisição extra.
+  const settings = trpc.catalog.settings.useQuery();
+  const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
+  // Semente reusa uma pendência salva (F5 com rodada pausada) em vez de
+  // sempre gerar um id novo — ver client/src/lib/pendingOrderQueue.ts. Chave
+  // por `tableId` (contexto autenticado), não `token` (isso é do QR Code
+  // público, server/routers/table.ts).
+  const operationIdRef = useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "admin.addManualRound", tableId }) : generateClientId());
+  // Teto de tempo pro retry em memória — ver client/src/hooks/useStaleRetryWarning.ts.
+  const startedAtRef = useRef<number | null>(null);
   const addRound = trpc.admin.addManualRound.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onMutate: variables => {
+      if (!offlineResilienceEnabled) return;
+      const now = Date.now();
+      startedAtRef.current = now;
+      persistPendingOrder({ type: "admin.addManualRound", tableId, payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+    },
+    onSettled: () => {
+      startedAtRef.current = null;
+      if (offlineResilienceEnabled) clearPendingOrder({ type: "admin.addManualRound", tableId });
+    },
     onSuccess: () => {
+      operationIdRef.current = generateClientId();
       clearCart();
       void utils.admin.operationalSnapshot.invalidate();
       void utils.admin.sessionDetail.invalidate({ sessionId });
-      toast.success("Rodada lançada na comanda.");
+      toast.success(startedAtRef.current !== null && Date.now() - startedAtRef.current > PENDING_ORDER_WINDOW_MS ? "Rodada lançada após uma queda de conexão longa — confira a comanda, o valor pode ter mudado." : "Rodada lançada na comanda.");
       onDone();
     },
     onError: error => {
@@ -73,10 +101,11 @@ function AddRoundForm({ tableId, sessionId, onDone }: { tableId: number; session
       toast.error(error.message);
     },
   });
+  const addRoundStale = useStaleRetryWarning(isRetryingOffline(addRound), startedAtRef.current);
   return <div className="space-y-3 rounded-xl border border-[#e4d8c8] bg-white p-3">
     <UpgradeNudgeModal open={Boolean(lockInfo)} onOpenChange={open => { if (!open) setLockInfo(null); }} info={lockInfo} />
     <ProductSearch onSelect={setSelectedProduct} />
-    {items.length > 0 && <div className="space-y-2 border-t border-[#f1e9dc] pt-2">{items.map(item => { const unit = item.basePriceCents + item.addons.reduce((sum, addon) => sum + addon.priceCents, 0); return <div key={item.id} className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm">{item.name}</span><button type="button" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Minus className="h-3 w-3" /></button><span className="w-5 text-center text-sm">{item.quantity}</span><button type="button" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Plus className="h-3 w-3" /></button><span className="w-16 shrink-0 text-right text-sm font-semibold">{money(unit * item.quantity)}</span><button type="button" onClick={() => removeItem(item.id)} className="text-red-600"><Trash2 className="h-3.5 w-3.5" /></button></div>; })}<div className="flex items-center justify-between pt-1"><span className="text-sm font-bold">Subtotal: {money(subtotalCents)}</span><Button size="sm" disabled={addRound.isPending} onClick={() => addRound.mutate({ tableId, items: items.map(item => ({ productId: item.productId, quantity: item.quantity, addonOptionIds: item.addons.map(addon => addon.id), note: item.note })) })} className="h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{addRound.isPending ? "Lançando…" : "Lançar rodada"}</Button></div></div>}
+    {items.length > 0 && <div className="space-y-2 border-t border-[#f1e9dc] pt-2">{items.map(item => { const unit = item.basePriceCents + item.addons.reduce((sum, addon) => sum + addon.priceCents, 0); return <div key={item.id} className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm">{item.name}</span><button type="button" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Minus className="h-3 w-3" /></button><span className="w-5 text-center text-sm">{item.quantity}</span><button type="button" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="rounded-md border p-1 hover:bg-[#f3ece1]"><Plus className="h-3 w-3" /></button><span className="w-16 shrink-0 text-right text-sm font-semibold">{money(unit * item.quantity)}</span><button type="button" onClick={() => removeItem(item.id)} className="text-red-600"><Trash2 className="h-3.5 w-3.5" /></button></div>; })}<div className="flex items-center justify-between pt-1"><span className="text-sm font-bold">Subtotal: {money(subtotalCents)}</span><Button size="sm" disabled={addRound.isPending} onClick={() => addRound.mutate({ tableId, items: items.map(item => ({ productId: item.productId, quantity: item.quantity, addonOptionIds: item.addons.map(addon => addon.id), note: item.note })), operationId: operationIdRef.current })} className="h-9 rounded-lg bg-primary text-xs hover:bg-primary-hover">{isRetryingOffline(addRound) ? "Tentando de novo…" : addRound.isPending ? "Lançando…" : "Lançar rodada"}</Button></div>{isRetryingOffline(addRound) ? <p className="text-xs text-amber-700">{addRoundStale ? "Conexão perdida há muito tempo — o valor pode ter mudado. Confira a comanda antes de continuar." : "Sem conexão. Tentando de novo…"}</p> : addRound.error && <p className="text-xs text-red-700">{addRound.error.message}</p>}</div>}
     <ProductDialog product={selectedProduct} open={Boolean(selectedProduct)} onOpenChange={value => { if (!value) setSelectedProduct(null); }} />
   </div>;
 }

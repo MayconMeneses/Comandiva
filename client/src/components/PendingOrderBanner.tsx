@@ -7,7 +7,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 function contextOf(entry: PendingQueueEntry) {
-  return entry.type === "order.create" ? { type: "order.create" as const, screen: entry.screen } : { type: "table.addRound" as const, token: entry.token };
+  if (entry.type === "order.create") return { type: "order.create" as const, screen: entry.screen };
+  if (entry.type === "table.addRound") return { type: "table.addRound" as const, token: entry.token };
+  return { type: "admin.addManualRound" as const, tableId: entry.tableId };
 }
 
 /**
@@ -59,8 +61,19 @@ export default function PendingOrderBanner() {
     onSettled: discard,
   });
 
+  const addManualRound = trpc.admin.addManualRound.useMutation({
+    ...offlineResilienceMutationOptions(offlineResilienceEnabled),
+    onSuccess: () => {
+      toast.success("Rodada lançada na comanda.");
+      void utils.admin.operationalSnapshot.invalidate();
+      if (entry?.type === "admin.addManualRound") void utils.admin.sessionDetail.invalidate();
+    },
+    onError: error => toast.error(error.message),
+    onSettled: discard,
+  });
+
   if (!entry) return null;
-  const mutation = entry.type === "order.create" ? createOrder : addRound;
+  const mutation = entry.type === "order.create" ? createOrder : entry.type === "table.addRound" ? addRound : addManualRound;
   const retrying = isRetryingOffline(mutation);
 
   return (

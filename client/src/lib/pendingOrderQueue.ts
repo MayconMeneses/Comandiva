@@ -22,7 +22,23 @@ export type PendingAddRoundEntry = {
   schemaVersion: number;
 };
 
-export type PendingQueueEntry = PendingCheckoutEntry | PendingAddRoundEntry;
+// Identidade por `tableId` (mesa autenticada), não por `token` (QR Code
+// público) — contexto diferente do variant acima, por isso um tipo à parte
+// em vez de sobrecarregar PendingAddRoundEntry com duas formas de
+// identidade incompatíveis. Fase B do offline-first do admin, ver plano em
+// C:\Users\maico\.claude\plans\curried-sprouting-wirth.md.
+export type PendingAdminRoundEntry = {
+  type: "admin.addManualRound";
+  tableId: number;
+  payload: RouterInputs["admin"]["addManualRound"];
+  createdAt: number;
+  itemCount: number;
+  schemaVersion: number;
+};
+
+export type PendingQueueEntry = PendingCheckoutEntry | PendingAddRoundEntry | PendingAdminRoundEntry;
+
+type PendingContext = { type: "order.create"; screen: "checkout" | "counter" } | { type: "table.addRound"; token: string } | { type: "admin.addManualRound"; tableId: number };
 
 // Janela curta de propósito: priceOrder (server/routers/order.ts) recalcula
 // preço/disponibilidade/pedido mínimo do zero a cada order.create, sem
@@ -40,13 +56,16 @@ export const PENDING_ORDER_SCHEMA_VERSION = 1;
 
 const KEY_PREFIX = "mm-pending-order:";
 
-function keyFor(context: { type: "order.create"; screen: "checkout" | "counter" } | { type: "table.addRound"; token: string }): string {
+function keyFor(context: PendingContext): string {
   if (context.type === "order.create") return `${KEY_PREFIX}order.create:${context.screen}`;
-  return `${KEY_PREFIX}table.addRound:${context.token}`;
+  if (context.type === "table.addRound") return `${KEY_PREFIX}table.addRound:${context.token}`;
+  return `${KEY_PREFIX}admin.addManualRound:${context.tableId}`;
 }
 
-function contextOf(entry: PendingQueueEntry): { type: "order.create"; screen: "checkout" | "counter" } | { type: "table.addRound"; token: string } {
-  return entry.type === "order.create" ? { type: "order.create", screen: entry.screen } : { type: "table.addRound", token: entry.token };
+function contextOf(entry: PendingQueueEntry): PendingContext {
+  if (entry.type === "order.create") return { type: "order.create", screen: entry.screen };
+  if (entry.type === "table.addRound") return { type: "table.addRound", token: entry.token };
+  return { type: "admin.addManualRound", tableId: entry.tableId };
 }
 
 export function isEntryExpired(entry: Pick<PendingQueueEntry, "createdAt">, now: number = Date.now()): boolean {
@@ -60,6 +79,7 @@ function isEntryValid(entry: unknown): entry is PendingQueueEntry {
   if (typeof candidate.createdAt !== "number" || typeof candidate.itemCount !== "number" || !candidate.payload) return false;
   if (candidate.type === "order.create") return candidate.screen === "checkout" || candidate.screen === "counter";
   if (candidate.type === "table.addRound") return typeof candidate.token === "string" && candidate.token.length > 0;
+  if (candidate.type === "admin.addManualRound") return typeof candidate.tableId === "number" && candidate.tableId > 0;
   return false;
 }
 
@@ -74,7 +94,7 @@ export function persistPendingOrder(entry: PendingQueueEntry): void {
   }
 }
 
-export function clearPendingOrder(context: { type: "order.create"; screen: "checkout" | "counter" } | { type: "table.addRound"; token: string }): void {
+export function clearPendingOrder(context: PendingContext): void {
   try {
     localStorage.removeItem(keyFor(context));
   } catch {
@@ -83,7 +103,7 @@ export function clearPendingOrder(context: { type: "order.create"; screen: "chec
 }
 
 // Varre só as chaves com o prefixo desta fila — não assume nenhuma lista de
-// contextos conhecida de antemão (mesas usam token dinâmico na chave).
+// contextos conhecida de antemão (mesas usam token/tableId dinâmico na chave).
 export function readValidPendingOrders(now: number = Date.now()): PendingQueueEntry[] {
   const entries: PendingQueueEntry[] = [];
   try {
@@ -118,12 +138,12 @@ export function readValidPendingOrders(now: number = Date.now()): PendingQueueEn
   return entries;
 }
 
-// Semente do operationIdRef nas 3 telas: reusa o id de uma pendência válida
-// do MESMO contexto em vez de sempre gerar um novo — sem isso, um F5 depois
-// de um pedido pausado geraria um operationId novo, e um reenvio manual pela
+// Semente do operationIdRef nas telas: reusa o id de uma pendência válida do
+// MESMO contexto em vez de sempre gerar um novo — sem isso, um F5 depois de
+// um pedido pausado geraria um operationId novo, e um reenvio manual pela
 // tela normal (não pelo banner) derrotaria o dedupe do servidor, arriscando
 // duplicar um pedido que já tinha sido aceito antes da aba cair.
-export function resumeOrCreateOperationId(context: { type: "order.create"; screen: "checkout" | "counter" } | { type: "table.addRound"; token: string }): string {
+export function resumeOrCreateOperationId(context: PendingContext): string {
   const [existing] = readValidPendingOrders().filter(entry => {
     const entryContext = contextOf(entry);
     return entryContext.type === context.type && keyFor(entryContext) === keyFor(context);

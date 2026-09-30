@@ -78,8 +78,24 @@ export const adminTablesRouter = router({
   regenerateQr: tablesAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => ({ qrToken: await regenerateTableQrToken(input.id) })),
   addManualRound: tablesRestaurantProcedure
     .use(requireFeature("extra_rounds"))
-    .input(z.object({ tableId: z.number().int().positive(), items: z.array(roundItemSchema).min(1), customerNote: safeText(z.string().max(500)).optional(), customer: z.object({ name: safeText(z.string().min(2).max(160)), phone: phoneSchema }).optional() }))
-    .mutation(({ input }) => addRoundToTable({ tableId: input.tableId, items: input.items, customerNote: input.customerNote, customer: input.customer, historyNote: "Rodada lançada pela equipe", origin: "GARCOM" })),
+    .input(
+      z.object({
+        tableId: z.number().int().positive(),
+        items: z.array(roundItemSchema).min(1),
+        customerNote: safeText(z.string().max(500)).optional(),
+        customer: z.object({ name: safeText(z.string().min(2).max(160)), phone: phoneSchema }).optional(),
+        // Chave de idempotência gerada pelo cliente — mesmo raciocínio de
+        // `operationId` em addRoundSchema (server/routers/table.ts), pra
+        // resiliência offline (Fase B, ver plano em
+        // C:\Users\maico\.claude\plans\curried-sprouting-wirth.md): um retry
+        // automático depois de queda de conexão não pode virar rodada
+        // duplicada.
+        operationId: z.string().min(8).max(64).regex(/^[a-zA-Z0-9-]+$/),
+      }),
+    )
+    .mutation(({ input }) =>
+      addRoundToTable({ tableId: input.tableId, items: input.items, customerNote: input.customerNote, customer: input.customer, historyNote: "Rodada lançada pela equipe", origin: "GARCOM", clientOperationId: input.operationId }),
+    ),
   pendingServiceRequests: tablesRestaurantProcedure.query(() => listPendingServiceRequests()),
   resolveServiceRequest: tablesRestaurantProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["ACKNOWLEDGED", "DONE", "CANCELLED"]) })).mutation(async ({ input, ctx }) => {
     await resolveServiceRequest(input.id, input.status, ctx.user?.id ?? null);

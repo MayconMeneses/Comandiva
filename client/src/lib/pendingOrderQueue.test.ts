@@ -95,6 +95,28 @@ describe("pendingOrderQueue", () => {
       persistPendingOrder({ type: "table.addRound", token: "mesa-b", payload: { token: "mesa-b", items: [], operationId: "op-b" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
       expect(readValidPendingOrders()).toHaveLength(2);
     });
+
+    it("admin.addManualRound (rodada do admin, por tableId): round-trip persiste e lê de volta", () => {
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-admin-1" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      const found = readValidPendingOrders();
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ type: "admin.addManualRound", tableId: 7 });
+    });
+
+    it("mesa via QR Code (token) e a MESMA mesa lançada pelo admin (tableId) coexistem sem colidir — identidades diferentes de propósito", () => {
+      persistPendingOrder({ type: "table.addRound", token: "mesa-7-qr", payload: { token: "mesa-7-qr", items: [], operationId: "op-qr" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-admin" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      expect(readValidPendingOrders()).toHaveLength(2);
+    });
+
+    it("clearPendingOrder do admin.addManualRound remove só a chave daquela mesa", () => {
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-a" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 8, payload: { tableId: 8, items: [], operationId: "op-b" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      clearPendingOrder({ type: "admin.addManualRound", tableId: 7 });
+      const found = readValidPendingOrders();
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ tableId: 8 });
+    });
   });
 
   describe("resumeOrCreateOperationId", () => {
@@ -118,6 +140,16 @@ describe("pendingOrderQueue", () => {
     it("pendência expirada não é reusada (gera novo id)", () => {
       persistPendingOrder(checkoutEntry({ createdAt: Date.now() - PENDING_ORDER_WINDOW_MS - 5000, payload: { operationId: "op-velho" } as never }));
       expect(resumeOrCreateOperationId({ type: "order.create", screen: "checkout" })).not.toBe("op-velho");
+    });
+
+    it("admin.addManualRound: reusa o operationId salvo pro MESMO tableId", () => {
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-mesa-7" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      expect(resumeOrCreateOperationId({ type: "admin.addManualRound", tableId: 7 })).toBe("op-mesa-7");
+    });
+
+    it("admin.addManualRound: NÃO reusa pendência de outra mesa (tableId diferente)", () => {
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-mesa-7" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      expect(resumeOrCreateOperationId({ type: "admin.addManualRound", tableId: 8 })).not.toBe("op-mesa-7");
     });
   });
 });
