@@ -21,6 +21,7 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
 }
 
 :root {
@@ -31,6 +32,11 @@
   --border: #e2e8f0;
   --accent: #4338ca;
   --accent-hover: #3730a3;
+  /* Mesmo tom do --accent aqui — no tema claro do Painel Master o contraste
+     já passa WCAG AA (7.5:1+) sem precisar de um tom separado. Só o tema
+     escuro abaixo precisa de um tom mais claro pra texto (ver comentário
+     lá). */
+  --accent-text: var(--accent);
 }
 
 body {
@@ -54,4 +60,11 @@ body {
   --border: #1e293b;
   --accent: #4f46e5;
   --accent-hover: #6366f1;
+  /* --accent como TEXTO nesse fundo quase preto só bate 2.8-3.1:1 de
+     contraste — falha WCAG AA (precisa 4.5:1), mesmo pra texto pequeno/
+     negrito (que já teria o limiar mais baixo de 3:1, ainda insuficiente).
+     Tom mais claro da mesma família (indigo-400), só pra texto — os usos
+     de --accent como fundo/borda de botão (com texto branco em cima,
+     6.3:1, ok) continuam usando a variável original. */
+  --accent-text: #818cf8;
 }

@@ -82,7 +82,7 @@ export default function Cardapio() {
                 type="file"
                 accept={ACCEPT}
                 onChange={onFileChange}
-                className="mt-5 block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-accent"
+                className="mt-5 block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-accent-text"
               />
 
               <div className="mt-4">

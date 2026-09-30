@@ -7,12 +7,46 @@ import { ComercialFooter } from "./ComercialFooter";
 import { Reveal } from "./Reveal";
 import { SavingsCalculator } from "./SavingsCalculator";
 
-// Organization junto com o SoftwareApplication existente, num único bloco
-// JSON-LD via @graph (forma padrão de combinar mais de uma entidade
-// schema.org na mesma página) — ajuda o Google a reconhecer "MM System
-// Creator" como uma entidade/marca, não só como um produto de software
-// solto. Só dado real/confirmado: nome, URL, logo — nada de endereço,
-// telefone ou perfil social que não exista de verdade.
+// Todas as respostas reaproveitam texto já existente noutras seções desta
+// mesma página / em Termos.tsx / Planos.tsx — nada novo sendo prometido aqui.
+// Precisa vir antes de STRUCTURED_DATA (que referencia FAQ.map) — `const` não
+// tem hoisting utilizável, só a declaração (temporal dead zone).
+const FAQ = [
+  {
+    question: "Preciso saber mexer em sistema?",
+    answer: "Não. Nossa equipe organiza seu cardápio e sua configuração inicial, e você ainda tem WhatsApp direto com quem construiu o sistema, acesso remoto pra resolver travas (sem pedir sua senha) e treinamento ao vivo por chamada de vídeo.",
+  },
+  {
+    question: "Como funciona o teste grátis de 7 dias?",
+    answer: "Assim que sua configuração estiver pronta (em até 10 dias úteis), o teste de 7 dias começa a valer — sem cartão de crédito.",
+  },
+  {
+    question: "Posso cancelar ou trocar de plano quando quiser?",
+    answer: "Sim, direto no seu painel, sem multa e sem fidelidade.",
+  },
+  {
+    question: "Meus dados ficam seguros?",
+    answer: "Cada restaurante roda num deployment isolado — seus dados de cardápio, pedidos e clientes nunca ficam misturados com os de outro restaurante. Conexão sempre criptografada, senhas nunca guardadas em texto puro.",
+  },
+  {
+    question: "Como funciona o pagamento?",
+    answer: "Pix e cartão, processados com segurança pelo Mercado Pago. Nunca pedimos dados de cartão diretamente.",
+  },
+  {
+    question: "O que é a taxa de implementação?",
+    answer: "Cobre a configuração completa: subir seus produtos no sistema, testar tudo até funcionar 100% e entregar pronto pra vender. Cobrada uma única vez, no cadastro.",
+  },
+];
+
+// Organization + FAQPage junto com o SoftwareApplication existente, num
+// único bloco JSON-LD via @graph (forma padrão de combinar mais de uma
+// entidade schema.org na mesma página) — ajuda o Google a reconhecer "MM
+// System Creator" como uma entidade/marca, não só como um produto de
+// software solto. FAQPage usa as MESMAS perguntas/respostas reais do
+// accordion visível (nunca texto só pro schema) — deixa o Google elegível
+// a mostrar as perguntas direto no resultado de busca. Só dado real/
+// confirmado: nome, URL, logo — nada de endereço, telefone ou perfil
+// social que não exista de verdade.
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
   "@graph": [
@@ -36,6 +70,14 @@ const STRUCTURED_DATA = {
       name: "MM System Creator",
       url: "https://mmsystem.tech/comercial",
       logo: "https://mmsystem.tech/mm-logo-full.png",
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: FAQ.map(item => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: item.answer },
+      })),
     },
   ],
 };
@@ -342,35 +384,6 @@ const STEPS = [
   },
 ];
 
-// Todas as respostas reaproveitam texto já existente noutras seções desta
-// mesma página / em Termos.tsx / Planos.tsx — nada novo sendo prometido aqui.
-const FAQ = [
-  {
-    question: "Preciso saber mexer em sistema?",
-    answer: "Não. Nossa equipe organiza seu cardápio e sua configuração inicial, e você ainda tem WhatsApp direto com quem construiu o sistema, acesso remoto pra resolver travas (sem pedir sua senha) e treinamento ao vivo por chamada de vídeo.",
-  },
-  {
-    question: "Como funciona o teste grátis de 7 dias?",
-    answer: "Assim que sua configuração estiver pronta (em até 10 dias úteis), o teste de 7 dias começa a valer — sem cartão de crédito.",
-  },
-  {
-    question: "Posso cancelar ou trocar de plano quando quiser?",
-    answer: "Sim, direto no seu painel, sem multa e sem fidelidade.",
-  },
-  {
-    question: "Meus dados ficam seguros?",
-    answer: "Cada restaurante roda num deployment isolado — seus dados de cardápio, pedidos e clientes nunca ficam misturados com os de outro restaurante. Conexão sempre criptografada, senhas nunca guardadas em texto puro.",
-  },
-  {
-    question: "Como funciona o pagamento?",
-    answer: "Pix e cartão, processados com segurança pelo Mercado Pago. Nunca pedimos dados de cartão diretamente.",
-  },
-  {
-    question: "O que é a taxa de implementação?",
-    answer: "Cobre a configuração completa: subir seus produtos no sistema, testar tudo até funcionar 100% e entregar pronto pra vender. Cobrada uma única vez, no cadastro.",
-  },
-];
-
 export default function Home() {
   usePageMeta({ ...COMMERCIAL_PAGE_META["/comercial"], path: "/comercial" });
   return (
@@ -378,8 +391,15 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
       <ComercialHeader />
 
+      {/* `main` é a única região de referência ("landmark") que agrupa TODO
+          o conteúdo da página — sem isso, leitor de tela não tem como pular
+          direto pro conteúdo por região (só via o skip-link, que different
+          leitores/atalhos de navegação por landmark não pegam). Por isso o
+          id/tabIndex do skip-link mudou de ficar na 1ª `section` (só o Hero)
+          pra envolver todas as seções da página. */}
+      <main id="main-content" tabIndex={-1}>
       {/* Hero */}
-      <section id="main-content" tabIndex={-1} className="relative overflow-hidden">
+      <section className="relative overflow-hidden">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] opacity-70"
           // var(--accent)/var(--paper) raw, não os aliases --color-* do @theme inline: o
@@ -414,7 +434,7 @@ export default function Home() {
         />
 
         <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised px-3 py-1 text-xs font-semibold text-accent">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised px-3 py-1 text-xs font-semibold text-accent-text">
             <IconBolt className="h-3.5 w-3.5" />
             Zero comissão por pedido
           </span>
@@ -483,7 +503,7 @@ export default function Home() {
           <div className="mt-12 grid gap-10 sm:grid-cols-3">
             {RESUMO.map((item, index) => (
               <Reveal key={item.title} delayMs={index * 100} className="group text-center">
-                <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent-text transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                   <item.icon className="h-8 w-8" />
                 </div>
                 <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
@@ -503,7 +523,7 @@ export default function Home() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {PARA_QUEM.map((item, index) => (
             <Reveal key={item.title} delayMs={(index % 4) * 100} className="group rounded-2xl border border-border bg-paper-raised p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg">
-              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110">
+              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent-text transition-transform duration-300 group-hover:scale-110">
                 <item.icon className="h-6 w-6" />
               </div>
               <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
@@ -522,12 +542,12 @@ export default function Home() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {DIFERENCIAIS.map((item, index) => (
             <Reveal key={item.title} delayMs={(index % 3) * 100} className="group rounded-2xl border border-border bg-paper-raised p-6 transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent-text transition-transform duration-300 group-hover:scale-110">
                 <item.icon className="h-5 w-5" />
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <h3 className="font-semibold text-ink">{item.title}</h3>
-                {item.badge && <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">{item.badge}</span>}
+                {item.badge && <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent-text">{item.badge}</span>}
               </div>
               <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
             </Reveal>
@@ -545,7 +565,7 @@ export default function Home() {
           <Reveal delayMs={150} className="mt-10 overflow-hidden rounded-2xl border border-border bg-paper-raised">
             <div className="grid grid-cols-3 border-b border-border bg-paper text-sm font-semibold text-ink">
               <div className="px-4 py-3">&nbsp;</div>
-              <div className="px-4 py-3 text-accent">Com sistema próprio</div>
+              <div className="px-4 py-3 text-accent-text">Com sistema próprio</div>
               <div className="px-4 py-3 text-ink-soft">App de entrega comum</div>
             </div>
             {COMPARISON.map(row => (
@@ -575,7 +595,7 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-ink">{item.title}</h3>
                 {item.badge && (
-                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">{item.badge}</span>
+                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent-text">{item.badge}</span>
                 )}
               </div>
               <p className="mt-2 text-sm text-ink-soft">{item.description}</p>
@@ -630,7 +650,7 @@ export default function Home() {
       {/* Sobre o criador */}
       <section className="border-y border-border bg-paper-raised/60">
         <Reveal className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <span className="text-xs font-semibold uppercase tracking-wider text-accent">Quem criou</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-accent-text">Quem criou</span>
           <div className="mt-4 flex items-center justify-center">
             <img src="/mm-logo-icon-160.png" alt="" aria-hidden="true" width={64} height={64} loading="lazy" className="h-16 w-16 rounded-2xl shadow-sm" />
           </div>
@@ -641,7 +661,7 @@ export default function Home() {
             terceirização. Da ideia ao código, cada parte do sistema foi pensada pra resolver o problema de
             verdade de quem administra um restaurante.
           </p>
-          <p className="mt-4 text-sm font-semibold tracking-wide text-accent">Ideias · Sistemas · Soluções</p>
+          <p className="mt-4 text-sm font-semibold tracking-wide text-accent-text">Ideias · Sistemas · Soluções</p>
         </Reveal>
       </section>
 
@@ -668,13 +688,14 @@ export default function Home() {
           <div className="mt-8">
             <Link
               href="/comercial/planos"
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-white px-8 text-sm font-semibold text-accent shadow-sm transition-colors hover:bg-white/90"
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-white px-8 text-sm font-semibold text-accent-text shadow-sm transition-colors hover:bg-white/90"
             >
               Ver planos e começar agora
             </Link>
           </div>
         </Reveal>
       </section>
+      </main>
 
       <ComercialFooter />
     </div>

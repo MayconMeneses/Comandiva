@@ -72,14 +72,33 @@ export default function Planos() {
   const allFeatures = plansQuery.data?.allFeatures ?? [];
   const implementationFeeCents = plansQuery.data?.implementationFeeCents ?? 15000;
 
+  // Preço/nome de cada plano vêm da API (fonte real, `seed-plans.ts`) — só
+  // renderiza depois que `plans` carrega, pra nunca publicar um preço
+  // hardcoded que possa divergir do que o banco tem de verdade.
+  const structuredData = plans && {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: "MM System Creator",
+    description: "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido.",
+    offers: plans.map(plan => ({
+      "@type": "Offer",
+      name: plan.name,
+      price: (plan.priceCents / 100).toFixed(2),
+      priceCurrency: "BRL",
+      url: "https://mmsystem.tech/comercial/planos",
+    })),
+  };
+
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
+      {structuredData && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />}
       <ComercialHeader />
 
       {/* Faixa de destaque — assinatura visual logo abaixo do cabeçalho */}
       <div className="h-1" style={{ background: "linear-gradient(90deg, #008cfe, #6146fd, #008cfe)" }} />
 
-      <section id="main-content" tabIndex={-1} className="relative overflow-hidden">
+      <main id="main-content" tabIndex={-1}>
+      <section className="relative overflow-hidden">
         {/* Textura de pontos — dá profundidade e um ar "premium" sem competir com o conteúdo */}
         <div
           className="pointer-events-none absolute inset-0 -z-20"
@@ -102,7 +121,7 @@ export default function Planos() {
 
         <div className="mx-auto max-w-5xl px-6 py-16 text-center">
           <Reveal>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-accent shadow-sm backdrop-blur">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper-raised/80 px-3 py-1 text-xs font-semibold text-accent-text shadow-sm backdrop-blur">
               <IconShieldCheck className="h-3.5 w-3.5" />
               Ambiente de cadastro seguro
             </span>
@@ -242,7 +261,7 @@ export default function Planos() {
                       {plans.map(plan => (
                         <th key={plan.id} className="p-4 text-center font-semibold text-ink">
                           {plan.name}
-                          {plan.key === "premium" && <span className="mt-1 block text-xs font-medium text-accent">👑 Tudo incluído</span>}
+                          {plan.key === "premium" && <span className="mt-1 block text-xs font-medium text-accent-text">👑 Tudo incluído</span>}
                         </th>
                       ))}
                     </tr>
@@ -295,7 +314,7 @@ export default function Planos() {
 
           <Reveal className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
             <p className="text-sm font-semibold text-ink">
-              Taxa de implementação: <span className="text-accent">{money(implementationFeeCents)}</span>
+              Taxa de implementação: <span className="text-accent-text">{money(implementationFeeCents)}</span>
             </p>
             <p className="mt-1 text-sm text-ink-soft">
               Cobrimos a configuração completa: subir seus produtos no sistema, testar tudo até funcionar
@@ -306,6 +325,7 @@ export default function Planos() {
           <p className="mt-6 text-sm text-ink-soft">Pode trocar de plano quando quiser, direto no seu painel — sem multa.</p>
         </div>
       </section>
+      </main>
 
       <ComercialFooter />
     </div>

@@ -59,7 +59,7 @@ export default function Cadastro() {
         </Link>
 
         <form onSubmit={submit} className="mt-6 rounded-2xl border border-border bg-paper-raised p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-accent">Assinar {planLabel}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-accent-text">Assinar {planLabel}</p>
           <h1 className="mt-2 text-2xl font-bold text-ink">Cadastre seu restaurante</h1>
           <p className="mt-1 text-sm text-ink-soft">
             Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis — podendo ser

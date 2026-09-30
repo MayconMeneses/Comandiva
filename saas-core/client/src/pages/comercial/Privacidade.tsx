@@ -9,7 +9,8 @@ export default function Privacidade() {
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">
       <ComercialHeader showNav={false} />
-      <Reveal id="main-content" tabIndex={-1} className="mx-auto max-w-2xl px-6 py-16">
+      <main id="main-content" tabIndex={-1}>
+      <Reveal className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-2xl font-bold text-ink">Política de privacidade</h1>
         <p className="mt-1 text-sm text-ink-soft">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
 
@@ -43,6 +44,7 @@ export default function Privacidade() {
           </div>
         </div>
       </Reveal>
+      </main>
       <ComercialFooter />
     </div>
   );
