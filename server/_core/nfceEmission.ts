@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { fiscalDocuments, fiscalTaxCategories, products } from "../../drizzle/schema";
 import { getDb, getFiscalCredentialsForEmission, getOrderWithDetails, getSessionWithOrders } from "../db";
+import { sendOwnerAlert } from "./alerts";
 
 /**
  * Integração com a API da Focus NFe (focusnfe.com.br) — provedor especializado
@@ -196,7 +197,15 @@ async function emit(params: EmitParams): Promise<void> {
     }
     await upsertFiscalDocument(existing?.id, { ...documentBase, status: "REJECTED", rejectionReason: (body.mensagem_sefaz as string) || "Rejeitada pela SEFAZ — verifique os dados fiscais.", createdAt: now }, existingWhere);
   } catch (error) {
-    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason: error instanceof Error ? error.message : "Falha de comunicação com o provedor de emissão.", createdAt: now }, existingWhere);
+    const rejectionReason = error instanceof Error ? error.message : "Falha de comunicação com o provedor de emissão.";
+    await upsertFiscalDocument(existing?.id, { ...documentBase, status: "ERROR", rejectionReason, createdAt: now }, existingWhere);
+    // Diferente do REJECTED da SEFAZ (visível e acionável na hora pelo admin
+    // em Receipt.tsx), esse caminho é falha de comunicação com o provedor —
+    // ninguém vê isso proativamente a menos que abra o comprovante daquele
+    // pedido/mesa específico. Reaproveita o alerta já existente pro dono
+    // (mesmo mecanismo de erro de webhook/erro interno, ver server/_core/alerts.ts).
+    const identifier = "orderId" in params.fiscalDocumentKey ? `pedido ${params.fiscalDocumentKey.orderId}` : `mesa (sessão ${params.fiscalDocumentKey.tableSessionId})`;
+    void sendOwnerAlert("Falha ao emitir NFC-e", `Não foi possível emitir a NFC-e para ${identifier}: ${rejectionReason}`, "nfceEmission", undefined, "Emissão de NFC-e (Focus NFe)");
   }
 }
 

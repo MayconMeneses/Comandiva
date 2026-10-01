@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getFiscalCredentialsForEmission: vi.fn(),
   getOrderWithDetails: vi.fn(),
   getSessionWithOrders: vi.fn(),
+  sendOwnerAlert: vi.fn(),
 }));
 
 vi.mock("./db", async importOriginal => ({
@@ -12,6 +13,12 @@ vi.mock("./db", async importOriginal => ({
   getOrderWithDetails: mocks.getOrderWithDetails,
   getSessionWithOrders: mocks.getSessionWithOrders,
 }));
+// Falha ERROR (catch de comunicação com o provedor) dispara o alerta já
+// existente pro dono (Telegram/e-mail) — ver Fase 4 do plano offline-first
+// em C:\Users\maico\.claude\plans\lovely-purring-dusk.md. Mockado pra provar
+// o disparo e os parâmetros (kind/area), não o comportamento do alerta em si
+// (já coberto por alerts.test.ts).
+vi.mock("./_core/alerts", () => ({ sendOwnerAlert: mocks.sendOwnerAlert }));
 
 import { fiscalDocuments, fiscalTaxCategories, products } from "../drizzle/schema";
 import { emitNfceForOrder, emitNfceForTableSession } from "./_core/nfceEmission";
@@ -108,7 +115,7 @@ describe("nfceEmission — emitNfceForOrder", () => {
     vi.unstubAllGlobals();
   });
 
-  it("nota rejeitada pela SEFAZ: grava status REJECTED com o motivo, sem lançar erro", async () => {
+  it("nota rejeitada pela SEFAZ: grava status REJECTED com o motivo, sem lançar erro, e NÃO dispara alerta pro dono (já visível/acionável pelo admin em Receipt.tsx)", async () => {
     mocks.getOrderWithDetails.mockResolvedValue(order());
     const stub = buildDbStub();
     vi.mocked(getDb).mockResolvedValue(stub.db as never);
@@ -117,6 +124,7 @@ describe("nfceEmission — emitNfceForOrder", () => {
     await expect(emitNfceForOrder(1)).resolves.toBeUndefined();
 
     expect(stub.inserts[0]).toMatchObject({ status: "REJECTED", rejectionReason: "CNPJ do emitente não habilitado" });
+    expect(mocks.sendOwnerAlert).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 
@@ -149,7 +157,7 @@ describe("nfceEmission — emitNfceForOrder", () => {
     vi.unstubAllGlobals();
   });
 
-  it("provedor fora do ar (fetch lança): grava status ERROR e NUNCA propaga o erro pra quem chamou", async () => {
+  it("provedor fora do ar (fetch lança): grava status ERROR, NUNCA propaga o erro pra quem chamou, e avisa o dono proativamente (Fase 4 — não fica visível só se alguém abrir o comprovante)", async () => {
     mocks.getOrderWithDetails.mockResolvedValue(order());
     const stub = buildDbStub();
     vi.mocked(getDb).mockResolvedValue(stub.db as never);
@@ -158,6 +166,13 @@ describe("nfceEmission — emitNfceForOrder", () => {
     await expect(emitNfceForOrder(1)).resolves.toBeUndefined();
 
     expect(stub.inserts[0]).toMatchObject({ status: "ERROR" });
+    expect(mocks.sendOwnerAlert).toHaveBeenCalledTimes(1);
+    const [subject, message, kind, , area] = mocks.sendOwnerAlert.mock.calls[0] as [string, string, string, unknown, string];
+    expect(subject).toContain("NFC-e");
+    expect(message).toContain("pedido 1");
+    expect(message).toContain("ECONNREFUSED");
+    expect(kind).toBe("nfceEmission");
+    expect(area).toContain("NFC-e");
     vi.unstubAllGlobals();
   });
 

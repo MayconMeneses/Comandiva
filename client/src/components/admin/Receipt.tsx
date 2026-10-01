@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { isNetworkError } from "@/lib/offlineRetry";
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, Loader2, Printer, RefreshCw } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -41,6 +42,7 @@ function DanfeSection({ order }: { order: { id: number; fulfillmentType: "DELIVE
   const retryTable = trpc.admin.retryNfceForTableSession.useMutation({ onSuccess: () => void utils.admin.fiscalDocumentForTableSession.invalidate({ sessionId: order.tableSessionId ?? 0 }) });
   const retry = () => (isDineIn ? retryTable.mutate({ sessionId: order.tableSessionId! }) : retryOrder.mutate({ orderId: order.id }));
   const retrying = retryOrder.isPending || retryTable.isPending;
+  const retryError = isDineIn ? retryTable.error : retryOrder.error;
 
   if (isLoading) return null;
   if (!doc) return null; // emissão ainda nem foi disparada (fiscal não configurado, ou pedido ainda não chegou no ponto de emitir) — nada a mostrar
@@ -54,6 +56,7 @@ function DanfeSection({ order }: { order: { id: number; fulfillmentType: "DELIVE
         <p className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-4 w-4 shrink-0" />Não foi possível emitir a nota fiscal.</p>
         {doc.rejectionReason && <p className="mt-1 leading-5">{doc.rejectionReason}</p>}
         <Button size="sm" variant="outline" disabled={retrying} onClick={retry} className="mt-2 h-8 rounded-lg border-red-400 bg-white text-xs text-red-900 hover:bg-red-100"><RefreshCw className="mr-1.5 h-3.5 w-3.5" />{retrying ? "Tentando…" : "Tentar emitir nota de novo"}</Button>
+        {retryError && <p className="mt-2 leading-5">{isNetworkError(retryError) ? "Sem conexão — não deu pra tentar agora. Tente de novo quando a internet voltar." : retryError.message}</p>}
       </div>
     );
   }
