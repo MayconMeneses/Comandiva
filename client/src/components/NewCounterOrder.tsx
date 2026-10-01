@@ -8,7 +8,7 @@ import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, persistPendingOrder, persistPendingOrderDisplay, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { OfflineRetryNotice } from "@/components/OfflineRetryNotice";
 import { addressMatchesRoute } from "@shared/orderDomain";
@@ -64,6 +64,16 @@ export default function NewCounterOrder() {
       if (!offlineResilienceEnabled) return;
       const now = Date.now();
       startedAtRef.current = now;
+      // Grava o snapshot de EXIBIÇÃO antes do payload de reenvio — o evento
+      // de reatividade dispara dentro de persistPendingOrder (abaixo), então
+      // quando usePendingCounterOrder() reagir, o nome/itens pro cartão
+      // otimista já precisam estar lá.
+      persistPendingOrderDisplay({ type: "order.create", screen: "counter" }, {
+        customerName: name,
+        customerPhone: normalizedPhone,
+        totalCents: total,
+        items: items.map(item => ({ name: item.name, quantity: item.quantity })),
+      });
       persistPendingOrder({ type: "order.create", screen: "counter", payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
     },
     onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "counter" }); },

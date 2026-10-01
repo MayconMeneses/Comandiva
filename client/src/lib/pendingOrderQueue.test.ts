@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearPendingOrder,
   isEntryExpired,
+  loadPendingOrderDisplay,
+  PENDING_ORDER_CHANGE_EVENT,
   PENDING_ORDER_SCHEMA_VERSION,
   PENDING_ORDER_WINDOW_MS,
   persistPendingOrder,
+  persistPendingOrderDisplay,
   readValidPendingOrders,
   resumeOrCreateOperationId,
   type PendingQueueEntry,
@@ -156,6 +159,66 @@ describe("pendingOrderQueue", () => {
       const found = readValidPendingOrders();
       expect(found).toHaveLength(1);
       expect(found[0]).toMatchObject({ tableSessionId: 6 });
+    });
+  });
+
+  describe("persistPendingOrderDisplay / loadPendingOrderDisplay (Fase 2 — cartão otimista)", () => {
+    const display = { customerName: "Ana", customerPhone: "85988887777", totalCents: 4500, items: [{ name: "X-Burguer", quantity: 2 }] };
+
+    it("round-trip: persiste e lê de volta o mesmo snapshot de exibição", () => {
+      persistPendingOrderDisplay({ type: "order.create", screen: "counter" }, display);
+      expect(loadPendingOrderDisplay({ type: "order.create", screen: "counter" })).toEqual(display);
+    });
+
+    it("sem nada salvo: devolve null", () => {
+      expect(loadPendingOrderDisplay({ type: "order.create", screen: "counter" })).toBeNull();
+    });
+
+    it("clearPendingOrder remove o snapshot de exibição junto com a pendência", () => {
+      persistPendingOrder(checkoutEntry({ screen: "counter", payload: { operationId: "op-counter-1" } as never }));
+      persistPendingOrderDisplay({ type: "order.create", screen: "counter" }, display);
+      clearPendingOrder({ type: "order.create", screen: "counter" });
+      expect(loadPendingOrderDisplay({ type: "order.create", screen: "counter" })).toBeNull();
+    });
+
+    it("checkout e balcão (counter) têm snapshots de exibição independentes", () => {
+      persistPendingOrderDisplay({ type: "order.create", screen: "checkout" }, { ...display, customerName: "Cliente do site" });
+      persistPendingOrderDisplay({ type: "order.create", screen: "counter" }, display);
+      expect(loadPendingOrderDisplay({ type: "order.create", screen: "checkout" })?.customerName).toBe("Cliente do site");
+      expect(loadPendingOrderDisplay({ type: "order.create", screen: "counter" })?.customerName).toBe("Ana");
+    });
+
+    // Regressão encontrada testando a Fase 2 ao vivo (Docker local, 2026-09-30):
+    // displayKeyFor() usa o MESMO KEY_PREFIX + sufixo ":display", então
+    // readValidPendingOrders() (chamada a cada render por
+    // resumeOrCreateOperationId via useRef(...) nas telas) varria essa chave
+    // junto, via isEntryValid rejeitava o formato (não é um PendingQueueEntry)
+    // e apagava o snapshot de exibição no PRIMEIRO re-render depois de criado
+    // — o cartão otimista nunca chegava a aparecer de verdade.
+    it("readValidPendingOrders NÃO apaga o snapshot de exibição salvo ao lado (regressão)", () => {
+      persistPendingOrder(checkoutEntry({ screen: "counter", payload: { operationId: "op-counter-1" } as never }));
+      persistPendingOrderDisplay({ type: "order.create", screen: "counter" }, display);
+      readValidPendingOrders();
+      expect(loadPendingOrderDisplay({ type: "order.create", screen: "counter" })).toEqual(display);
+    });
+  });
+
+  describe(`evento ${PENDING_ORDER_CHANGE_EVENT} (reatividade entre quem grava e quem exibe)`, () => {
+    it("persistPendingOrder dispara o evento", () => {
+      const handler = vi.fn();
+      window.addEventListener(PENDING_ORDER_CHANGE_EVENT, handler);
+      persistPendingOrder(checkoutEntry());
+      window.removeEventListener(PENDING_ORDER_CHANGE_EVENT, handler);
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it("clearPendingOrder dispara o evento", () => {
+      persistPendingOrder(checkoutEntry());
+      const handler = vi.fn();
+      window.addEventListener(PENDING_ORDER_CHANGE_EVENT, handler);
+      clearPendingOrder({ type: "order.create", screen: "checkout" });
+      window.removeEventListener(PENDING_ORDER_CHANGE_EVENT, handler);
+      expect(handler).toHaveBeenCalledTimes(1);
     });
   });
 

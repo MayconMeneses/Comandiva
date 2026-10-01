@@ -35,7 +35,11 @@ describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", 
   });
 
   it("NewCounterOrder.tsx: onMutate persiste com screen \"counter\" (só quando offlineResilienceEnabled), onSettled limpa", () => {
-    expect(counterSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[^}]*persistPendingOrder\(\{[^}]*screen:\s*"counter"/s);
+    // [\s\S]*? (não [^}]*) antes de persistPendingOrder: desde a Fase 2 do
+    // offline-first (ver C:\Users\maico\.claude\plans\lovely-purring-dusk.md),
+    // onMutate também grava persistPendingOrderDisplay ANTES — um literal
+    // com chaves próprias — então já não dá pra assumir "nenhum `}` antes".
+    expect(counterSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[\s\S]*?persistPendingOrder\(\{[^}]*screen:\s*"counter"/s);
     expect(counterSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "order.create", screen: "counter" }); }');
   });
 

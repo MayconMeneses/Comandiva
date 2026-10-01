@@ -76,13 +76,14 @@ type PendingContext =
   | { type: "admin.updateOrderStatus"; orderId: number }
   | { type: "admin.recordBillPayment"; tableSessionId: number };
 
-// Janela curta de propósito: priceOrder (server/routers/order.ts) recalcula
-// preço/disponibilidade/pedido mínimo do zero a cada order.create, sem
-// nenhum "congelamento" do que o cliente viu — reenviar um pedido guardado
-// horas depois arriscaria confirmar algo que ele não veria mais. 5min cobre
-// o caso real (tela travou/sinal caiu por 1-3min) sem deixar a janela de
-// descasamento de preço crescer.
-export const PENDING_ORDER_WINDOW_MS = 5 * 60 * 1000;
+// Janela de 4h: cobre o cenário real de pane longa (ver Fase 2 do
+// offline-first, C:\Users\maico\.claude\plans\lovely-purring-dusk.md).
+// priceOrder (server/routers/order.ts) SEMPRE recalcula preço/disponibilidade/
+// pedido mínimo do zero a cada order.create — reenviar um pedido guardado
+// horas depois nunca arrisca cobrar errado ou duplicar, só arrisca uma
+// SURPRESA de valor se o preço mudou nesse intervalo (já comunicada pelo
+// toast em NewCounterOrder.tsx quando o reenvio leva mais que esta janela).
+export const PENDING_ORDER_WINDOW_MS = 4 * 60 * 60 * 1000;
 
 // Sobe se o formato de checkoutSchema/addRoundSchema mudar de um jeito
 // incompatível — uma entrada salva com versão antiga é descartada em vez de
@@ -92,12 +93,59 @@ export const PENDING_ORDER_SCHEMA_VERSION = 1;
 
 const KEY_PREFIX = "mm-pending-order:";
 
+// Disparado por persistPendingOrder/clearPendingOrder — ponte de reatividade
+// pra componentes fora da árvore de quem grava (localStorage não notifica a
+// própria aba). Ver usePendingCounterOrder.ts (Fase 2, useSyncExternalStore).
+export const PENDING_ORDER_CHANGE_EVENT = "mm-pending-order-change";
+
+function dispatchPendingOrderChange(): void {
+  try {
+    window.dispatchEvent(new CustomEvent(PENDING_ORDER_CHANGE_EVENT));
+  } catch {
+    // Sem `window` (SSR) — nenhum hook chega a montar nesse ambiente mesmo.
+  }
+}
+
 function keyFor(context: PendingContext): string {
   if (context.type === "order.create") return `${KEY_PREFIX}order.create:${context.screen}`;
   if (context.type === "table.addRound") return `${KEY_PREFIX}table.addRound:${context.token}`;
   if (context.type === "admin.addManualRound") return `${KEY_PREFIX}admin.addManualRound:${context.tableId}`;
   if (context.type === "admin.updateOrderStatus") return `${KEY_PREFIX}admin.updateOrderStatus:${context.orderId}`;
   return `${KEY_PREFIX}admin.recordBillPayment:${context.tableSessionId}`;
+}
+
+function displayKeyFor(context: PendingContext): string {
+  return `${keyFor(context)}:display`;
+}
+
+// Decora o cartão otimista (RestaurantOrders.tsx) — nome/telefone/itens pra
+// exibir enquanto o pedido de verdade não confirma. NUNCA usado pra reenviar
+// nada ao servidor (isso é só o payload em PendingQueueEntry acima); captura
+// uma cópia separada porque reconstruir isso a partir de ids bateria no
+// catálogo cacheado, indireto e duplicando lookup sem necessidade.
+export type PendingDisplaySnapshot = {
+  customerName: string;
+  customerPhone: string;
+  totalCents: number;
+  items: Array<{ name: string; quantity: number }>;
+};
+
+export function persistPendingOrderDisplay(context: PendingContext, display: PendingDisplaySnapshot): void {
+  try {
+    localStorage.setItem(displayKeyFor(context), JSON.stringify(display));
+  } catch {
+    // Sem persistência — o cartão otimista só não aparece, nada mais quebra.
+  }
+}
+
+export function loadPendingOrderDisplay(context: PendingContext): PendingDisplaySnapshot | null {
+  try {
+    const raw = localStorage.getItem(displayKeyFor(context));
+    if (!raw) return null;
+    return JSON.parse(raw) as PendingDisplaySnapshot;
+  } catch {
+    return null;
+  }
 }
 
 function contextOf(entry: PendingQueueEntry): PendingContext {
@@ -140,14 +188,17 @@ export function persistPendingOrder(entry: PendingQueueEntry): void {
   } catch {
     // sem persistência — a Fase 3 estrita (retry em memória) continua funcionando normalmente.
   }
+  dispatchPendingOrderChange();
 }
 
 export function clearPendingOrder(context: PendingContext): void {
   try {
     localStorage.removeItem(keyFor(context));
+    localStorage.removeItem(displayKeyFor(context));
   } catch {
     // nada a fazer — pior caso é um lembrete velho que a expiração já cobre.
   }
+  dispatchPendingOrderChange();
 }
 
 // Varre só as chaves com o prefixo desta fila — não assume nenhuma lista de
@@ -162,7 +213,14 @@ export function readValidPendingOrders(now: number = Date.now()): PendingQueueEn
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(KEY_PREFIX)) keys.push(key);
+      // displayKeyFor() usa o MESMO KEY_PREFIX + sufixo ":display" — sem
+      // excluir aqui, essa varredura trata o snapshot de exibição (formato
+      // diferente de PendingQueueEntry) como uma entrada corrompida e apaga
+      // ele sozinha no próximo render (resumeOrCreateOperationId roda isso a
+      // cada render via o useRef(...) nas telas, não só uma vez). Bug real
+      // encontrado testando a Fase 2 ao vivo: o cartão otimista nunca
+      // aparecia porque o snapshot sumia antes do primeiro re-render acabar.
+      if (key && key.startsWith(KEY_PREFIX) && !key.endsWith(":display")) keys.push(key);
     }
     for (const key of keys) {
       const raw = localStorage.getItem(key);
