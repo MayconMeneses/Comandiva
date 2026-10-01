@@ -123,27 +123,41 @@ export const adminOrdersRouter = router({
   // (painel do gateway/Pix na mão); aqui fica o rastro de quem/quando/motivo,
   // e o status do pagamento passa a refletir a realidade (evita mostrar um
   // pagamento estornado como "pago" pro resto da equipe).
+  // Mesma classe de corrida já fechada em updateOrderStatus (ver comentário
+  // detalhado logo abaixo): antes, o SELECT que determinava `payment` rodava
+  // FORA da transação — duas chamadas quase simultâneas (duplo clique, ou
+  // duas abas) podiam ambas ler status "PAID", ambas passar pela checagem e
+  // ambas escrever, duplicando a linha de auditoria em `orderChangeLogs`
+  // (não duplica reembolso de dinheiro de verdade — nenhuma API de gateway é
+  // chamada aqui, só registro interno). Agora a leitura+checagem+escrita
+  // inteira roda dentro de UMA transação com a linha do pagamento travada
+  // (SELECT...FOR UPDATE), mesmo padrão de updateOrderStatus.
   markPaymentRefunded: adminProcedure.input(z.object({ orderId: z.number().int().positive(), reason: z.string().trim().min(3, "Descreva o motivo do estorno.").max(500) })).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
-    const [payment] = await db.select().from(payments).where(eq(payments.orderId, input.orderId)).limit(1);
-    if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Pagamento não encontrado para este pedido." });
-    if (payment.status !== "PAID") throw new TRPCError({ code: "BAD_REQUEST", message: `Só é possível marcar como reembolsado um pagamento com status "Pago" (status atual: ${payment.status}).` });
-    const now = Date.now();
     await db.transaction(async tx => {
+      const [payment] = await tx.select().from(payments).where(eq(payments.orderId, input.orderId)).limit(1).for("update");
+      if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Pagamento não encontrado para este pedido." });
+      if (payment.status !== "PAID") throw new TRPCError({ code: "BAD_REQUEST", message: `Só é possível marcar como reembolsado um pagamento com status "Pago" (status atual: ${payment.status}).` });
+      const now = Date.now();
       await tx.update(payments).set({ status: "REFUNDED", refundedAt: now, refundedByUserId: ctx.user?.id ?? null, refundReason: input.reason, updatedAt: now }).where(eq(payments.id, payment.id));
       await tx.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "PAYMENT_REFUNDED", details: JSON.stringify({ amountCents: payment.amountCents, reason: input.reason }), createdAt: now });
     });
     return getOrderWithDetails(input.orderId);
   }),
+  // Mesma corrida/mesmo fix de markPaymentRefunded acima: SELECT+checagem+
+  // escrita dentro de uma única transação, com a linha do pedido travada —
+  // sem isso, duas chamadas quase simultâneas pra arquivar o mesmo pedido
+  // podiam ambas passar pela checagem "ainda não arquivado" e ambas
+  // escrever, duplicando a linha de auditoria ORDER_ARCHIVED.
   archiveOrder: adminProcedure.input(z.object({ orderId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
-    const [current] = await db.select().from(orders).where(eq(orders.id, input.orderId)).limit(1);
-    if (!current || current.archivedAt) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
-    if (current.status !== "COMPLETED" && current.status !== "CANCELLED") throw new TRPCError({ code: "BAD_REQUEST", message: "Conclua ou cancele o pedido antes de removê-lo da lista." });
-    const now = Date.now();
     await db.transaction(async tx => {
+      const [current] = await tx.select().from(orders).where(eq(orders.id, input.orderId)).limit(1).for("update");
+      if (!current || current.archivedAt) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+      if (current.status !== "COMPLETED" && current.status !== "CANCELLED") throw new TRPCError({ code: "BAD_REQUEST", message: "Conclua ou cancele o pedido antes de removê-lo da lista." });
+      const now = Date.now();
       await tx.update(orders).set({ archivedAt: now, updatedAt: now }).where(eq(orders.id, input.orderId));
       await tx.insert(orderChangeLogs).values({ orderId: input.orderId, changedByUserId: ctx.user?.id ?? null, changeType: "ORDER_ARCHIVED", details: JSON.stringify({ status: current.status }), createdAt: now });
     });

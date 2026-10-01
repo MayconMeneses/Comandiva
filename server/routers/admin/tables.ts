@@ -156,7 +156,10 @@ export const adminTablesRouter = router({
   }),
   reservations: reservationsRestaurantProcedure.input(z.object({ fromAt: z.number().optional(), toAt: z.number().optional() }).optional()).query(({ input }) => listReservations(input ?? {})),
   createReservation: reservationsRestaurantProcedure
-    .input(z.object({ customerName: safeText(z.string().trim().min(2).max(160)), customerPhone: phoneSchema, partySize: z.number().int().min(1).max(50), reservedFor: z.number().int().positive(), tableId: z.number().int().positive().optional(), notes: safeText(z.string().max(500)).optional() }))
+    // clientOperationId é opcional (retrocompatível) — chave de idempotência
+    // gerada pelo cliente pra proteger contra duplo-clique/reenvio, ver
+    // comentário em createReservation (server/db/tableReservations.ts).
+    .input(z.object({ customerName: safeText(z.string().trim().min(2).max(160)), customerPhone: phoneSchema, partySize: z.number().int().min(1).max(50), reservedFor: z.number().int().positive(), tableId: z.number().int().positive().optional(), notes: safeText(z.string().max(500)).optional(), clientOperationId: z.string().min(8).max(64).regex(/^[a-zA-Z0-9-]+$/).optional() }))
     .mutation(async ({ input }) => {
       try {
         return { id: await createReservation(input) };

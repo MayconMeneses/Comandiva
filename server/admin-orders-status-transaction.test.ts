@@ -56,7 +56,7 @@ type Call = { kind: "update" | "insert"; table: unknown; payload: unknown };
  * `failAtCall` (1-based, conta só update/insert) faz a N-ésima escrita
  * lançar ANTES de registrar o efeito, simulando queda no meio da sequência.
  */
-function makeFakeDb(options: { currentOrder?: Record<string, unknown>; failAtCall?: number } = {}) {
+function makeFakeDb(options: { currentOrder?: Record<string, unknown>; paymentRow?: Record<string, unknown>; failAtCall?: number } = {}) {
   const calls: Call[] = [];
   let writeCount = 0;
 
@@ -64,10 +64,16 @@ function makeFakeDb(options: { currentOrder?: Record<string, unknown>; failAtCal
     return {
       // `.limit(n)` devolve algo "thenable" (funciona com `await` direto,
       // como o resto dos testes deste arquivo já fazia) E com `.for("update")`
-      // encadeável (usado por updateOrderStatus agora, ver comentário na
-      // describe abaixo) — as duas formas resolvem pras mesmas linhas.
-      select: () => ({ from: () => ({ where: () => ({ limit: () => {
-        const rows = options.currentOrder ? [options.currentOrder] : [];
+      // encadeável (usado por updateOrderStatus/markPaymentRefunded/
+      // archiveOrder agora, ver comentário na describe abaixo) — as duas
+      // formas resolvem pras mesmas linhas. `from(table)` captura a tabela
+      // pra distinguir o SELECT de `orders` (markPaymentRefunded/
+      // archiveOrder leem `currentOrder`) do SELECT de `payments`
+      // (markPaymentRefunded lê `paymentRow`) — os dois agora rodam dentro
+      // da mesma transação travada (SELECT...FOR UPDATE), então precisam do
+      // mesmo `queryable()` genérico, não de um select de fora sobrescrito.
+      select: () => ({ from: (table: unknown) => ({ where: () => ({ limit: () => {
+        const rows = table === payments ? (options.paymentRow ? [options.paymentRow] : []) : (options.currentOrder ? [options.currentOrder] : []);
         return { for: async () => rows, then: (resolve: (value: unknown) => void, reject?: (error: unknown) => void) => Promise.resolve(rows).then(resolve, reject) };
       } }) }) }),
       update: (table: unknown) => ({
@@ -270,11 +276,10 @@ describe("admin.markPaymentRefunded — transação", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("caminho feliz: UPDATE payments + INSERT order_change_logs juntos", async () => {
-    const stub = makeFakeDb({ currentOrder: BASE_ORDER });
     // markPaymentRefunded faz um select próprio em `payments` (não em
-    // `currentOrder`) — o fake genérico devolve [] por padrão pra esse
-    // select, então precisamos de um fake dedicado com o pagamento certo.
-    stub.db.select = () => ({ from: () => ({ where: () => ({ limit: async () => [{ id: 5, orderId: 10, status: "PAID", amountCents: 5000 }] }) }) }) as never;
+    // `currentOrder`) — `paymentRow` alimenta esse select dentro da MESMA
+    // transação travada (SELECT...FOR UPDATE), ver comentário em queryable().
+    const stub = makeFakeDb({ currentOrder: BASE_ORDER, paymentRow: { id: 5, orderId: 10, status: "PAID", amountCents: 5000 } });
     mocks.getDb.mockResolvedValue(stub.db);
     mocks.getOrderWithDetails.mockResolvedValue({ ...BASE_ORDER, paymentStatus: "REFUNDED" });
 

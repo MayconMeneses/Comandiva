@@ -29,14 +29,15 @@ const adminContext = {
 function dbReturning(paymentRow: { id: number; orderId: number; status: string; amountCents: number } | undefined) {
   const insertValues = vi.fn();
   const updateSet = vi.fn(() => ({ where: vi.fn() }));
-  const writable = { update: () => ({ set: updateSet }), insert: () => ({ values: insertValues }) };
+  // markPaymentRefunded agora faz SELECT...FOR UPDATE + checagem + escrita
+  // tudo dentro de UMA db.transaction (mesmo padrão de updateOrderStatus,
+  // fechando a mesma classe de corrida TOCTOU) — o `tx` espião precisa
+  // expor `select` encadeável até `.for("update")`, não só update/insert.
+  const select = () => ({ from: () => ({ where: () => ({ limit: () => ({ for: async () => (paymentRow ? [paymentRow] : []) }) }) }) });
+  const writable = { select, update: () => ({ set: updateSet }), insert: () => ({ values: insertValues }) };
   return {
     db: {
-      select: () => ({ from: () => ({ where: () => ({ limit: async () => (paymentRow ? [paymentRow] : []) }) }) }),
       ...writable,
-      // markPaymentRefunded agora envolve UPDATE payments + INSERT orderChangeLogs
-      // numa db.transaction — o `tx` espião reusa os mesmos spies do `db` de fora,
-      // então as asserções de updateSet/insertValues continuam valendo.
       transaction: async (fn: (tx: typeof writable) => Promise<unknown>) => fn(writable),
     },
     updateSet,

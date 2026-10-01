@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
+import { generateClientId } from "@/lib/randomId";
 import { CalendarClock, Plus } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const STATUS_LABEL: Record<string, string> = { REQUESTED: "Solicitada", CONFIRMED: "Confirmada", SEATED: "Sentou", CANCELLED: "Cancelada", NO_SHOW: "Não veio" };
@@ -13,15 +14,22 @@ const STATUS_TONE: Record<string, string> = { REQUESTED: "bg-amber-100 text-ambe
 function NewReservationForm() {
   const utils = trpc.useUtils();
   const [customerName, setCustomerName] = useState(""); const [customerPhone, setCustomerPhone] = useState(""); const [partySize, setPartySize] = useState("2"); const [dateTime, setDateTime] = useState(""); const [notes, setNotes] = useState("");
+  // Protege contra duplo-clique/reenvio criando uma reserva duplicada —
+  // reserva não é dinheiro nem pedido, então só precisa de uma chave de
+  // idempotência simples (sem fila de localStorage), regenerada só no
+  // sucesso (mesmo ciclo de vida de operationIdRef em NewCounterOrder.tsx) —
+  // assim um SEGUNDO envio depois de um sucesso não é tratado como
+  // duplicata do primeiro.
+  const operationIdRef = useRef(generateClientId());
   const create = trpc.admin.createReservation.useMutation({
-    onSuccess: () => { setCustomerName(""); setCustomerPhone(""); setPartySize("2"); setDateTime(""); setNotes(""); void utils.admin.reservations.invalidate(); toast.success("Reserva registrada."); },
+    onSuccess: () => { operationIdRef.current = generateClientId(); setCustomerName(""); setCustomerPhone(""); setPartySize("2"); setDateTime(""); setNotes(""); void utils.admin.reservations.invalidate(); toast.success("Reserva registrada."); },
     onError: error => toast.error(error.message),
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const reservedFor = dateTime ? new Date(dateTime).getTime() : NaN;
     if (Number.isNaN(reservedFor)) { toast.error("Informe data e hora da reserva."); return; }
-    create.mutate({ customerName, customerPhone: customerPhone.replace(/\D/g, ""), partySize: Number(partySize) || 1, reservedFor, notes: notes || undefined });
+    create.mutate({ customerName, customerPhone: customerPhone.replace(/\D/g, ""), partySize: Number(partySize) || 1, reservedFor, notes: notes || undefined, clientOperationId: operationIdRef.current });
   };
   return <form onSubmit={submit} className="grid gap-3 rounded-2xl border border-[#e2d5c5] bg-[#fbf6ee] p-4 sm:grid-cols-5">
     <div><Label className="text-xs">Nome</Label><Input required value={customerName} onChange={event => setCustomerName(event.target.value)} className="mt-1.5 h-10 rounded-xl bg-white" /></div>

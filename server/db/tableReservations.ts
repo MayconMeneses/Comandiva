@@ -45,7 +45,16 @@ export async function hasReservationConflict(tableId: number, reservedFor: numbe
   return Boolean(conflict);
 }
 
-export async function createReservation(input: { customerName: string; customerPhone: string; partySize: number; reservedFor: number; tableId?: number; notes?: string }) {
+/**
+ * `clientOperationId` (opcional) é a chave de idempotência gerada pelo
+ * cliente — mesmo padrão de recordBillPayment (server/db/tableSessions.ts):
+ * sem ela, um duplo-clique ou um reenvio depois de rede falhar (resposta se
+ * perdeu, mas o insert já tinha comitado) duplicava a reserva de verdade —
+ * createReservation era a única mutation da Frente 2 (Fase 3) genuinamente
+ * insegura pra repetir (INSERT simples, sem dedupe). Quando `clientOperationId`
+ * não é informado, comportamento idêntico a antes.
+ */
+export async function createReservation(input: { customerName: string; customerPhone: string; partySize: number; reservedFor: number; tableId?: number; notes?: string; clientOperationId?: string | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const now = Date.now();
@@ -59,17 +68,30 @@ export async function createReservation(input: { customerName: string; customerP
     if (input.tableId && (await hasReservationConflict(input.tableId, input.reservedFor, undefined, conn))) {
       throw new Error("Já existe uma reserva próxima demais nessa mesa. Escolha outro horário ou outra mesa.");
     }
-    const result = await conn.insert(tableReservations).values({
-      customerName: input.customerName,
-      customerPhone: input.customerPhone,
-      partySize: input.partySize,
-      reservedFor: input.reservedFor,
-      tableId: input.tableId ?? null,
-      notes: input.notes ?? null,
-      createdAt: now,
-      updatedAt: now,
-    });
-    return Number(result[0].insertId);
+    try {
+      const result = await conn.insert(tableReservations).values({
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        partySize: input.partySize,
+        reservedFor: input.reservedFor,
+        tableId: input.tableId ?? null,
+        notes: input.notes ?? null,
+        createdAt: now,
+        updatedAt: now,
+        clientOperationId: input.clientOperationId ?? null,
+      });
+      return Number(result[0].insertId);
+    } catch (error) {
+      // Mesmo padrão de captura de recordBillPayment — o `code` do driver
+      // (ER_DUP_ENTRY) fica em `error.cause`, não no erro que a gente pega
+      // direto (drizzle-orm embrulha num DrizzleQueryError).
+      const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
+      if (input.clientOperationId && errorCode === "ER_DUP_ENTRY") {
+        const [existing] = await conn.select({ id: tableReservations.id }).from(tableReservations).where(eq(tableReservations.clientOperationId, input.clientOperationId)).limit(1);
+        if (existing) return existing.id;
+      }
+      throw error;
+    }
   };
   if (!input.tableId) return insertReservation(db);
   return db.transaction(async tx => {

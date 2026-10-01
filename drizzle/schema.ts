@@ -844,8 +844,19 @@ export const tableReservations = mysqlTable(
     notes: varchar("notes", { length: 500 }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number", unsigned: true }).notNull(),
+    // Chave de idempotência gerada pelo cliente — mesmo padrão de
+    // orders.clientOperationId/table_bill_payments.clientOperationId (ver
+    // comentário em qualquer um dos dois): nulo pra registros antigos,
+    // protege contra duplo-clique/reenvio criando uma reserva duplicada —
+    // createReservation é um INSERT simples, sem dedupe, a única mutation
+    // da Frente 2 (Fase 3) genuinamente insegura pra repetir.
+    clientOperationId: varchar("clientOperationId", { length: 64 }),
   },
-  table => [index("table_reservations_reserved_for_idx").on(table.reservedFor), index("table_reservations_status_idx").on(table.status)],
+  table => [
+    index("table_reservations_reserved_for_idx").on(table.reservedFor),
+    index("table_reservations_status_idx").on(table.status),
+    uniqueIndex("table_reservations_client_operation_id_unique").on(table.clientOperationId),
+  ],
 );
 
 /**
