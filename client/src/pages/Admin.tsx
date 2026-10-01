@@ -26,7 +26,6 @@ function AdminContent() {
   const { user } = useAuth();
   const page = useMemo(() => location.split("/")[2] ?? "", [location]);
   const viaSupportSession = Boolean(user && "viaSupportSession" in user && user.viaSupportSession);
-  if (page === "comprovante") return <Receipt />;
   if (page === "pedidos") return <OrderManagement />;
   if (page === "rotas") return <DeliveryRoutesManager />;
   if (page === "cardapio") return <CatalogAdmin />;
@@ -53,13 +52,21 @@ export default function Admin() {
   if (loading) return <Loading />;
   if (!user) return <div className="grid min-h-screen place-items-center bg-background p-6"><div className="flex w-full max-w-md flex-col items-center"><img src="/mm-logo-icon.png" alt="MM System Creator" className="h-14 w-14 object-contain" /><div className="mt-6 w-full"><TeamLoginCard title="Painel do restaurante" subtitle="Entre com a conta do responsável para gerenciar o MM System Creator." /></div><a href="/" className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"><ArrowLeft className="h-3.5 w-3.5" />Voltar para o site</a></div></div>;
   const isReceiptRoute = location.startsWith("/admin/comprovante/");
+  // Comprovante é feito pra imprimir — nunca precisa do menu/sidebar do
+  // painel (DashboardLayout), pra NENHUM papel. Antes só staff sem permissão
+  // extra pulava o DashboardLayout aqui; um admin (ou staff com permissão
+  // extra) imprimindo caía no `return` de baixo com o layout completo, e o
+  // menu lateral saía junto na impressão (DashboardLayout não tem CSS de
+  // impressão pra se esconder) — reportado pelo usuário com foto. A própria
+  // Receipt.tsx já tem seu botão "Voltar aos pedidos" (print:hidden), então
+  // o layout nunca fazia falta aqui pra nenhum papel.
+  if (isReceiptRoute) return <div className="mx-auto max-w-7xl p-2 sm:p-5"><Receipt /></div>;
   // Staff só entra no painel de verdade se tiver pelo menos uma área extra
   // liberada (ver shared/permissions.ts) — sem nenhuma, continua exatamente
-  // como sempre foi: só a rota de comprovante, resto do trabalho operacional
-  // é em /painel-pedidos.
+  // como sempre foi: só a rota de comprovante (já tratada acima), resto do
+  // trabalho operacional é em /painel-pedidos.
   const hasAnyExtraPermission = user.role === "staff" && (user.permissions?.length ?? 0) > 0;
   if (user.role !== "admin" && !hasAnyExtraPermission) {
-    if (user.role === "staff" && isReceiptRoute) return <div className="mx-auto max-w-7xl p-2 sm:p-5"><Receipt /></div>;
     return <div className="grid min-h-screen place-items-center bg-background p-6 text-center"><div><img src="/mm-logo-icon.png" alt="MM System Creator" className="mx-auto h-14 w-14 object-contain" /><Settings2 className="mx-auto mt-5 h-10 w-10 text-primary" /><h1 className="mt-5 font-display text-3xl font-bold">Acesso administrativo necessário</h1><p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">Esta conta está autenticada, mas ainda não possui permissão de administrador para operar o restaurante.</p></div></div>;
   }
   return <DashboardLayout><div className="mx-auto max-w-7xl p-2 sm:p-5"><AdminContent /></div></DashboardLayout>;
