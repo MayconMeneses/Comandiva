@@ -12,6 +12,7 @@ import {
   readValidPendingOrders,
   resumeOrCreateOperationId,
   type PendingQueueEntry,
+  type PendingRoundDisplaySnapshot,
 } from "./pendingOrderQueue";
 
 function checkoutEntry(overrides: Partial<PendingQueueEntry> = {}): PendingQueueEntry {
@@ -200,6 +201,55 @@ describe("pendingOrderQueue", () => {
       persistPendingOrderDisplay({ type: "order.create", screen: "counter" }, display);
       readValidPendingOrders();
       expect(loadPendingOrderDisplay({ type: "order.create", screen: "counter" })).toEqual(display);
+    });
+  });
+
+  describe("persistPendingOrderDisplay / loadPendingOrderDisplay genérico (Frente 1 da Fase 2b — cartão otimista de rodada)", () => {
+    const roundDisplay: PendingRoundDisplaySnapshot = { tableLabel: "Mesa 7", totalCents: 3200, items: [{ name: "Água", quantity: 2 }] };
+
+    it("table.addRound (mesa via QR Code, por token): round-trip persiste e lê de volta", () => {
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "table.addRound", token: "mesa-7-qr" }, roundDisplay);
+      expect(loadPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "table.addRound", token: "mesa-7-qr" })).toEqual(roundDisplay);
+    });
+
+    it("admin.addManualRound (rodada lançada pela equipe, por tableId): round-trip persiste e lê de volta", () => {
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 }, roundDisplay);
+      expect(loadPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 })).toEqual(roundDisplay);
+    });
+
+    it("table.addRound, admin.addManualRound (mesmo número) e order.create (counter) têm snapshots independentes, sem se sobrescrever", () => {
+      const counterDisplay = { customerName: "Ana", customerPhone: "85988887777", totalCents: 4500, items: [{ name: "X-Burguer", quantity: 2 }] };
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "table.addRound", token: "7" }, { ...roundDisplay, tableLabel: "QR Mesa 7" });
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 }, { ...roundDisplay, tableLabel: "Admin Mesa 7" });
+      persistPendingOrderDisplay({ type: "order.create", screen: "counter" }, counterDisplay);
+      expect(loadPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "table.addRound", token: "7" })?.tableLabel).toBe("QR Mesa 7");
+      expect(loadPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 })?.tableLabel).toBe("Admin Mesa 7");
+      expect(loadPendingOrderDisplay({ type: "order.create", screen: "counter" })?.customerName).toBe("Ana");
+    });
+
+    it("clearPendingOrder remove o snapshot de exibição da rodada junto com a pendência (table.addRound)", () => {
+      persistPendingOrder({ type: "table.addRound", token: "mesa-7-qr", payload: { token: "mesa-7-qr", items: [], operationId: "op-qr" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "table.addRound", token: "mesa-7-qr" }, roundDisplay);
+      clearPendingOrder({ type: "table.addRound", token: "mesa-7-qr" });
+      expect(loadPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "table.addRound", token: "mesa-7-qr" })).toBeNull();
+    });
+
+    it("clearPendingOrder remove o snapshot de exibição da rodada junto com a pendência (admin.addManualRound)", () => {
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-admin" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 }, roundDisplay);
+      clearPendingOrder({ type: "admin.addManualRound", tableId: 7 });
+      expect(loadPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 })).toBeNull();
+    });
+
+    // Mesma regressão já coberta acima pro order.create — confirma que a
+    // exclusão de chaves ":display" em readValidPendingOrders() (prefixo +
+    // sufixo, sem lista fixa de contextos) também cobre os 2 contextos novos
+    // de rodada, sem precisar de nenhuma mudança naquela função.
+    it("readValidPendingOrders NÃO apaga o snapshot de exibição da rodada (admin.addManualRound)", () => {
+      persistPendingOrder({ type: "admin.addManualRound", tableId: 7, payload: { tableId: 7, items: [], operationId: "op-admin" } as never, createdAt: Date.now(), itemCount: 1, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 }, roundDisplay);
+      readValidPendingOrders();
+      expect(loadPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: 7 })).toEqual(roundDisplay);
     });
   });
 

@@ -69,7 +69,7 @@ export type PendingBillPaymentEntry = {
 
 export type PendingQueueEntry = PendingCheckoutEntry | PendingAddRoundEntry | PendingAdminRoundEntry | PendingOrderStatusEntry | PendingBillPaymentEntry;
 
-type PendingContext =
+export type PendingContext =
   | { type: "order.create"; screen: "checkout" | "counter" }
   | { type: "table.addRound"; token: string }
   | { type: "admin.addManualRound"; tableId: number }
@@ -130,7 +130,23 @@ export type PendingDisplaySnapshot = {
   items: Array<{ name: string; quantity: number }>;
 };
 
-export function persistPendingOrderDisplay(context: PendingContext, display: PendingDisplaySnapshot): void {
+// Mesmo racional do snapshot acima, mas pra rodada de mesa/comanda
+// (TableSession.tsx/TableMapManager.tsx, Frente 1 da Fase 2b, ver
+// C:\Users\maico\.claude\plans\lovely-purring-dusk.md) — sem nome/telefone de
+// cliente (nenhuma das duas telas tem isso disponível no onMutate, só rótulo
+// da mesa + itens/total do carrinho), por isso um formato de exibição
+// próprio em vez de reaproveitar PendingDisplaySnapshot com campos vazios.
+export type PendingRoundDisplaySnapshot = {
+  tableLabel: string;
+  totalCents: number;
+  items: Array<{ name: string; quantity: number }>;
+};
+
+// Genérico (<T>) pra servir tanto o snapshot de pedido (balcão/checkout)
+// quanto o de rodada (mesa) com a MESMA função de armazenamento — mesma
+// chave + sufixo ":display", mesmo try/catch de degradação segura, sem
+// duplicar a lógica de leitura/escrita entre os dois formatos de conteúdo.
+export function persistPendingOrderDisplay<T>(context: PendingContext, display: T): void {
   try {
     localStorage.setItem(displayKeyFor(context), JSON.stringify(display));
   } catch {
@@ -138,11 +154,11 @@ export function persistPendingOrderDisplay(context: PendingContext, display: Pen
   }
 }
 
-export function loadPendingOrderDisplay(context: PendingContext): PendingDisplaySnapshot | null {
+export function loadPendingOrderDisplay<T>(context: PendingContext): T | null {
   try {
     const raw = localStorage.getItem(displayKeyFor(context));
     if (!raw) return null;
-    return JSON.parse(raw) as PendingDisplaySnapshot;
+    return JSON.parse(raw) as T;
   } catch {
     return null;
   }

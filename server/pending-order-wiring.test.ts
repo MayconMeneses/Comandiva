@@ -18,6 +18,7 @@ import { describe, expect, it } from "vitest";
 const checkoutSource = readFileSync(resolve(import.meta.dirname, "../client/src/pages/Checkout.tsx"), "utf8");
 const counterSource = readFileSync(resolve(import.meta.dirname, "../client/src/components/NewCounterOrder.tsx"), "utf8");
 const tableSessionSource = readFileSync(resolve(import.meta.dirname, "../client/src/pages/TableSession.tsx"), "utf8");
+const tableMapManagerSource = readFileSync(resolve(import.meta.dirname, "../client/src/components/TableMapManager.tsx"), "utf8");
 const appSource = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const offlineRetryNoticeSource = readFileSync(resolve(import.meta.dirname, "../client/src/components/OfflineRetryNotice.tsx"), "utf8");
 
@@ -48,12 +49,39 @@ describe("Fase 3 completa — fila de pedido pendente ligada nas telas certas", 
   });
 
   it("TableSession.tsx: onMutate persiste com type \"table.addRound\" e o token da mesa (só quando offlineResilienceEnabled), onSettled limpa", () => {
-    expect(tableSessionSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[^}]*persistPendingOrder\(\{\s*type:\s*"table\.addRound",\s*token,/s);
+    // [\s\S]*? (não [^}]*): desde a Frente 1 da Fase 2b (ver
+    // C:\Users\maico\.claude\plans\lovely-purring-dusk.md), onMutate também
+    // grava persistPendingOrderDisplay ANTES — um literal com chaves
+    // próprias — então já não dá pra assumir "nenhum `}` antes".
+    expect(tableSessionSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[\s\S]*?persistPendingOrder\(\{\s*type:\s*"table\.addRound",\s*token,/s);
     expect(tableSessionSource).toContain('onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "table.addRound", token }); }');
   });
 
   it("TableSession.tsx: a semente do operationIdRef usa resumeOrCreateOperationId condicional com o token", () => {
     expect(tableSessionSource).toContain('useRef(offlineResilienceEnabled ? resumeOrCreateOperationId({ type: "table.addRound", token }) : generateClientId())');
+  });
+
+  describe("Frente 1 da Fase 2b — mesa/rodada ganha o mesmo cartão otimista da Fase 2 (ver C:\\Users\\maico\\.claude\\plans\\lovely-purring-dusk.md)", () => {
+    it("TableSession.tsx: onMutate de addRound grava persistPendingOrderDisplay ANTES de persistPendingOrder", () => {
+      expect(tableSessionSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[\s\S]*?persistPendingOrderDisplay<PendingRoundDisplaySnapshot>\(\{\s*type:\s*"table\.addRound",\s*token\s*\},[\s\S]*?persistPendingOrder\(\{\s*type:\s*"table\.addRound",\s*token,/s);
+    });
+
+    it("TableMapManager.tsx: AddRoundForm's onMutate de admin.addManualRound grava persistPendingOrderDisplay ANTES de persistPendingOrder", () => {
+      expect(tableMapManagerSource).toMatch(/onMutate:\s*variables\s*=>\s*\{[\s\S]*?persistPendingOrderDisplay<PendingRoundDisplaySnapshot>\(\{\s*type:\s*"admin\.addManualRound",\s*tableId\s*\},[\s\S]*?persistPendingOrder\(\{\s*type:\s*"admin\.addManualRound",\s*tableId,/s);
+    });
+
+    it("TableMapManager.tsx: AddRoundForm recebe tableLabel como prop e SessionDrawer repassa o seu próprio (não duplica fonte de verdade)", () => {
+      expect(tableMapManagerSource).toContain("function AddRoundForm({ tableId, sessionId, tableLabel, onDone }:");
+      expect(tableMapManagerSource).toContain("<AddRoundForm tableId={data.table!.id} sessionId={sessionId} tableLabel={tableLabel} onDone={() => void detail.refetch()} />");
+    });
+
+    it("TableSession.tsx e TableMapManager.tsx usam o hook genérico usePendingDisplaySnapshot e o componente compartilhado PendingRoundCard", () => {
+      for (const source of [tableSessionSource, tableMapManagerSource]) {
+        expect(source).toContain('import { usePendingDisplaySnapshot } from "@/hooks/usePendingCounterOrder";');
+        expect(source).toContain('import { PendingRoundCard } from "@/components/PendingRoundCard";');
+        expect(source).toMatch(/<PendingRoundCard pending=\{pendingRound\} \/>/);
+      }
+    });
   });
 
   it("App.tsx: PendingOrderBanner está montado logo após o Toaster, antes do Router (em qualquer rota)", () => {

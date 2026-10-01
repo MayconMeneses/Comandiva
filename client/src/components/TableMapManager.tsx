@@ -9,10 +9,12 @@ import ProductSearch from "@/components/ProductSearch";
 import { getFeatureLockedInfo, UpgradeNudgeModal } from "@/components/admin/LockedFeature";
 import { OfflineSnapshotBanner } from "@/components/OfflineSnapshotBanner";
 import { OfflineRetryNotice } from "@/components/OfflineRetryNotice";
+import { PendingRoundCard } from "@/components/PendingRoundCard";
 import { useOperationalSnapshot } from "@/hooks/useOperationalSnapshot";
+import { usePendingDisplaySnapshot } from "@/hooks/usePendingCounterOrder";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
 import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS, persistPendingOrder, resumeOrCreateOperationId } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS, persistPendingOrder, persistPendingOrderDisplay, resumeOrCreateOperationId, type PendingRoundDisplaySnapshot } from "@/lib/pendingOrderQueue";
 import { generateClientId } from "@/lib/randomId";
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, BellRing, CalendarClock, CheckCheck, ChevronDown, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed, XCircle } from "lucide-react";
@@ -67,7 +69,7 @@ function ServiceRequestsPanel() {
   </section>;
 }
 
-function AddRoundForm({ tableId, sessionId, onDone }: { tableId: number; sessionId: number; onDone: () => void }) {
+function AddRoundForm({ tableId, sessionId, tableLabel, onDone }: { tableId: number; sessionId: number; tableLabel: string; onDone: () => void }) {
   const utils = trpc.useUtils();
   const { items, subtotalCents, updateQuantity, removeItem, clearCart } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<MenuProduct | null>(null);
@@ -90,6 +92,14 @@ function AddRoundForm({ tableId, sessionId, onDone }: { tableId: number; session
       if (!offlineResilienceEnabled) return;
       const now = Date.now();
       startedAtRef.current = now;
+      // Grava o snapshot de EXIBIÇÃO antes do payload de reenvio — mesma
+      // ordem de NewCounterOrder.tsx/TableSession.tsx: o evento de
+      // reatividade dispara dentro de persistPendingOrder (abaixo).
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId }, {
+        tableLabel,
+        totalCents: subtotalCents,
+        items: items.map(item => ({ name: item.name, quantity: item.quantity })),
+      });
       persistPendingOrder({ type: "admin.addManualRound", tableId, payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
     },
     onSettled: () => {
@@ -178,12 +188,17 @@ function SessionDrawer({ sessionId, tableLabel, onClose }: { sessionId: number; 
   const closeSession = trpc.admin.closeSession.useMutation({ ...offlineResilienceMutationOptions(offlineResilienceEnabled), onSuccess: () => { void utils.admin.operationalSnapshot.invalidate(); toast.success("Comanda fechada."); onClose(); }, onError: error => toast.error(error.message) });
   const cancelSession = trpc.admin.cancelSession.useMutation({ ...offlineResilienceMutationOptions(offlineResilienceEnabled), onSuccess: () => { void utils.admin.operationalSnapshot.invalidate(); toast.success("Comanda cancelada."); onClose(); }, onError: error => toast.error(error.message) });
   const data = detail.data;
+  // tableId só existe depois que detail.data carrega — hook precisa de
+  // chamada incondicional (regra dos hooks), então usa um id inválido (0,
+  // nunca persistido de verdade, ver isEntryValid em pendingOrderQueue.ts)
+  // como placeholder enquanto a comanda ainda não carregou.
+  const pendingRound = usePendingDisplaySnapshot<PendingRoundDisplaySnapshot>({ type: "admin.addManualRound", tableId: data?.table?.id ?? 0 });
   return <Dialog open onOpenChange={value => { if (!value) onClose(); }}><DialogContent className="max-h-[92vh] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-2xl bg-[#fffdf8] sm:max-w-2xl">
     <DialogHeader><p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Comanda</p><DialogTitle className="font-display text-3xl">{tableLabel}</DialogTitle></DialogHeader>
     {detail.isLoading || !data ? <div className="grid place-items-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : <div className="mt-4 min-w-0 space-y-4">
-      <div className="rounded-xl border border-[#e4d8c8] bg-white p-3"><h3 className="text-sm font-semibold">Rodadas pedidas</h3><div className="mt-2 space-y-2">{data.orders.length ? data.orders.map(order => <div key={order.id} className="flex items-center justify-between gap-2 border-t border-[#f1e9dc] pt-2 first:border-0 first:pt-0 text-sm"><div className="min-w-0 flex-1"><span className="font-medium">{ORDER_STATUS_LABEL[order.status] ?? order.status}</span><span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-[#a08f7e]">{ORIGIN_LABEL[order.origin] ?? order.origin}</span><p className="truncate text-xs text-muted-foreground">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p></div><strong className="shrink-0">{money(order.totalCents)}</strong></div>) : <p className="text-xs text-muted-foreground">Nenhuma rodada ainda.</p>}</div></div>
+      <div className="rounded-xl border border-[#e4d8c8] bg-white p-3"><h3 className="text-sm font-semibold">Rodadas pedidas</h3><div className="mt-2 space-y-2">{pendingRound && <PendingRoundCard pending={pendingRound} />}{data.orders.length ? data.orders.map(order => <div key={order.id} className="flex items-center justify-between gap-2 border-t border-[#f1e9dc] pt-2 first:border-0 first:pt-0 text-sm"><div className="min-w-0 flex-1"><span className="font-medium">{ORDER_STATUS_LABEL[order.status] ?? order.status}</span><span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-[#a08f7e]">{ORIGIN_LABEL[order.origin] ?? order.origin}</span><p className="truncate text-xs text-muted-foreground">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p></div><strong className="shrink-0">{money(order.totalCents)}</strong></div>) : !pendingRound && <p className="text-xs text-muted-foreground">Nenhuma rodada ainda.</p>}</div></div>
       <div className="rounded-xl bg-[#17120e] p-4 text-[#fffaf3]"><div className="flex justify-between text-sm"><span>Total da comanda</span><span className="font-bold text-[#e9c98f]">{money(data.totalCents)}</span></div><div className="mt-1 flex justify-between text-xs text-[#cdbfac]"><span>Pago</span><span>{money(data.paidCents)}</span></div><div className="mt-1 flex justify-between text-xs text-[#cdbfac]"><span>Saldo</span><span>{money(data.balanceDueCents)}</span></div></div>
-      <div><h3 className="text-sm font-semibold">Lançar nova rodada</h3><div className="mt-2"><CartProvider storageKey={`mm-staff-table-round-${data.table?.id}`}><AddRoundForm tableId={data.table!.id} sessionId={sessionId} onDone={() => void detail.refetch()} /></CartProvider></div></div>
+      <div><h3 className="text-sm font-semibold">Lançar nova rodada</h3><div className="mt-2"><CartProvider storageKey={`mm-staff-table-round-${data.table?.id}`}><AddRoundForm tableId={data.table!.id} sessionId={sessionId} tableLabel={tableLabel} onDone={() => void detail.refetch()} /></CartProvider></div></div>
       {data.balanceDueCents > 0 && <div><h3 className="text-sm font-semibold">Fechar conta</h3><div className="mt-2"><RecordPaymentForm sessionId={sessionId} balanceDueCents={data.balanceDueCents} /></div></div>}
       {data.billPayments.length > 0 && <div className="rounded-xl border border-[#e4d8c8] bg-white p-3"><h3 className="text-sm font-semibold">Pagamentos registrados</h3><div className="mt-2 space-y-1 text-xs text-muted-foreground">{data.billPayments.map(payment => <p key={payment.id}>{payment.payerLabel ? `${payment.payerLabel} · ` : ""}{money(payment.amountCents)} — {payment.method}</p>)}</div></div>}
       <div className="flex flex-wrap gap-2 border-t border-[#eee4d8] pt-4"><Button disabled={data.balanceDueCents > 0 || closeSession.isPending} onClick={() => {

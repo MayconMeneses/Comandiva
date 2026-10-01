@@ -8,9 +8,11 @@ import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
 import { isRetryingOffline, offlineResilienceMutationOptions } from "@/lib/offlineRetry";
-import { clearPendingOrder, persistPendingOrder, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS } from "@/lib/pendingOrderQueue";
+import { clearPendingOrder, persistPendingOrder, persistPendingOrderDisplay, resumeOrCreateOperationId, PENDING_ORDER_SCHEMA_VERSION, PENDING_ORDER_WINDOW_MS, type PendingRoundDisplaySnapshot } from "@/lib/pendingOrderQueue";
 import { useStaleRetryWarning } from "@/hooks/useStaleRetryWarning";
+import { usePendingDisplaySnapshot } from "@/hooks/usePendingCounterOrder";
 import { OfflineRetryNotice } from "@/components/OfflineRetryNotice";
+import { PendingRoundCard } from "@/components/PendingRoundCard";
 import { isMarcaBackground, MARCA_GRADIENT } from "@shared/colorThemes";
 import { ArrowLeft, BellRing, Loader2, Minus, Plus, ReceiptText, ShoppingBag, Trash2, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -91,6 +93,15 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
       if (!offlineResilienceEnabled) return;
       const now = Date.now();
       startedAtRef.current = now;
+      // Grava o snapshot de EXIBIÇÃO antes do payload de reenvio — mesma
+      // ordem de NewCounterOrder.tsx (Fase 2): o evento de reatividade
+      // dispara dentro de persistPendingOrder (abaixo), então quando o
+      // cartão otimista reagir, os itens/total já precisam estar lá.
+      persistPendingOrderDisplay<PendingRoundDisplaySnapshot>({ type: "table.addRound", token }, {
+        tableLabel: resolve.data?.table.label ?? "",
+        totalCents: subtotalCents,
+        items: items.map(item => ({ name: item.name, quantity: item.quantity })),
+      });
       persistPendingOrder({ type: "table.addRound", token, payload: variables, createdAt: now, itemCount: items.length, schemaVersion: PENDING_ORDER_SCHEMA_VERSION });
     },
     onSettled: () => { startedAtRef.current = null; if (offlineResilienceEnabled) clearPendingOrder({ type: "table.addRound", token }); },
@@ -112,6 +123,7 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
     onSuccess: () => { void utils.table.resolve.invalidate({ token }); toast.success("Garçom chamado! Já estamos indo até a mesa."); },
     onError: error => toast.error(error.message),
   });
+  const pendingRound = usePendingDisplaySnapshot<PendingRoundDisplaySnapshot>({ type: "table.addRound", token });
 
   if (resolve.isLoading) return <Loading />;
   if (resolve.error || !resolve.data) {
@@ -138,7 +150,7 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
 
       <div className="mt-6">{categories.length ? <CategoryProductSections categories={categories} spy={scrollSpy} onSelect={setSelectedProduct} /> : !catalog.isLoading ? <EmptyMenu openingHours={undefined} /> : null}</div>
 
-      {orders.length > 0 && <section className="mt-8"><h2 className="font-display text-xl font-bold">Sua comanda</h2><div className="mt-3 space-y-3">{orders.map(order => <div key={order.id} className="rounded-2xl border border-[#e3d6c6] bg-[#fffdf8] p-4 text-[#231d18]"><div className="flex items-center justify-between gap-3"><span className="text-xs font-bold uppercase tracking-[.1em] text-primary">{STATUS_LABEL[order.status] ?? order.status}</span><strong className="text-sm">{money(order.totalCents)}</strong></div><p className="mt-2 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p></div>)}</div></section>}
+      {(orders.length > 0 || pendingRound) && <section className="mt-8"><h2 className="font-display text-xl font-bold">Sua comanda</h2><div className="mt-3 space-y-3">{pendingRound && <PendingRoundCard pending={pendingRound} />}{orders.map(order => <div key={order.id} className="rounded-2xl border border-[#e3d6c6] bg-[#fffdf8] p-4 text-[#231d18]"><div className="flex items-center justify-between gap-3"><span className="text-xs font-bold uppercase tracking-[.1em] text-primary">{STATUS_LABEL[order.status] ?? order.status}</span><strong className="text-sm">{money(order.totalCents)}</strong></div><p className="mt-2 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p></div>)}</div></section>}
 
       <div className="mt-8 rounded-2xl bg-[#17120e] p-5 text-[#fffaf3]"><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Total da comanda</span><span>{money(totalCents)}</span></div>{balanceDueCents !== totalCents && <div className="mt-1 flex justify-between text-xs text-[#a7c9ab]"><span>Já pago</span><span>{money(totalCents - balanceDueCents)}</span></div>}<div className="mt-3 flex items-center justify-between border-t border-[#4a3d30] pt-3"><Button type="button" variant="outline" disabled={billRequested || requestBill.isPending} onClick={() => requestBill.mutate({ token })} className="h-10 rounded-xl border-[#5c4b3a] bg-transparent text-xs text-[#fffaf3] hover:bg-[#2c241a]"><ReceiptText className="mr-2 h-3.5 w-3.5" />{billRequested ? "Conta já solicitada" : requestBill.isPending ? "Chamando…" : "Pedir a conta"}</Button></div></div>
     </main>
