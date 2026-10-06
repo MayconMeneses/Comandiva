@@ -221,6 +221,34 @@ const IconUsers = (props: SVGProps<SVGSVGElement>) => (
   </Icon>
 );
 
+// Prints reais do sistema rodando (dados fictícios de demonstração).
+const TELAS = [
+  {
+    src: "/assets/demo/pedidos.jpg",
+    w: 1366,
+    h: 577,
+    alt: "Painel de pedidos do restaurante com colunas Aguardando aceite, Aceitos e Em produção",
+    title: "Painel de pedidos em tempo real",
+    caption: "Aceite, coloque em produção e envie para entrega em poucos toques, com a barra de tempo de preparo ficando vermelha quando atrasa.",
+  },
+  {
+    src: "/assets/demo/visao-geral.jpg",
+    w: 1370,
+    h: 637,
+    alt: "Visão geral do painel administrativo com pedidos do dia, faturamento e ticket médio",
+    title: "Visão geral do dia",
+    caption: "Pedidos de hoje, faturamento e ticket médio assim que você abre o painel.",
+  },
+  {
+    src: "/assets/demo/cozinha.jpg",
+    w: 1366,
+    h: 577,
+    alt: "Tela da cozinha com a fila de pedidos em ordem de chegada",
+    title: "Fila da cozinha",
+    caption: "Os pedidos aceitos aparecem em ordem de chegada, sem papel e sem gritaria.",
+  },
+];
+
 function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
     <details className="group border-b border-border py-4 first:pt-0 last:border-0">
@@ -606,6 +634,29 @@ export default function Home() {
           <Link href="/comercial/planos" className={PRIMARY_LINK_CLASSES} onClick={() => track("cta_click")}>
             Ver planos e recursos completos
           </Link>
+        </div>
+      </section>
+
+      {/* Veja por dentro — prints reais do sistema (dados de demonstração) */}
+      <section id="veja-por-dentro" className="border-y border-border bg-paper-raised/60">
+        <div className="mx-auto max-w-5xl px-6 py-20">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-bold text-ink sm:text-3xl">Veja por dentro</h2>
+            <p className="mt-3 text-ink-soft">Telas reais do sistema em funcionamento, com dados de demonstração.</p>
+          </Reveal>
+          <div className="mt-12 grid gap-8 md:grid-cols-2">
+            {TELAS.map((tela, index) => (
+              <Reveal key={tela.src} delayMs={(index % 2) * 100} className={index === 0 ? "md:col-span-2" : ""}>
+                <figure className="overflow-hidden rounded-2xl border border-border bg-paper-raised shadow-sm">
+                  <img src={tela.src} alt={tela.alt} width={tela.w} height={tela.h} loading="lazy" decoding="async" className="block h-auto w-full" />
+                  <figcaption className="border-t border-border px-5 py-4">
+                    <p className="font-semibold text-ink">{tela.title}</p>
+                    <p className="mt-1 text-sm text-ink-soft">{tela.caption}</p>
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
