@@ -224,6 +224,14 @@ const IconUsers = (props: SVGProps<SVGSVGElement>) => (
 // Prints reais do sistema rodando (dados fictícios de demonstração).
 const TELAS = [
   {
+    src: "/assets/demo/cardapio-pizzas.jpg",
+    w: 1366,
+    h: 633,
+    alt: "Cardápio público com a categoria Pizza Tradicional, cada pizza com foto, descrição e preço",
+    title: "Cardápio que dá vontade de pedir",
+    caption: "O cliente navega por categorias, vê foto, descrição e preço de cada item e personaliza o pedido sozinho.",
+  },
+  {
     src: "/assets/demo/pedidos.jpg",
     w: 1366,
     h: 577,
@@ -246,6 +254,14 @@ const TELAS = [
     alt: "Tela da cozinha com a fila de pedidos em ordem de chegada",
     title: "Fila da cozinha",
     caption: "Os pedidos aceitos aparecem em ordem de chegada, sem papel e sem gritaria.",
+  },
+  {
+    src: "/assets/demo/comanda.jpg",
+    w: 685,
+    h: 613,
+    alt: "Comanda digital de uma mesa com rodadas pedidas, total, valor pago e saldo",
+    title: "Comanda da mesa",
+    caption: "Rodadas lançadas, total, o que já foi pago e o saldo, com busca de produto para lançar a próxima rodada.",
   },
 ];
 
@@ -644,7 +660,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-ink sm:text-3xl">Veja por dentro</h2>
             <p className="mt-3 text-ink-soft">Telas reais do sistema em funcionamento, com dados de demonstração.</p>
           </Reveal>
-          <div className="mt-12 grid gap-8 md:grid-cols-2">
+          <div className="mt-12 grid items-start gap-8 md:grid-cols-2">
             {TELAS.map((tela, index) => (
               <Reveal key={tela.src} delayMs={(index % 2) * 100} className={index === 0 ? "md:col-span-2" : ""}>
                 <figure className="overflow-hidden rounded-2xl border border-border bg-paper-raised shadow-sm">
