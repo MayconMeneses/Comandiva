@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { trpc } from "@/lib/trpc";
+import { track } from "@/lib/track";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
@@ -29,7 +30,10 @@ export default function Cardapio() {
   const [sent, setSent] = useState(false);
 
   const upload = trpc.public.uploadMenuReference.useMutation({
-    onSuccess: () => setSent(true),
+    onSuccess: () => {
+      track("signup_step");
+      setSent(true);
+    },
     onError: e => setError(e.message),
   });
 

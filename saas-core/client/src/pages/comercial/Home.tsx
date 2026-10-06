@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { track } from "@/lib/track";
 import type { ReactNode, SVGProps } from "react";
 import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
 import { usePageMeta } from "@/lib/usePageMeta";
@@ -445,7 +446,7 @@ export default function Home() {
             comissão por venda, sem dividir vitrine com ninguém.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/comercial/planos" className={`${PRIMARY_LINK_CLASSES} text-base`}>
+            <Link href="/comercial/planos" className={`${PRIMARY_LINK_CLASSES} text-base`} onClick={() => track("cta_click")}>
               Ver planos e começar
             </Link>
             <a href="#diferenciais" className={`${OUTLINE_LINK_CLASSES} text-base`}>
@@ -602,7 +603,7 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-10 text-center">
-          <Link href="/comercial/planos" className={PRIMARY_LINK_CLASSES}>
+          <Link href="/comercial/planos" className={PRIMARY_LINK_CLASSES} onClick={() => track("cta_click")}>
             Ver planos e recursos completos
           </Link>
         </div>
@@ -687,6 +688,7 @@ export default function Home() {
           <div className="mt-8">
             <Link
               href="/comercial/planos"
+              onClick={() => track("cta_click")}
               className="inline-flex h-11 items-center justify-center rounded-lg bg-white px-8 text-sm font-semibold text-accent-text shadow-sm transition-colors hover:bg-white/90"
             >
               Ver planos e começar agora

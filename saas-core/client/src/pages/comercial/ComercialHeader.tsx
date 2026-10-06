@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { useEffect } from "react";
+import { track } from "@/lib/track";
 
 const PRIMARY_LINK_CLASSES =
   "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#008cfe] to-[#6146fd] px-4 text-sm font-semibold text-white shadow-md shadow-[#6146fd]/20 transition-all duration-200 hover:brightness-110";
@@ -33,7 +34,7 @@ export function ComercialHeader({ showNav = true }: { showNav?: boolean }) {
             <Link href="/comercial/planos" className="hidden text-ink-soft hover:text-ink sm:inline">
               Planos
             </Link>
-            <Link href="/comercial/planos" className={PRIMARY_LINK_CLASSES}>
+            <Link href="/comercial/planos" className={PRIMARY_LINK_CLASSES} onClick={() => track("cta_click")}>
               Começar agora
             </Link>
           </nav>

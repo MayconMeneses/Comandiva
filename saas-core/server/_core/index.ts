@@ -8,6 +8,7 @@ import { createContext } from "./context";
 import { registerMercadoPagoBillingWebhook } from "./mercadoPagoWebhook";
 import { registerMercadoPagoSignupWebhook } from "./mercadoPagoSignupWebhook";
 import { registerMercadoPagoWebhookRoute } from "./mercadoPagoWebhookRoute";
+import { registerSiteTrackRoute } from "./siteTrack";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
@@ -141,6 +142,7 @@ async function startServer() {
   registerMercadoPagoWebhookRoute(app);
   registerMercadoPagoBillingWebhook(app);
   registerMercadoPagoSignupWebhook(app);
+  registerSiteTrackRoute(app);
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
 
   if (process.env.NODE_ENV === "development") {

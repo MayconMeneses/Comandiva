@@ -14,17 +14,22 @@ setInterval(() => {
 }, WINDOW_MS).unref();
 
 /** Limitador simples por chave (ex.: IP + e-mail) — proteção básica contra força bruta no login do Super Admin. */
-export function checkRateLimit(key: string): { allowed: boolean; retryAfterSeconds?: number } {
+export function checkRateLimit(
+  key: string,
+  options: { windowMs?: number; maxAttempts?: number } = {},
+): { allowed: boolean; retryAfterSeconds?: number } {
+  const windowMs = options.windowMs ?? WINDOW_MS;
+  const maxAttempts = options.maxAttempts ?? MAX_ATTEMPTS;
   const now = Date.now();
   const entry = attempts.get(key);
 
-  if (!entry || now - entry.firstAttemptAt > WINDOW_MS) {
+  if (!entry || now - entry.firstAttemptAt > windowMs) {
     attempts.set(key, { count: 1, firstAttemptAt: now });
     return { allowed: true };
   }
 
-  if (entry.count >= MAX_ATTEMPTS) {
-    const retryAfterSeconds = Math.ceil((entry.firstAttemptAt + WINDOW_MS - now) / 1000);
+  if (entry.count >= maxAttempts) {
+    const retryAfterSeconds = Math.ceil((entry.firstAttemptAt + windowMs - now) / 1000);
     return { allowed: false, retryAfterSeconds: Math.max(retryAfterSeconds, 1) };
   }
 

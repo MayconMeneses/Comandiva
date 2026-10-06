@@ -85,6 +85,13 @@
       "when": 1790070251993,
       "tag": "0011_strange_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1791317805904,
+      "tag": "0012_steady_starbolt",
+      "breakpoints": true
     }
   ]
 }

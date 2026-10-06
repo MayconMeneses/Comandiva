@@ -5,6 +5,9 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 import { COMMERCIAL_PAGE_META } from "../../shared/commercialPageMeta";
+import { resolveSpaStatus } from "../../shared/commercialRoutes";
+
+const OG_IMAGE_URL = "https://mmsystem.tech/og-comercial.png";
 
 function escapeHtmlAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -32,6 +35,8 @@ function injectCommercialPageMeta(html: string, url: string): string {
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${title}$2`)
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${description}$2`)
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${ogUrl}$2`)
+    .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${OG_IMAGE_URL}$2`)
+    .replace(/(<meta name="twitter:image" content=")[^"]*(")/, `$1${OG_IMAGE_URL}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${title}$2`)
     .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${description}$2`)
     .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${ogUrl}$2`);
@@ -77,7 +82,7 @@ export async function setupVite(app: Express, server: Server) {
       const clientTemplate = path.resolve(import.meta.dirname, "../..", "client", "index.html");
       const template = await fs.promises.readFile(clientTemplate, "utf-8");
       const page = injectHeroPreload(injectCommercialPageMeta(await vite.transformIndexHtml(url, template), url), url);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      res.status(resolveSpaStatus(url)).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -101,7 +106,7 @@ export function serveStatic(app: Express) {
   app.use("*", async (req, res, next) => {
     try {
       const template = await fs.promises.readFile(path.resolve(distPath, "index.html"), "utf-8");
-      res.status(200).set({ "Content-Type": "text/html" }).end(injectHeroPreload(injectCommercialPageMeta(template, req.originalUrl), req.originalUrl));
+      res.status(resolveSpaStatus(req.originalUrl)).set({ "Content-Type": "text/html" }).end(injectHeroPreload(injectCommercialPageMeta(template, req.originalUrl), req.originalUrl));
     } catch (e) {
       next(e);
     }

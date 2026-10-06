@@ -1,9 +1,14 @@
+import { useEffect } from "react";
 import { Link, useSearch } from "wouter";
+import { track } from "@/lib/track";
 import { ComercialHeader } from "./ComercialHeader";
 
 export default function Sucesso() {
   const search = useSearch();
   const restaurantId = new URLSearchParams(search).get("ref");
+  useEffect(() => {
+    track("signup_success");
+  }, []);
 
   return (
     <div className="comercial-dark min-h-screen bg-paper text-ink">

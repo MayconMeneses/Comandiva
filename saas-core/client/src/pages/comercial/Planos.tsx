@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
+import { track } from "@/lib/track";
 import type { ReactNode, SVGProps } from "react";
 import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
 import { usePageMeta } from "@/lib/usePageMeta";
@@ -229,6 +230,7 @@ export default function Planos() {
 
                     <Link
                       href={`/comercial/cadastro/${plan.key}`}
+                      onClick={() => track("cta_click")}
                       className={`mt-6 inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-all duration-200 ${
                         highlighted
                           ? "bg-gradient-to-r from-[#008cfe] to-[#6146fd] text-white shadow-lg shadow-[#6146fd]/20 hover:-translate-y-0.5 hover:brightness-110"

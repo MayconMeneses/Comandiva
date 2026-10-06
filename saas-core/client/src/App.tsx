@@ -1,5 +1,7 @@
 import { lazy, Suspense } from "react";
-import { Route, Switch } from "wouter";
+import { useEffect } from "react";
+import { Route, Switch, useLocation } from "wouter";
+import { track } from "./lib/track";
 import NotFound from "./pages/NotFound";
 
 // Painel Master (equipe interna) e site comercial (qualquer visitante)
@@ -24,6 +26,7 @@ const ComercialConfirmando = lazy(() => import("./pages/comercial/Confirmando"))
 const ComercialCardapio = lazy(() => import("./pages/comercial/Cardapio"));
 const ComercialTermos = lazy(() => import("./pages/comercial/Termos"));
 const ComercialPrivacidade = lazy(() => import("./pages/comercial/Privacidade"));
+const ComercialNotFound = lazy(() => import("./pages/comercial/NotFound"));
 
 function RouteFallback() {
   return (
@@ -34,6 +37,12 @@ function RouteFallback() {
 }
 
 export default function App() {
+  const [location] = useLocation();
+  // Visita agregada e anônima por rota do site comercial (ver lib/track.ts).
+  useEffect(() => {
+    if (location.startsWith("/comercial")) track("page_view");
+  }, [location]);
+
   return (
     <Suspense fallback={<RouteFallback />}>
       <Switch>
@@ -48,6 +57,7 @@ export default function App() {
         <Route path="/comercial/cadastro/:planKey" component={ComercialCadastro} />
         <Route path="/comercial/termos" component={ComercialTermos} />
         <Route path="/comercial/privacidade" component={ComercialPrivacidade} />
+        <Route path="/comercial/:rest*" component={ComercialNotFound} />
 
         <Route path="/login" component={Login} />
         <Route path="/" component={Dashboard} />

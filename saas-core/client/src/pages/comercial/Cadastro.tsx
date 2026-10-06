@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { trpc } from "@/lib/trpc";
 import { useMercadoPagoSecurity } from "@/lib/useMercadoPagoSecurity";
-import { FormEvent, useState } from "react";
+import { track } from "@/lib/track";
+import { FormEvent, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
 
@@ -16,6 +17,9 @@ export default function Cadastro() {
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  // Funil: "start" no primeiro foco em qualquer campo, "step" ao chegar no último (WhatsApp).
+  const startedRef = useRef(false);
+  const stepRef = useRef(false);
   const plansQuery = trpc.public.plans.useQuery();
   const implementationFeeCents = plansQuery.data?.implementationFeeCents ?? 15000;
 
@@ -31,6 +35,7 @@ export default function Cadastro() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    track("signup_submit");
     // window.MP_DEVICE_SESSION_ID é setado pelo security.js (ver
     // useMercadoPagoSecurity, importado acima) — sem mandar isso pro
     // backend, que repassa pro Mercado Pago via header X-meli-session-id
@@ -58,7 +63,19 @@ export default function Cadastro() {
           ← Voltar para os planos
         </Link>
 
-        <form onSubmit={submit} className="mt-6 rounded-2xl border border-border bg-paper-raised p-6 shadow-sm">
+        <form
+          onSubmit={submit}
+          onFocus={event => {
+            if (!startedRef.current) {
+              startedRef.current = true;
+              track("signup_start");
+            }
+            if (!stepRef.current && (event.target as HTMLElement).id === "contactPhone") {
+              stepRef.current = true;
+              track("signup_step");
+            }
+          }}
+          className="mt-6 rounded-2xl border border-border bg-paper-raised p-6 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wider text-accent-text">Assinar {planLabel}</p>
           <h1 className="mt-2 text-2xl font-bold text-ink">Cadastre seu restaurante</h1>
           <p className="mt-1 text-sm text-ink-soft">

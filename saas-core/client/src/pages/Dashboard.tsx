@@ -8,6 +8,7 @@ const shortDate = (ms: number) => new Intl.DateTimeFormat("pt-BR", { day: "2-dig
 
 export default function Dashboard() {
   const summary = trpc.masterPanel.dashboard.summary.useQuery();
+  const siteStats = trpc.masterPanel.dashboard.siteStats.useQuery();
 
   return (
     <PanelLayout>
@@ -67,6 +68,62 @@ export default function Dashboard() {
               ))}
               {!summary.data.activeSubscriptionsByPlan.length ? <p className="text-sm text-ink-soft">Nenhuma assinatura ativa ainda.</p> : null}
             </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-paper-raised p-4">
+            <h2 className="text-sm font-semibold text-ink">Site comercial</h2>
+            <p className="mt-0.5 text-xs text-ink-soft">Medição própria e anônima (sem cookies nem IP).</p>
+            {siteStats.isLoading ? (
+              <p className="mt-3 text-sm text-ink-soft">Carregando…</p>
+            ) : siteStats.error || !siteStats.data ? (
+              <p className="mt-3 text-sm text-red-700">Não foi possível carregar a medição do site.</p>
+            ) : (
+              <div className="mt-3 grid gap-6 md:grid-cols-2">
+                {(
+                  [
+                    ["Últimos 7 dias", siteStats.data.last7Days],
+                    ["Últimos 30 dias", siteStats.data.last30Days],
+                  ] as const
+                ).map(([title, stats]) => (
+                  <div key={title}>
+                    <h3 className="text-xs font-medium uppercase tracking-wide text-ink-soft">{title}</h3>
+                    <div className="mt-2 grid grid-cols-2 gap-3">
+                      <StatTile label="Visitas" value={String(stats.totalPageViews)} />
+                      <StatTile label="Cliques em CTA" value={String(stats.ctaClicks)} />
+                    </div>
+                    <p className="mt-3 text-xs font-medium text-ink">Funil de cadastro</p>
+                    <ul className="mt-1 space-y-0.5 text-sm text-ink-soft">
+                      <li>
+                        Iniciaram: <span className="tabular-nums text-ink">{stats.funnel.start}</span>
+                      </li>
+                      <li>
+                        Enviaram: <span className="tabular-nums text-ink">{stats.funnel.submit}</span>
+                        {stats.funnel.submitRatePct !== null ? ` (${stats.funnel.submitRatePct}%)` : ""}
+                      </li>
+                      <li>
+                        Concluíram: <span className="tabular-nums text-ink">{stats.funnel.success}</span>
+                        {stats.funnel.successRatePct !== null ? ` (${stats.funnel.successRatePct}% dos enviados)` : ""}
+                      </li>
+                      {stats.funnel.overallRatePct !== null ? (
+                        <li>
+                          Conversão total: <span className="tabular-nums text-ink">{stats.funnel.overallRatePct}%</span>
+                        </li>
+                      ) : null}
+                    </ul>
+                    <p className="mt-3 text-xs font-medium text-ink">Visitas por página</p>
+                    <ul className="mt-1 space-y-0.5 text-sm text-ink-soft">
+                      {stats.pageViewsByPath.map(row => (
+                        <li key={row.path} className="flex justify-between gap-2">
+                          <span className="truncate">{row.path}</span>
+                          <span className="tabular-nums text-ink">{row.views}</span>
+                        </li>
+                      ))}
+                      {!stats.pageViewsByPath.length ? <li>Sem visitas registradas ainda.</li> : null}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {!summary.data.hasAnyPayments ? (

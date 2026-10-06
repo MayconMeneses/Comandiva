@@ -28,6 +28,14 @@ export default function Privacidade() {
             </p>
           </div>
           <div>
+            <h2 className="font-semibold text-ink">Medição de visitas</h2>
+            <p className="mt-1">
+              Este site conta visitas e cliques de forma agregada e anônima, com um sistema próprio nosso:
+              sem cookies, sem guardar seu IP e sem identificar pessoas. Nenhum serviço de terceiros recebe esses
+              dados, e o sinal "Do Not Track" do seu navegador é respeitado.
+            </p>
+          </div>
+          <div>
             <h2 className="font-semibold text-ink">Como protegemos seus dados</h2>
             <p className="mt-1">
               Conexão sempre criptografada, senhas nunca guardadas em texto puro, e cada restaurante roda num
