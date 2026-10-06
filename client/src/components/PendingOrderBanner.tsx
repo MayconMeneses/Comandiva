@@ -34,9 +34,11 @@ function messageFor(entry: PendingQueueEntry) {
 export default function PendingOrderBanner() {
   const [entry, setEntry] = useState<PendingQueueEntry | null>(null);
   const utils = trpc.useUtils();
-  // offline_resilience é recurso de plano — se o restaurante foi rebaixado
-  // depois de uma pendência ter sido salva num plano anterior, o banner não
-  // deve aparecer (ver client/src/lib/offlineRetry.ts).
+  // offline_resilience virou base pra todos os planos 2026-10-01 (ver
+  // seed-plans.ts), mas a checagem fica — defende contra uma pendência salva
+  // ANTES dessa mudança continuar aparecendo se o cache de licença local
+  // ainda não resincronizou, e contra qualquer rebaixamento de plano futuro
+  // que volte a gatear isso (ver client/src/lib/offlineRetry.ts).
   const settings = trpc.catalog.settings.useQuery();
   const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
 

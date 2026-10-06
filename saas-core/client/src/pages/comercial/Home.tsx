@@ -251,8 +251,7 @@ const DIFERENCIAIS: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title
   {
     icon: IconWifi,
     title: "Aguenta internet ruim na hora do pedido",
-    badge: "Profissional e Premium",
-    description: "Se a conexão do cliente cair bem no meio do pedido, o sistema tenta enviar de novo sozinho — sem duplicar e sem perder a venda.",
+    description: "Se a conexão do cliente cair bem no meio do pedido, o sistema tenta enviar de novo sozinho — sem duplicar e sem perder a venda. Em todos os planos.",
   },
   {
     icon: IconCard,

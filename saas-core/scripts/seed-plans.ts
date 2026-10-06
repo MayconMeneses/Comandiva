@@ -35,10 +35,11 @@ const FEATURES: { featureId: string; name: string; category: string; minPlan: Pl
   { featureId: "promotions", name: "Promoções e combos", category: "marketing", minPlan: "profissional" },
   { featureId: "reports_complete", name: "Relatórios completos", category: "relatorios", minPlan: "profissional" },
   { featureId: "custom_theme", name: "Tema de cor personalizado", category: "marketing", minPlan: "profissional" },
-  // Adicionado 2026-09-24 (pedido do dono): retry automático de pedido em
-  // queda de conexão + fila de pedido pendente no checkout público — antes
-  // rodava igual em todo plano, agora vira diferencial comercial.
-  { featureId: "offline_resilience", name: "Pedido resistente a conexão instável", category: "operacao", minPlan: "profissional" },
+  // Virou base pra todos os planos 2026-10-01 (pedido do dono, revertendo a
+  // decisão de 2026-09-24 que tinha feito isso virar diferencial comercial)
+  // — mesmo raciocínio já aplicado ao `fiscal` abaixo: resiliência de rede
+  // não é algo que faça sentido negar pro plano de entrada.
+  { featureId: "offline_resilience", name: "Pedido resistente a conexão instável", category: "operacao", minPlan: "essencial" },
   // Eventos, relatórios avançados, gestão avançada de equipe e auditoria
   // ficam reservados pro topo — diferenciais do plano mais completo.
   { featureId: "events", name: "Eventos", category: "marketing", minPlan: "premium" },

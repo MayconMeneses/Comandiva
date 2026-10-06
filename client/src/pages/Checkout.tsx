@@ -172,9 +172,9 @@ export default function Checkout() {
   useEffect(() => { const customer = lookup.data; const primary = customer?.addresses?.[0]; if (customer) { setName(customer.name); if (primary) setAddress({ postalCode: primary.postalCode ?? "", street: primary.street, number: primary.number, complement: primary.complement ?? "", neighborhood: primary.neighborhood, city: primary.city, state: primary.state, reference: primary.reference ?? "" }); } }, [lookup.data]);
   // Fase 1 do offline-first: `preview` falhando por queda de rede não pode
   // deixar o cliente travado sem conseguir nem ver o total nem confirmar o
-  // pedido — `createOrder` abaixo já sabe pausar/retomar sozinho quando o
-  // plano tem `offline_resilience` (mesmo mecanismo já provado no admin,
-  // Fases A/B/C). `localPrice` só entra quando o preço ao vivo genuinamente
+  // pedido — `createOrder` abaixo já sabe pausar/retomar sozinho quando
+  // `offline_resilience` está ativo (hoje todos os planos, desde 2026-10-01;
+  // mesmo mecanismo já provado no admin, Fases A/B/C). `localPrice` só entra quando o preço ao vivo genuinamente
   // falhou por rede (nunca mascara um erro de negócio real, tipo produto
   // indisponível, como se fosse "calculado offline").
   const previewNetworkError = Boolean(preview.error) && isNetworkError(preview.error);

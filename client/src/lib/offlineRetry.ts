@@ -35,9 +35,13 @@ export function isRetryingOffline(mutation: { isPaused: boolean; isPending: bool
   return mutation.isPaused || (mutation.isPending && mutation.failureCount > 0);
 }
 
-// offline_resilience é recurso de plano (Profissional+, ver catalog.settings).
-// Só desligar retry/retryDelay NÃO bastaria: networkMode:'online' (padrão do
-// React Query, sem nenhum código nosso) já pausa e retoma sozinho qualquer
+// offline_resilience virou base pra todos os planos 2026-10-01 (ver
+// saas-core/scripts/seed-plans.ts) — `enabled` praticamente nunca é `false`
+// na prática agora, mas o parâmetro fica (ver catalog.settings): barato de
+// manter, evita reimplementar do zero se um rebaixamento de plano futuro
+// voltar a gatear isso. Só desligar retry/retryDelay NÃO bastaria:
+// networkMode:'online' (padrão do React Query, sem nenhum código nosso) já
+// pausa e retoma sozinho qualquer
 // mutation disparada offline — desligado, precisa forçar networkMode:'always'
 // pra restaurar o comportamento de antes de hoje (tenta na hora, falha se
 // estiver offline, sem pausar).
