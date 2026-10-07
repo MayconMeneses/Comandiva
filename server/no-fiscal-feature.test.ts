@@ -14,7 +14,7 @@ describe("nota fiscal fora do produto", () => {
   });
 
   it("menu do admin, página Admin e comprovante não citam nota fiscal", () => {
-    for (const file of ["client/src/components/DashboardLayout.tsx", "client/src/pages/Admin.tsx", "client/src/components/admin/Receipt.tsx"]) {
+    for (const file of ["client/src/components/DashboardLayout.tsx", "client/src/pages/Admin.tsx", "client/src/App.tsx", "client/src/components/admin/Receipt.tsx"]) {
       expect(read(file), file).not.toMatch(/fiscal|nfc-?e|danfe/i);
     }
   });
