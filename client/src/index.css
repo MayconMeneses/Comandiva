@@ -195,7 +195,11 @@ button:disabled { cursor: not-allowed; }
 .mm-storefront.theme-dark .mm-success-dialog button[class*="bg-[#fffdf8"] { background: #30221a !important; color: #fffaf3; border-color: #6d5140; }
 .mm-storefront.theme-dark .mm-product-dialog textarea,
 .mm-storefront.theme-dark .mm-product-dialog input { background: #30221a !important; color: #fffaf3; border-color: #6d5140; }
-.mm-storefront.theme-dark .mm-service-section { background: #211710 !important; border-color: #6d5140 !important; }
+.mm-storefront.theme-dark .mm-service-section { background: #211710 !important; border-color: #6d5140 !important; color: #fffaf3; }
+/* Faixa "Nosso cardápio" com fundo personalizado ganha um tom da marca por
+   inline style (color-mix) — no tema escuro precisa virar a superfície escura
+   do resto da página, senão sobra texto claro sobre fundo claro. */
+.mm-storefront.theme-dark #cardapio > div[style*="color-mix"] { background: #261b15 !important; color: #fffaf3; }
 .mm-storefront.theme-dark .mm-service-card { background: #30221a !important; color: #fffaf3; }
 
 @media (max-width: 520px) {

@@ -29,6 +29,10 @@
          vite-plugin-pwa (ver vite.config.ts) a partir de pwa.config.ts —
          não precisa de <link rel="manifest"> manual aqui. -->
 
+    <!-- Imagem principal da vitrine: a Home só a descobre depois que o React
+         renderiza e as consultas respondem — preload aqui coloca o download
+         em paralelo com o JS/API (maior ganho de LCP). WebP de ~70 KB. -->
+    <link rel="preload" as="image" href="/assets/pubx/hero-brand-burger-v2.webp" type="image/webp" fetchpriority="high" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:opsz,wght@5..1200,600;5..1200,700&display=swap" rel="stylesheet" />

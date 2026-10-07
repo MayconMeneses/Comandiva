@@ -148,12 +148,19 @@ export async function storagePut(
   const key = appendHashSuffix(normalizeKey(relKey));
   const { bucket, client } = getS3Config();
   await ensureBucketExists(bucket, client);
+  // Só os prefixos públicos (catalog/, branding/): cada upload ganha uma chave
+  // única (appendHashSuffix), então o conteúdo daquela URL nunca muda — cache
+  // de 1 ano sem revalidação é seguro e faz a foto do cardápio vir do disco,
+  // não da rede, nas visitas seguintes. orders/* (comprovante) fica de fora:
+  // é privado e não deve ser guardado por cache compartilhado.
+  const isPublicAsset = key.startsWith("catalog/") || key.startsWith("branding/");
   await client.send(
     new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       Body: data,
       ContentType: contentType,
+      ...(isPublicAsset ? { CacheControl: "public, max-age=31536000, immutable" } : {}),
     }),
   );
   return { key, url: publicS3Url(key) };

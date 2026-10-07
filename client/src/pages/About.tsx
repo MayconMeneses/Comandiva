@@ -23,7 +23,7 @@ export default function About() {
       </header>
 
       <section className="relative isolate overflow-hidden bg-[#15120f] text-[#fffaf3]">
-        <div className="absolute inset-0 opacity-60"><img src="/assets/pubx/hero-brand-burger-v2.jpg" alt="" aria-hidden="true" className="h-full w-full object-cover object-[78%_22%]" /></div>
+        <div className="absolute inset-0 opacity-60"><img src="/assets/pubx/hero-brand-burger-v2.webp" alt="" aria-hidden="true" className="h-full w-full object-cover object-[78%_22%]" /></div>
         <div className="absolute inset-0 bg-gradient-to-r from-[#15120f] via-[#15120f]/85 to-[#15120f]/30" />
         <div className="page-shell relative py-16 sm:py-24">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-[#e9c98f]">Nossa história</p>

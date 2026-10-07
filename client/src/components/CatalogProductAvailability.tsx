@@ -68,7 +68,7 @@ export default function CatalogProductAvailability() {
     if (!allowed.includes(file.type) || file.size > 20_000_000) {
       setUploadError("Escolha JPG, PNG, WEBP ou AVIF de até 20 MB."); event.target.value = ""; return;
     }
-    void compressImageFile(file).then(({ base64, contentType }) => {
+    void compressImageFile(file, { maxDimension: 1000, quality: 0.8 }).then(({ base64, contentType }) => {
       upload.mutate({ filename: file.name, contentType: contentType as "image/jpeg" | "image/png" | "image/webp" | "image/avif", dataBase64: base64 });
     });
   };

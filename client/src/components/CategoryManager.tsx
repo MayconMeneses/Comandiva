@@ -91,7 +91,7 @@ export default function CategoryManager() {
       toast.error("Escolha uma imagem de até 20 MB.");
       return;
     }
-    void compressImageFile(file).then(({ base64, contentType }) => {
+    void compressImageFile(file, { maxDimension: 480, quality: 0.8 }).then(({ base64, contentType }) => {
       uploadImage.mutate({ filename: file.name, contentType: contentType as "image/jpeg" | "image/png" | "image/webp", dataBase64: base64 });
     });
   };
