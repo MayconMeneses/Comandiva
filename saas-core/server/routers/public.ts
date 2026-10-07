@@ -5,7 +5,7 @@ import { listPlansWithFeaturesAndLimits, listPlansWithFeaturesAndLimitsCached, l
 import { attachMpPreference, createSignupPayment, getSignupPaymentById } from "../db/signupPayments";
 import { getRestaurantById } from "../db/restaurants";
 import { createImplementationFeePreference } from "../_core/mercadoPagoCheckout";
-import { buildMenuReferenceCaption, sendTelegramDocumentAsync } from "../_core/telegramService";
+import { buildLeadMessage, buildMenuReferenceCaption, sendTelegramDocumentAsync, sendTelegramMessageAsync } from "../_core/telegramService";
 import { ENV } from "../_core/env";
 import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
@@ -115,6 +115,19 @@ export const publicRouter = router({
         deviceId: input.deviceId,
       });
       await attachMpPreference(signupPaymentId, preference.id);
+
+      // Possível cliente: já preencheu tudo e está indo pagar. Fire-and-forget
+      // (nunca segura nem derruba o checkout) e só depois de o checkout existir.
+      sendTelegramMessageAsync(
+        buildLeadMessage({
+          name: input.name,
+          planName: plan.name,
+          contactName: input.contactName,
+          contactEmail: input.contactEmail,
+          contactPhone: input.contactPhone,
+          amountCents: ENV.implementationFeeCents,
+        }),
+      );
 
       return { checkoutUrl: preference.initPoint, signupPaymentId };
     }),

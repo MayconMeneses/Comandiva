@@ -109,6 +109,30 @@ export function buildMenuReferenceCaption(params: { restaurantId: number; restau
 }
 
 /**
+ * Possível cliente: quem preencheu o cadastro e foi levado ao checkout da taxa
+ * de implementação, mas ainda NÃO pagou. Traz tudo que ele digitou pro dono
+ * poder chamar a pessoa (inclusive um link direto de WhatsApp) sem esperar o
+ * pagamento. Os campos vêm de um formulário público — sempre escapados.
+ */
+export function buildLeadMessage(params: { name: string; planName: string; contactName?: string; contactEmail: string; contactPhone?: string; amountCents: number }): string {
+  const amount = (params.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const digits = params.contactPhone?.replace(/\D/g, "") ?? "";
+  // Número brasileiro sem DDI (10–11 dígitos) ganha o 55; já com DDI fica como está.
+  const waNumber = digits.length >= 10 && digits.length <= 11 ? `55${digits}` : digits;
+  const lines = [
+    "🔥 <b>Possível cliente — foi para o pagamento</b>",
+    `Restaurante: <b>${escapeHtml(params.name)}</b>`,
+    `Plano: <b>${escapeHtml(params.planName)}</b> · taxa ${amount}`,
+    params.contactName?.trim() ? `Contato: ${escapeHtml(params.contactName.trim())}` : null,
+    `E-mail: ${escapeHtml(params.contactEmail)}`,
+    params.contactPhone?.trim() ? `Telefone: ${escapeHtml(params.contactPhone.trim())}` : null,
+    waNumber.length >= 10 ? `WhatsApp: https://wa.me/${waNumber}` : null,
+    "⏳ Ainda não pagou. Se virar pagamento aprovado, você recebe outro aviso.",
+  ];
+  return lines.filter((line): line is string => line !== null).join("\n");
+}
+
+/**
  * Provisionamento continua manual de propósito (decisão do dono,
  * 2026-09-29): automatizar de verdade exigiria dar ao container do
  * saas-core acesso ao socket do Docker (ou a uma peça nova de infra),
