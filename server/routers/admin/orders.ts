@@ -3,8 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from "../../../drizzle/schema";
 import { ALLOWED_STATUS_TRANSITIONS, STATUS_LABELS, endOfDayInRestaurantTimezone, startOfDayInRestaurantTimezone } from "../../../shared/orderDomain";
-import { getAdminOrders, getDashboardMetrics, getDb, getFiscalDocumentByOrderId, getOrderWithDetails, getRevenueTrend, getStoreSettings } from "../../db";
-import { emitNfceForOrder, retryNfceForOrder } from "../../_core/nfceEmission";
+import { getAdminOrders, getDashboardMetrics, getDb, getOrderWithDetails, getRevenueTrend, getStoreSettings } from "../../db";
 import { adminProcedure, restaurantProcedure, restaurantProcedureFor, router } from "../../_core/trpc";
 import { assertRealImageMatchesDeclaredType, keyFromPublicUrl, storageGetSignedUrl, storagePut } from "../../storage";
 import { orderInfoSchema, statusSchema } from "./shared";
@@ -239,25 +238,7 @@ export const adminOrdersRouter = router({
       }
       return row;
     });
-    // Dinheiro/cartão na entrega: o valor já está fechado desde o aceite
-    // (não muda mais), então emite a NFC-e aqui — no momento em que o pedido
-    // sai fisicamente do restaurante — em vez de esperar o "concluído" que só
-    // acontece quando volta/confirma a entrega (tarde demais pro DANFE viajar
-    // junto com o entregador). Pix/cartão online já emite antes disso, no
-    // pagamento (ver paymentService.ts); chamar de novo aqui não duplica —
-    // emitNfceForOrder é idempotente pra pedido já AUTHORIZED. Ver "Quando
-    // emitir" no plano de emissão de NFC-e.
-    if ((input.status === "OUT_FOR_DELIVERY" || input.status === "READY_FOR_PICKUP") && (current.paymentMethod === "CASH" || current.paymentMethod === "CARD_ON_DELIVERY")) {
-      void emitNfceForOrder(input.orderId).catch(error => console.warn("[nfce] Falha ao emitir NFC-e ao sair para entrega/retirada:", error));
-    }
     return getOrderWithDetails(input.orderId);
-  }),
-  // Usadas pela tela de comprovante (Receipt.tsx) pra mostrar/imprimir o
-  // DANFE quando pronto, e pelo botão "Tentar emitir nota de novo".
-  fiscalDocumentForOrder: restaurantProcedure.input(z.object({ orderId: z.number().int().positive() })).query(({ input }) => getFiscalDocumentByOrderId(input.orderId)),
-  retryNfceForOrder: adminProcedure.input(z.object({ orderId: z.number().int().positive() })).mutation(async ({ input }) => {
-    await retryNfceForOrder(input.orderId);
-    return getFiscalDocumentByOrderId(input.orderId);
   }),
   pendingPrintJobs: adminProcedure.query(async () => {
     const db = await getDb();

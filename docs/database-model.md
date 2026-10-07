@@ -65,13 +65,9 @@ Atualizado em 2026-09 (auditoria de segurança) — 36 tabelas ao todo (`drizzle
 | `payment_gateways` | Credenciais dos gateways de pagamento configurados (Mercado Pago etc.) |
 | `webhook_events` | Idempotência de notificações de webhook já processadas |
 
-**Fiscal (NFC-e)**
+**Legado fiscal (sem uso)**
 
-| Tabela | Finalidade |
-|---|---|
-| `fiscal_settings` | Configuração fiscal do restaurante (CNPJ, certificado A1 cifrado, CSC) |
-| `fiscal_documents` | Documentos fiscais emitidos |
-| `fiscal_tax_categories` | Categorias tributárias usadas na emissão |
+A emissão de nota fiscal saiu do produto em 2026-10-07 (restaurante não emite). As tabelas `fiscal_settings`, `fiscal_documents` e `fiscal_tax_categories` e as colunas `products.ncm` / `products.fiscalCategoryId` continuam no banco, sem leitura nem escrita, para não exigir migration destrutiva.
 
 **Mesas / QR Code** (recurso pago, ver `server/routers/table.ts`)
 

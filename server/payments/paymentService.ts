@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { paymentGateways } from "../../drizzle/schema";
 import { getDb, markOrderPaymentFailedByPublicCode, markOrderPaymentPaidByPublicCode } from "../db";
-import { emitNfceForOrder } from "../_core/nfceEmission";
 import { markWebhookEventOnce } from "./repositories/webhookEvents";
 import { mercadoPagoProvider } from "./providers/mercadoPago";
 import type { PaymentProvider } from "./types";
@@ -73,7 +72,6 @@ export async function applyPaymentStatusNotification(params: {
 
   const eventKey = `payment:${params.providerPaymentId}:${status}`;
   let applied = false;
-  let paidOrderId: number | undefined;
   await db.transaction(async tx => {
     const { alreadyProcessed } = await markWebhookEventOnce(params.gatewayName, eventKey, tx);
     if (alreadyProcessed) return;
@@ -92,13 +90,6 @@ export async function applyPaymentStatusNotification(params: {
       return;
     }
     applied = true;
-    if (status === "PAID") paidOrderId = result.orderId;
   });
-  // Fora da transação de propósito: emissão de NFC-e é uma chamada de rede
-  // externa (Focus NFe) — nunca deve segurar um lock de banco esperando ela
-  // responder. Pix/cartão online é o único dos 3 pontos de emissão (ver
-  // "Quando emitir" no plano de NFC-e) que passa pelo pagamento em si; os
-  // outros dois (dinheiro/cartão na entrega, mesa) disparam em outro lugar.
-  if (paidOrderId !== undefined) void emitNfceForOrder(paidOrderId).catch(error => console.warn("[nfce] Falha ao emitir NFC-e após confirmação de pagamento:", error));
   return { applied };
 }

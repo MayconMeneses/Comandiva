@@ -52,13 +52,11 @@ const FULFILLMENT_LABEL = { DELIVERY: "Entrega", PICKUP: "Retirada", DINE_IN: "M
 
 const ORIGIN_TAG: Record<string, string> = { GARCOM: "Garçom", QR_CODE: "QR Code", BALCAO: "Balcão" };
 
-// Comanda (sempre, no aceite) e DANFE (delivery/retirada, ao sair/ficar
-// pronto — ver "Quando emitir" no plano de emissão de NFC-e) imprimem
-// sozinhos nesses 3 momentos, reaproveitando a mesma tela de comprovante que
-// já existia só pra reimpressão manual (Receipt.tsx, ?autoprint=1 dispara
-// window.print() sozinho lá). Mesa não entra aqui — o fechamento da comanda
-// (TableMapManager) é quem dispara a impressão dela, consolidada.
-const AUTO_PRINT_STATUSES = new Set(["ACCEPTED", "OUT_FOR_DELIVERY", "READY_FOR_PICKUP"]);
+// O comprovante imprime sozinho no aceite, reaproveitando a mesma tela de
+// comprovante que já existia só pra reimpressão manual (Receipt.tsx,
+// ?autoprint=1 dispara window.print() sozinho lá). Mesa não entra aqui — o
+// fechamento da comanda (TableMapManager) é quem dispara a impressão dela.
+const AUTO_PRINT_STATUSES = new Set(["ACCEPTED"]);
 
 export function OrderCard({ order }: { order: { id: number; publicCode: string; customerName: string; customerPhone: string; fulfillmentType: "DELIVERY" | "PICKUP" | "DINE_IN"; origin: string; tableLabel: string | null; status: string; totalCents: number; createdAt: number; acceptedAt: number | null; preparingAt: number | null; customerNote: string | null; items: Array<{ id: number; productName: string; quantity: number; note: string | null }> } }) {
   // onError também invalida (não só onSuccess): num CONFLICT (outro

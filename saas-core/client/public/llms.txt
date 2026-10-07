@@ -10,7 +10,6 @@ MM System Creator é um SaaS (software como serviço) para restaurantes, lanchon
 - Pagamento por Pix e cartão.
 - Mesas com QR Code, comandas e chamada de garçom (planos Profissional e Premium).
 - Cozinha / kanban de pedidos, relatórios e app da equipe para celular/tablet.
-- Emissão de nota fiscal (NFC-e), disponível em todos os planos.
 - Teste grátis de 7 dias, sem cartão de crédito.
 
 ## Planos

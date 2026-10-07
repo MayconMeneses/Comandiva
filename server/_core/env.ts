@@ -48,8 +48,4 @@ export const ENV = {
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? "",
   twilioFromNumber: process.env.TWILIO_FROM_NUMBER ?? "",
-  // Cifra o certificado digital A1 e o token CSC (NFC-e, ver server/db/fiscal.ts)
-  // — em branco = a tela de configuração fiscal recusa salvar segredo
-  // nenhum (mas dados cadastrais como CNPJ/regime continuam editáveis).
-  fiscalEncryptionKey: process.env.FISCAL_ENCRYPTION_KEY ?? "",
 };

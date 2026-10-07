@@ -24,11 +24,8 @@ const mocks = vi.hoisted(() => ({
   getOrderWithDetails: vi.fn(),
   getAdminOrders: vi.fn(),
   getDashboardMetrics: vi.fn(),
-  getFiscalDocumentByOrderId: vi.fn(),
   getRevenueTrend: vi.fn(),
   getStoreSettings: vi.fn(),
-  emitNfceForOrder: vi.fn(),
-  retryNfceForOrder: vi.fn(),
 }));
 
 vi.mock("./db", () => ({
@@ -36,11 +33,9 @@ vi.mock("./db", () => ({
   getOrderWithDetails: mocks.getOrderWithDetails,
   getAdminOrders: mocks.getAdminOrders,
   getDashboardMetrics: mocks.getDashboardMetrics,
-  getFiscalDocumentByOrderId: mocks.getFiscalDocumentByOrderId,
   getRevenueTrend: mocks.getRevenueTrend,
   getStoreSettings: mocks.getStoreSettings,
 }));
-vi.mock("./_core/nfceEmission", () => ({ emitNfceForOrder: mocks.emitNfceForOrder, retryNfceForOrder: mocks.retryNfceForOrder }));
 
 import { adminOrdersRouter } from "./routers/admin/orders";
 

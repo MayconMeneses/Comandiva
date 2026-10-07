@@ -206,9 +206,7 @@ function SessionDrawer({ sessionId, tableLabel, onClose }: { sessionId: number; 
         // Mesma técnica de RestaurantOrders.tsx: abre a aba em branco aqui
         // (gesto real do usuário, senão o navegador bloqueia), navega pra
         // URL de verdade só depois que a comanda fechar de verdade. Qualquer
-        // pedido da comanda serve de âncora — Receipt.tsx detecta que é
-        // DINE_IN e busca a nota CONSOLIDADA pela comanda, não a desse
-        // pedido isolado (ver DanfeSection em Receipt.tsx).
+        // pedido da comanda serve de âncora pro comprovante.
         const anchorOrderId = data.orders[0]?.id;
         const printTab = anchorOrderId ? window.open("", "_blank") : null;
         closeSession.mutate({ sessionId }, { onSuccess: () => { if (printTab && anchorOrderId) printTab.location.href = `/admin/comprovante/${anchorOrderId}?autoprint=1`; }, onError: () => printTab?.close() });

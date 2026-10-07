@@ -97,13 +97,14 @@ export const regimeTributarioValues = ["SIMPLES_NACIONAL", "LUCRO_PRESUMIDO", "L
 export const fiscalEnvironmentValues = ["HOMOLOGACAO", "PRODUCAO"] as const;
 
 /**
- * Configuração fiscal (emissão de NFC-e direto com a SEFAZ-CE) — singleton,
- * mesmo padrão de restaurant_settings/subscription_cache. Segredos
- * (certificado digital A1 e token CSC) nunca ficam em texto puro — sempre
- * cifrados com FISCAL_ENCRYPTION_KEY (ver server/_core/fieldEncryption.ts),
- * e nunca voltam pro navegador depois de salvos — só um booleano indicando
- * se já foram configurados, mesmo padrão já usado pra credenciais de gateway
- * de pagamento (server/routers/admin/paymentGateways.ts).
+ * LEGADO — SEM USO (2026-10-07): a emissão de nota fiscal saiu do produto
+ * (restaurante não emite). As três tabelas fiscais (fiscal_settings,
+ * fiscal_documents, fiscal_tax_categories) e as colunas products.ncm /
+ * products.fiscalCategoryId continuam aqui só pra não exigir uma migration
+ * destrutiva (regra do projeto: migrations só aditivas) — nada lê nem escreve
+ * nelas. Remover do schema geraria DROP TABLE no próximo drizzle-kit generate.
+ *
+ * Configuração fiscal (antiga emissão de NFC-e) — singleton.
  */
 export const fiscalSettings = mysqlTable("fiscal_settings", {
   id: int("id").autoincrement().primaryKey(),
@@ -252,11 +253,9 @@ export const products = mysqlTable(
     featured: boolean("featured").notNull().default(false),
     onPromotion: boolean("onPromotion").notNull().default(false),
     sortOrder: int("sortOrder").notNull().default(0),
-    // Classificação fiscal (NFC-e) — nulo até ser preenchido; a emissão real
-    // não é possível pra um produto sem NCM. Ver server/db/fiscal.ts.
+    // LEGADO (sem uso — ver bloco fiscal_settings acima): classificação fiscal.
     ncm: varchar("ncm", { length: 8 }),
-    // Vínculo com fiscal_tax_categories (CST/CSOSN/alíquota) — nulo até o
-    // contador confirmar em qual categoria este produto se encaixa.
+    // LEGADO (sem uso): vínculo com fiscal_tax_categories.
     fiscalCategoryId: int("fiscalCategoryId"),
     archivedAt: bigint("archivedAt", { mode: "number", unsigned: true }),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),

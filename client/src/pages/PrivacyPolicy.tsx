@@ -49,7 +49,6 @@ export default function PrivacyPolicy() {
             <ul className="list-disc space-y-1 pl-5">
               <li>Processar, preparar e entregar o seu pedido</li>
               <li>Entrar em contato sobre o andamento do pedido</li>
-              <li>Emitir o documento fiscal referente à venda, quando aplicável, conforme a legislação tributária vigente</li>
               <li>Cumprir obrigações legais e fiscais</li>
               <li>Melhorar o cardápio e o atendimento com base no histórico de pedidos</li>
             </ul>
@@ -57,12 +56,12 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="font-display text-xl font-bold">4. Com quem compartilhamos</h2>
-            <p>Compartilhamos dados apenas com quem é estritamente necessário para a operação: a equipe do próprio restaurante (para preparar e entregar seu pedido), a processadora de pagamento escolhida (quando você paga com cartão online) e, quando exigido, autoridades fiscais para emissão de documento fiscal. Não vendemos nem alugamos seus dados a terceiros para fins de publicidade.</p>
+            <p>Compartilhamos dados apenas com quem é estritamente necessário para a operação: a equipe do próprio restaurante (para preparar e entregar seu pedido), a processadora de pagamento escolhida (quando você paga com cartão online) e, quando exigido por lei, autoridades competentes. Não vendemos nem alugamos seus dados a terceiros para fins de publicidade.</p>
           </section>
 
           <section>
             <h2 className="font-display text-xl font-bold">5. Por quanto tempo guardamos seus dados</h2>
-            <p>Guardamos os dados do seu pedido por até {DATA_RETENTION_YEARS} anos após a última interação sua com o MM System Creator, prazo definido pela legislação que exige a guarda do documento fiscal vinculado à venda (Ajuste SINIEF nº 2/2025, adotado pelo Ceará). Depois desse prazo, se você não fizer novos pedidos, seus dados de identificação (nome, telefone, endereço) são anonimizados — o registro do pedido em si (itens e valores) pode ser mantido sem identificar você, para fins de auditoria fiscal.</p>
+            <p>Guardamos os dados do seu pedido por até {DATA_RETENTION_YEARS} anos após a última interação sua com o MM System Creator, prazo adotado para cumprir as obrigações legais de guarda de registros comerciais e tributários. Depois desse prazo, se você não fizer novos pedidos, seus dados de identificação (nome, telefone, endereço) são anonimizados — o registro do pedido em si (itens e valores) pode ser mantido sem identificar você, para fins de auditoria e controle.</p>
           </section>
 
           <section>

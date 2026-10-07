@@ -37,32 +37,27 @@ export default function TermsOfUse() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold">3. Documento fiscal</h2>
-            <p>Conforme a legislação tributária aplicável — incluindo, no Estado do Ceará, a Instrução Normativa SEFAZ-CE nº 87/2025, que exige a vinculação do comprovante de pagamento eletrônico ao documento fiscal (NF-e/NFC-e) — o MM System Creator emite o documento fiscal correspondente à venda sempre que exigido, associando os dados da transação (forma de pagamento, valor e identificação do estabelecimento) à nota fiscal.</p>
-          </section>
-
-          <section>
-            <h2 className="font-display text-xl font-bold">4. Cancelamento e direito de arrependimento</h2>
+            <h2 className="font-display text-xl font-bold">3. Cancelamento e direito de arrependimento</h2>
             <p>Por se tratar de gêneros alimentícios preparados sob encomenda e de natureza perecível, o pedido não pode ser cancelado após o início do preparo. Caso identifique um problema com o pedido recebido (item incorreto, ausente ou fora do padrão de qualidade), entre em contato imediatamente pelo WhatsApp do restaurante para que possamos resolver — nos termos do Código de Defesa do Consumidor (Lei nº 8.078/1990).</p>
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold">5. Prazos de entrega</h2>
+            <h2 className="font-display text-xl font-bold">4. Prazos de entrega</h2>
             <p>Os prazos estimados exibidos no site são referenciais e podem variar conforme volume de pedidos, condições de trânsito e clima. Fazemos o possível para cumpri-los, mas eles não constituem garantia de horário exato.</p>
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold">6. Responsabilidades</h2>
+            <h2 className="font-display text-xl font-bold">5. Responsabilidades</h2>
             <p>É responsabilidade do cliente informar corretamente o endereço de entrega e um telefone de contato válido. O MM System Creator não se responsabiliza por atrasos ou não-entrega decorrentes de informações incorretas fornecidas no pedido.</p>
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold">7. Alterações</h2>
+            <h2 className="font-display text-xl font-bold">6. Alterações</h2>
             <p>Estes termos podem ser atualizados a qualquer momento para refletir mudanças legais ou operacionais. A versão vigente é sempre a publicada nesta página.</p>
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold">8. Contato</h2>
+            <h2 className="font-display text-xl font-bold">7. Contato</h2>
             <p>Dúvidas sobre estes termos podem ser enviadas pelo WhatsApp do restaurante, disponível na página inicial do site.</p>
           </section>
 

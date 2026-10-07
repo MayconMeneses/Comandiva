@@ -71,7 +71,7 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
   sessão local separada (cookie/JWT próprios, nunca a sessão real de admin/staff), banner fixo
   laranja "Modo Suporte ativo" sempre visível enquanto ativo. Fica de fora mesmo em Modo Suporte
   (bloqueado por `adminOnlyProcedure`, que nunca aceita `ctx.supportSession`): Pix/gateways de
-  pagamento, gestão de outras contas admin/staff, configuração fiscal e billing/assinatura — ver
+  pagamento, gestão de outras contas admin/staff, e billing/assinatura — ver
   `server/_core/trpc.ts`. Toda entrada e toda mutation feita durante a sessão ficam gravadas em
   `platform_audit_log` (auditoria pós-fato, não bloqueio prévio).
 - Planos atuais: Essencial (R$149,90), Profissional (R$249,90), Premium (R$299,90). Cobrança de

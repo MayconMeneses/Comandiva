@@ -4,7 +4,6 @@ import OrderManagement from "@/components/OrderManagement";
 import EventManager from "@/components/EventManager";
 import AccountAdmin from "@/components/admin/AccountAdmin";
 import AuditLog from "@/components/admin/AuditLog";
-import FiscalSettings from "@/components/admin/FiscalSettings";
 import CatalogAdmin from "@/components/admin/CatalogAdmin";
 import Customers from "@/components/admin/Customers";
 import Overview from "@/components/admin/Overview";
@@ -33,7 +32,6 @@ function AdminContent() {
   if (page === "clientes") return <Customers />;
   if (page === "relatorios") return <ReportsByPeriod />;
   if (page === "auditoria") return <AuditLog />;
-  if (page === "fiscal") return viaSupportSession ? <div className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">Configuração fiscal não fica disponível em Modo Suporte.</div> : <FiscalSettings />;
   if (page === "conta") return viaSupportSession ? <div className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">Pix e gateways de pagamento não ficam disponíveis em Modo Suporte.</div> : <AccountAdmin />;
   if (page === "eventos") return <EventManager />;
   if (page === "configuracao") return <SiteConfig />;

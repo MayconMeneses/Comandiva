@@ -6,8 +6,6 @@ export type { Db, DbOrTx } from "./db/client";
 export * from "./db/audit";
 export * from "./db/accountAudit";
 export * from "./db/dataRights";
-export * from "./db/fiscal";
-export * from "./db/fiscalTaxCategories";
 export * from "./db/users";
 export * from "./db/settings";
 export * from "./db/deliveryRoutes";

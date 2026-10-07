@@ -38,7 +38,6 @@ const FEATURE_DESCRIPTIONS: Record<string, string> = {
   reports_advanced: "Clientes novos x recorrentes, produtos em alta/queda, exportação.",
   advanced_team: "Permissões granulares por área para contas da equipe.",
   audit: "Histórico completo de ações da equipe sobre os pedidos.",
-  fiscal: "Emissão de nota fiscal (NFC-e) direto do sistema.",
 };
 
 function Icon({ children, ...props }: { children: ReactNode } & SVGProps<SVGSVGElement>) {

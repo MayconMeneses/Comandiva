@@ -349,10 +349,6 @@ const MODULOS: { title: string; description: string; badge?: string }[] = [
     badge: "Profissional e Premium",
     description: "Monta combos e datas especiais pra girar o movimento nos dias mais fracos da semana.",
   },
-  {
-    title: "Nota fiscal (NFC-e)",
-    description: "Emissão fiscal integrada ao sistema, disponível em todos os planos — dispensa um programa à parte só pra essa parte.",
-  },
 ];
 
 const RESUMO: { icon: (props: SVGProps<SVGSVGElement>) => ReactNode; title: string; description: string }[] = [

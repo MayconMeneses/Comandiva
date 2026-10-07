@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
 import type { StaffPermissionArea } from "@shared/permissions";
-import { BarChart3, CalendarDays, ClipboardList, CreditCard, Download, ExternalLink, FileText, History, LayoutDashboard, LayoutGrid, LogOut, MapPinned, PanelLeft, Settings2, Users, UtensilsCrossed, Wallet } from "lucide-react";
+import { BarChart3, CalendarDays, ClipboardList, CreditCard, Download, ExternalLink, History, LayoutDashboard, LayoutGrid, LogOut, MapPinned, PanelLeft, Settings2, Users, UtensilsCrossed, Wallet } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -58,9 +58,6 @@ const menuItems: { icon: typeof LayoutDashboard; label: string; path: string; fe
   // Pix/gateways de pagamento ficam de fora do Modo Suporte mesmo com
   // escrita liberada no resto — ver server/_core/trpc.ts::adminOnlyProcedure.
   { icon: Wallet, label: "Conta", path: "/admin/conta", hiddenInSupportMode: true, adminOnly: true },
-  // NFC-e é conformidade tributária, não alavanca de upgrade — sempre
-  // liberado, sem featureId (ver server/routers/admin/fiscal.ts).
-  { icon: FileText, label: "Fiscal", path: "/admin/fiscal", hiddenInSupportMode: true, adminOnly: true },
   { icon: CalendarDays, label: "Eventos", path: "/admin/eventos", featureId: "events", areas: ["events"] },
   { icon: Settings2, label: "Configuração", path: "/admin/configuracao", adminOnly: true },
   { icon: CreditCard, label: "Meu plano", path: "/admin/plano", adminOnly: true },

@@ -17,9 +17,8 @@ const PLANS: { key: PlanKey; name: string; priceCents: number; position: number 
   { key: "premium", name: "Premium", priceCents: 19990, position: 3 },
 ];
 
-// Reestruturação 2026-09-11 (pedido do dono): NFC-e deixou de ser
-// diferencial de plano — passa a valer pros três, a diferenciação comercial
-// agora é só por capacidade/operação/gestão. Cozinha, comandas, reservas,
+// Reestruturação 2026-09-11 (pedido do dono): a diferenciação comercial é
+// só por capacidade/operação/gestão. Cozinha, comandas, reservas,
 // app da equipe e relatórios completos entraram no Profissional; gestão
 // avançada de equipe e auditoria entraram no Premium junto de eventos e
 // relatórios avançados (que já eram Premium).
@@ -37,8 +36,7 @@ const FEATURES: { featureId: string; name: string; category: string; minPlan: Pl
   { featureId: "custom_theme", name: "Tema de cor personalizado", category: "marketing", minPlan: "profissional" },
   // Virou base pra todos os planos 2026-10-01 (pedido do dono, revertendo a
   // decisão de 2026-09-24 que tinha feito isso virar diferencial comercial)
-  // — mesmo raciocínio já aplicado ao `fiscal` abaixo: resiliência de rede
-  // não é algo que faça sentido negar pro plano de entrada.
+  // — resiliência de rede não é algo que faça sentido negar pro plano de entrada.
   { featureId: "offline_resilience", name: "Pedido resistente a conexão instável", category: "operacao", minPlan: "essencial" },
   // Eventos, relatórios avançados, gestão avançada de equipe e auditoria
   // ficam reservados pro topo — diferenciais do plano mais completo.
@@ -46,10 +44,12 @@ const FEATURES: { featureId: string; name: string; category: string; minPlan: Pl
   { featureId: "reports_advanced", name: "Relatórios avançados", category: "relatorios", minPlan: "premium" },
   { featureId: "advanced_team", name: "Gestão avançada da equipe", category: "equipe", minPlan: "premium" },
   { featureId: "audit", name: "Auditoria", category: "seguranca", minPlan: "premium" },
-  // Fiscal (NFC-e) agora é base — disponível em todos os planos, inclusive
-  // o de entrada.
-  { featureId: "fiscal", name: "Nota fiscal (NFC-e)", category: "fiscal", minPlan: "essencial" },
 ];
+
+// Recursos que saíram do produto (decisão do dono, 2026-10-07: restaurante não
+// usa nota fiscal). O seed só sincroniza o que está em FEATURES, então sem esta
+// lista a linha continuaria na tabela comparativa pública de planos.
+const RETIRED_FEATURE_IDS = ["fiscal"];
 
 const LIMITS: Record<PlanKey, Record<"users" | "tables", number | null>> = {
   essencial: { users: 3, tables: 0 },
@@ -108,6 +108,11 @@ async function seedPlans() {
         await db.delete(planFeatures).where(eq(planFeatures.id, row.id));
       }
     }
+  }
+
+  for (const featureId of RETIRED_FEATURE_IDS) {
+    await db.delete(planFeatures).where(eq(planFeatures.featureId, featureId));
+    await db.delete(features).where(eq(features.featureId, featureId));
   }
 
   console.log(`[seed-plans] ${savedPlans.length} planos, ${FEATURES.length} features sincronizados.`);

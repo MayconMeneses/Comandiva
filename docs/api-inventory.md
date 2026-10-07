@@ -11,7 +11,7 @@ A aplicação expõe uma API tRPC em `/api/trpc`. O cliente é criado em `client
 | `dataRights` | `server/routers/dataRights.ts` | Autoatendimento LGPD (titular dos dados) — verificação por SMS, consulta e exclusão dos próprios dados |
 | `order` | `server/routers/order.ts` | Checkout, criação, acompanhamento e status |
 | `table` | `server/routers/table.ts` | Pedido pela mesa via QR Code — chamar garçom, pedir a conta, reservas (recurso pago, Profissional/Premium) |
-| `admin` | `server/routers/admin.ts` | Visão geral, clientes, catálogo, pedidos, rotas, relatórios, equipe, gateways de pagamento, fiscal e auditoria |
+| `admin` | `server/routers/admin.ts` | Visão geral, clientes, catálogo, pedidos, rotas, relatórios, equipe, gateways de pagamento e auditoria |
 | `team` | `server/routers/team.ts` | Login local e gestão de credenciais da equipe |
 | `support` | `server/routers/support.ts` | Modo Suporte — resgate do handoff emitido pelo Painel Master do saas-core, visão somente-leitura/escrita limitada do restaurante pra diagnóstico (nunca acessa Pix/gateway/credenciais de equipe) |
 
