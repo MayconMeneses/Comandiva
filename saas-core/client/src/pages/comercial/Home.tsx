@@ -70,7 +70,7 @@ const STRUCTURED_DATA = {
       "@type": "Organization",
       name: "Comandiva",
       url: "https://mmsystem.tech/comercial",
-      logo: "https://mmsystem.tech/comandiva-logo-horizontal-dark.png",
+      logo: "https://mmsystem.tech/mm-logo-full.png",
     },
     {
       "@type": "FAQPage",
@@ -715,7 +715,7 @@ export default function Home() {
         <Reveal className="mx-auto max-w-3xl px-6 py-20 text-center">
           <span className="text-xs font-semibold uppercase tracking-wider text-accent-text">Quem criou</span>
           <div className="mt-4 flex items-center justify-center">
-            <img src="/comandiva-icon-160.png" alt="" aria-hidden="true" width={64} height={64} loading="lazy" className="h-16 w-16 rounded-2xl shadow-sm" />
+            <img src="/mm-logo-icon-160.png" alt="" aria-hidden="true" width={64} height={64} loading="lazy" className="h-16 w-16 rounded-2xl shadow-sm" />
           </div>
           <h2 className="mt-4 text-2xl font-bold text-ink sm:text-3xl">Maycon Meneses</h2>
           <p className="mt-4 text-ink-soft">
