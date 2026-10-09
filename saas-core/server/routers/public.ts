@@ -6,7 +6,6 @@ import { getSignupPaymentById } from "../db/signupPayments";
 import { createRestaurantFromPublicSignup } from "../db/publicSignup";
 import { getRestaurantById } from "../db/restaurants";
 import { buildMenuReferenceCaption, sendTelegramDocumentAsync } from "../_core/telegramService";
-import { ENV } from "../_core/env";
 import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
 
