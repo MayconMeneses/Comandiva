@@ -2806,7 +2806,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
 // (scripts/seed.ts). Removemos aqui para não ficar misturado com o cardápio
 // real importado abaixo.
 const DEMO_DATA: Array<{ categoryName: string; productNames: string[]; deleteCategoryIfEmpty: boolean }> = [
-  { categoryName: "Hambúrgueres", productNames: ["PX Bacon", "Duplo da Casa", "Veggie Brasa"], deleteCategoryIfEmpty: true },
+  { categoryName: "Hambúrgueres", productNames: ["PX Bacon", "Bacon da Casa", "Duplo da Casa", "Veggie Brasa"], deleteCategoryIfEmpty: true },
   { categoryName: "Pizzas", productNames: ["Marguerita", "Calabresa Artesanal"], deleteCategoryIfEmpty: true },
   { categoryName: "Porções", productNames: ["Fritas da Casa", "Croquetes de Costela"], deleteCategoryIfEmpty: true },
   { categoryName: "Bebidas", productNames: ["Coca-Cola 350ml", "Guaraná Zero 350ml"], deleteCategoryIfEmpty: false },
@@ -2983,8 +2983,8 @@ async function run() {
   console.log("\n== Logotipo ==");
   const [settings] = await db.select().from(restaurantSettings).limit(1);
   if (settings && !settings.logoUrl) {
-    await db.update(restaurantSettings).set({ logoUrl: "/assets/pubx/logo-pubx.jpg", updatedAt: now }).where(eq(restaurantSettings.id, settings.id));
-    console.log("  logotipo padrão definido para /assets/pubx/logo-pubx.jpg");
+    await db.update(restaurantSettings).set({ logoUrl: "/comandiva-icon.png", updatedAt: now }).where(eq(restaurantSettings.id, settings.id));
+    console.log("  logotipo padrão definido para /comandiva-icon.png");
   } else {
     console.log("  logotipo já estava configurado, não alterei.");
   }

@@ -51,8 +51,8 @@ Serviço central separado dentro deste mesmo repositório (pasta `saas-core/`), 
 (Express + tRPC + Drizzle + MySQL), próprio banco e próprio Docker Compose
 (`saas-core/docker-compose.saas-core.yml`, containers `saas-core-app-1`/`saas-core-db-1`).
 **Nunca guarda dado operacional de restaurante nenhum** (pedidos, cardápio, clientes) — só
-planos/assinaturas/cobrança e o cadastro dos restaurantes-cliente. Cada restaurante (Comandiva
-Creator, futuros clientes) continua com seu próprio deployment Docker isolado, exatamente como
+planos/assinaturas/cobrança e o cadastro dos restaurantes-cliente. Cada restaurante (Comandiva,
+futuros clientes) continua com seu próprio deployment Docker isolado, exatamente como
 hoje; o app principal consulta o `saas-core` via `server/_core/license.ts` (sync em background,
 cache local com fail-open se o `saas-core` cair) e recursos pagos são bloqueados de fato no
 backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no frontend).

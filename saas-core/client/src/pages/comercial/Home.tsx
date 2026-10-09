@@ -41,8 +41,8 @@ const FAQ = [
 
 // Organization + FAQPage junto com o SoftwareApplication existente, num
 // único bloco JSON-LD via @graph (forma padrão de combinar mais de uma
-// entidade schema.org na mesma página) — ajuda o Google a reconhecer "MM
-// System Creator" como uma entidade/marca, não só como um produto de
+// entidade schema.org na mesma página) — ajuda o Google a reconhecer "Comandiva"
+// como uma entidade/marca, não só como um produto de
 // software solto. FAQPage usa as MESMAS perguntas/respostas reais do
 // accordion visível (nunca texto só pro schema) — deixa o Google elegível
 // a mostrar as perguntas direto no resultado de busca. Só dado real/

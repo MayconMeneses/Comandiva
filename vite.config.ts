@@ -14,7 +14,7 @@ export default defineConfig({
       // fotos de produto (.jpg) ficam de fora de propósito, ver
       // `runtimeCaching` abaixo (cacheadas sob demanda, não no install).
       registerType: "autoUpdate",
-      includeAssets: ["mm-logo.svg"],
+      includeAssets: ["comandiva-icon.png"],
       manifest: {
         name: PWA_BRANDING.name,
         short_name: PWA_BRANDING.shortName,

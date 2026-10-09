@@ -97,7 +97,7 @@ async function seed() {
   const drinks = await createCategory("Bebidas", "Geladas para acompanhar.", 4);
   const desserts = await createCategory("Sobremesas", "Um final intenso e memorável.", 5);
 
-  const pxBacon = await createProduct({ categoryId: burgers, name: "PX Bacon", description: "Blend bovino de 160g, cheddar cremoso, bacon crocante, picles e molho da casa.", imageUrl: "/assets/pubx/burger-gourmet_4ec4cce8.jpg", priceCents: 3990, featured: true, sortOrder: 1 });
+  const pxBacon = await createProduct({ categoryId: burgers, name: "Bacon da Casa", description: "Blend bovino de 160g, cheddar cremoso, bacon crocante, picles e molho da casa.", imageUrl: "/assets/pubx/burger-gourmet_4ec4cce8.jpg", priceCents: 3990, featured: true, sortOrder: 1 });
   await createProduct({ categoryId: burgers, name: "Duplo da Casa", description: "Dois blends de 120g, queijo prato, cebola caramelizada e maionese defumada.", imageUrl: "/assets/pubx/burger-fries_0ef75416.jpeg", priceCents: 4590, featured: true, sortOrder: 2 });
   await createProduct({ categoryId: burgers, name: "Veggie Brasa", description: "Burger vegetal, queijo, cogumelos grelhados, rúcula e aioli de limão.", imageUrl: "/assets/pubx/hero-burger-pizza_ec8acda5.jpeg", priceCents: 3590, sortOrder: 3 });
   await createProduct({ categoryId: pizzas, name: "Marguerita", description: "Molho de tomate, mozzarella, manjericão fresco e azeite extravirgem. 8 fatias.", imageUrl: "/assets/pubx/hero-burger-pizza_ec8acda5.jpeg", priceCents: 5490, featured: true, sortOrder: 1 });

@@ -55,7 +55,7 @@ export default function DataRights() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `mm-meus-dados-${normalizedPhone}.json`;
+    link.download = `comandiva-meus-dados-${normalizedPhone}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };

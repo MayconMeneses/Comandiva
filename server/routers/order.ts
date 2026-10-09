@@ -232,7 +232,7 @@ export async function insertPricedOrder(params: {
   now: number;
 }): Promise<{ orderId: number; code: string; isDuplicate: boolean }> {
   const { db, priced, now, clientOperationId } = params;
-  const code = `PX-${publicCode()}`;
+  const code = `CD-${publicCode()}`;
   let orderId: number;
   try {
     const orderResult = await db.insert(orders).values({
@@ -544,7 +544,7 @@ export const orderRouter = router({
         // coleta e-mail do cliente (fricção desnecessária pra delivery), então
         // usamos um endereço sintético ligado ao telefone só pra satisfazer o
         // campo obrigatório da API; nunca é usado pra contato de verdade.
-        payerEmail: `${order.customerPhone}@pix.cliente.mmsystemcreator.com.br`,
+        payerEmail: `${order.customerPhone}@pix.cliente.mmsystem.tech`,
         payerCpf: input.payerCpf,
         notificationUrl: `${ENV.backendUrl.replace(/\/+$/, "")}/api/webhooks/mercadopago`,
         expiresInMinutes: 30,

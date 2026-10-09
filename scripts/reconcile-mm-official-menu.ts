@@ -44,7 +44,7 @@ async function run() {
   for (let index = 0; index < sweet.length; index += 1) { const id = await product(pizzasSweet, sweet[index], 3000, pizzaImage, "Pizza doce do cardápio oficial do Comandiva.", index + 1); await options(id, "Tamanho", [["Média", 0], ["Grande", 500], ["Família", 1500]]); }
   const sweets = [["Pudim", "Tradicional, doce de leite ou Nutella."], ["Brownie", "Ninho ou Nutella."], ["Torta de limão", "Sobremesa do cardápio oficial."]] as const;
   for (let index = 0; index < sweets.length; index += 1) await product(desserts, sweets[index][0], 1000, foodImage, sweets[index][1], index + 1);
-  const legacy = ["PX Bacon", "Duplo da Casa", "Veggie Brasa", "Calabresa Artesanal", "Fritas da Casa", "Croquetes de Costela", "Coca-Cola 350ml", "Guaraná Zero 350ml", "Brownie Intenso"];
+  const legacy = ["PX Bacon", "Bacon da Casa", "Duplo da Casa", "Veggie Brasa", "Calabresa Artesanal", "Fritas da Casa", "Croquetes de Costela", "Coca-Cola 350ml", "Guaraná Zero 350ml", "Brownie Intenso"];
   await db.delete(products).where(inArray(products.name, legacy));
   const [beverages] = await db.select().from(categories).where(eq(categories.name, "Bebidas")).limit(1); if (beverages) await db.update(categories).set({ active: false, updatedAt: now }).where(eq(categories.id, beverages.id));
   console.info("Conciliação do cardápio oficial concluída.");
