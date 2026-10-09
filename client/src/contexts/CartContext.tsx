@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { DEFAULT_CART_STORAGE_KEY, loadStoredCart, saveStoredCart } from "@/lib/cartStorage";
 import { generateClientId } from "@/lib/randomId";
 
 export type CartAddon = { id: number; groupId: number; groupName: string; name: string; priceCents: number };
@@ -24,7 +25,6 @@ type CartContextValue = {
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
-const DEFAULT_STORAGE_KEY = "mm-system-creator-cart-v1";
 
 /**
  * `storageKey` isola o carrinho por contexto: o pedido delivery/retirada do
@@ -32,13 +32,12 @@ const DEFAULT_STORAGE_KEY = "mm-system-creator-cart-v1";
  * de uma comanda de mesa (aberto pelo QR Code) — são fluxos diferentes que,
  * no mesmo navegador do cliente, não devem compartilhar itens pendentes.
  */
-export function CartProvider({ children, storageKey = DEFAULT_STORAGE_KEY }: { children: React.ReactNode; storageKey?: string }) {
+export function CartProvider({ children, storageKey = DEFAULT_CART_STORAGE_KEY }: { children: React.ReactNode; storageKey?: string }) {
   const [items, setItems] = useState<CartItem[]>(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey) ?? "[]") as CartItem[]; }
-    catch { return []; }
+    return loadStoredCart<CartItem>(storageKey);
   });
 
-  useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(items)); }, [items, storageKey]);
+  useEffect(() => { saveStoredCart(storageKey, items); }, [items, storageKey]);
   const value = useMemo<CartContextValue>(() => {
     const subtotalCents = items.reduce((total, item) => {
       const unit = item.basePriceCents + item.addons.reduce((sum, addon) => sum + addon.priceCents, 0);
