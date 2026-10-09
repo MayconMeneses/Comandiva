@@ -1,5 +1,5 @@
 // Gera os ícones do PWA + favicon a partir da logo oficial em
-// client/public/mm-logo-icon.png (marca "MM System Creator", já um PNG
+// client/public/mm-logo-icon.png (marca "Comandiva", já um PNG
 // quadrado com fundo próprio — nenhuma forma é desenhada aqui).
 //
 // Rodar de novo sempre que a logo mudar (troca de marca/cliente):

@@ -47,7 +47,7 @@ describe("alertOnUnintentionalInternalError", () => {
   it("endpoint fora do mapa conhecido cai no rótulo genérico, nunca fica sem área", () => {
     alertOnUnintentionalInternalError({ code: "INTERNAL_SERVER_ERROR", cause: new Error("falha em área nova") }, "algumNamespaceNovo.boom");
     const [, , , , area] = mocks.sendOwnerAlert.mock.calls[0] as [string, string, string, unknown, string];
-    expect(area).toBe("Pub X (área desconhecida)");
+    expect(area).toBe("Comandiva (área desconhecida)");
   });
 
   it("endpoint desconhecido (path undefined) ainda dispara alerta, com rótulo genérico", () => {
@@ -55,7 +55,7 @@ describe("alertOnUnintentionalInternalError", () => {
     expect(result).toBe(true);
     const [subject, , , , area] = mocks.sendOwnerAlert.mock.calls[0] as [string, string, string, unknown, string];
     expect(subject).toContain("endpoint desconhecido");
-    expect(area).toBe("Pub X (área desconhecida)");
+    expect(area).toBe("Comandiva (área desconhecida)");
   });
 
   it("erro de validação (Zod) NÃO dispara alerta — é entrada errada do usuário, não malfuncionamento", () => {
@@ -89,7 +89,7 @@ describe("describeArea", () => {
   });
 
   it("namespace desconhecido ou path ausente caem no rótulo genérico", () => {
-    expect(describeArea("algoNuncaVisto.x")).toBe("Pub X (área desconhecida)");
-    expect(describeArea(undefined)).toBe("Pub X (área desconhecida)");
+    expect(describeArea("algoNuncaVisto.x")).toBe("Comandiva (área desconhecida)");
+    expect(describeArea(undefined)).toBe("Comandiva (área desconhecida)");
   });
 });

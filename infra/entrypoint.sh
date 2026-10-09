@@ -1,5 +1,5 @@
 #!/bin/sh
-# Ponto único de entrada do MM System Creator.
+# Ponto único de entrada do Comandiva.
 # Este script roda dentro do container "app" e faz tudo sozinho, na ordem certa:
 #   1. Espera o banco MySQL/MariaDB ficar pronto
 #   2. Aplica as migrations do Drizzle

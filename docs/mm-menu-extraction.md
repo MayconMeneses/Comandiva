@@ -1,8 +1,8 @@
-# Extração do material recebido — MM System Creator
+# Extração do material recebido — Comandiva
 
 ## Identidade visual observada
 
-O material utiliza fundo predominantemente **preto/grafite**, tipografia branca de alto contraste e acentos em **marrom-terra/caramelo**. O símbolo circular com “PUB X” aparece no topo das peças. As fotos de pratos usam uma direção visual quente e rústica, com iluminação de restaurante e texturas escuras.
+O material utiliza fundo predominantemente **preto/grafite**, tipografia branca de alto contraste e acentos em **marrom-terra/caramelo**. O símbolo circular com “Comandiva” aparece no topo das peças. As fotos de pratos usam uma direção visual quente e rústica, com iluminação de restaurante e texturas escuras.
 
 ## Cardápio confirmado
 
@@ -73,7 +73,7 @@ Os espetinhos confirmados são alcatra (R$ 9,00), filé de frango (R$ 7,00), pal
 | Sabor | Média | Grande | Família |
 |---|---:|---:|---:|
 | Palmito | R$ 30,00 | R$ 35,00 | R$ 40,00 |
-| Pub-X | R$ 35,00 | R$ 40,00 | R$ 45,00 |
+| Comandiva | R$ 35,00 | R$ 40,00 | R$ 45,00 |
 | Peito de Peru | R$ 35,00 | R$ 40,00 | R$ 50,00 |
 | Camarão | R$ 35,00 | R$ 40,00 | R$ 50,00 |
 | Camarão com Catupiry | R$ 40,00 | R$ 45,00 | R$ 60,00 |
@@ -95,7 +95,7 @@ Também foi identificado o prato **Filé de frango com arroz, brócolis e legume
 
 As peças restantes confirmam a **Tilápia frita**, que serve de duas a três pessoas, e a **Tilápia na brasa sem espinha**, também para duas a três pessoas; ambas são indicadas para almoço e jantar, mas não exibem preço nas artes. Esses itens foram registrados para cadastro posterior com preço confirmado pelo restaurante, evitando qualquer valor estimado.
 
-Por fim, foi identificada a **Pub-X Oriental**, com molho de tomate, muçarela, atum, cream cheese, molho tarê e cebolinha. A arte a apresenta como lançamento, sem preço ou tamanho indicados; por isso, o item foi documentado, mas não foi adicionado à venda com preço presumido.
+Por fim, foi identificada a **Comandiva Oriental**, com molho de tomate, muçarela, atum, cream cheese, molho tarê e cebolinha. A arte a apresenta como lançamento, sem preço ou tamanho indicados; por isso, o item foi documentado, mas não foi adicionado à venda com preço presumido.
 
 ## Revisão para expansão de almoço e acompanhamentos
 
@@ -105,7 +105,7 @@ A nova revisão confirmou novamente que o arquivo enviado contém hambúrgueres,
 
 As imagens posteriores confirmam que as refeições individuais acompanham arroz, feijão, fritas, salada e farofa, salvo indicação diferente. Os preços identificados são: bisteca (R$ 18,00), bife a cavalo (R$ 28,00), calabresa (R$ 18,00), contra filé (R$ 25,00), fígado (R$ 18,00), filé de frango grelhado (R$ 18,00), filé de peixe grelhado (R$ 22,00), filé de frango à milanesa (R$ 20,00), filé de peixe à milanesa (R$ 24,00), linguiça Dália (R$ 18,00), picanha (R$ 45,00), salmão com arroz, brócolis e legumes (R$ 40,00), filé de frango grelhado à moda da casa (R$ 20,00) e bife ao molho madeira com arroz à piemontese, fritas e salada (R$ 28,00).
 
-Para duas a três pessoas, foram confirmados: parmegiana de frango PF/família (R$ 25,00 / R$ 55,00), parmegiana de carne PF/família (R$ 28,00 / R$ 65,00), parmegiana de peixe PF/família (R$ 28,00 / R$ 60,00), picanha Pub-X — 500 g de picanha australiana e queijo, com fritas, arroz com brócolis, arroz à piemontese e baião com nata — (R$ 110,00), espeto misto 1 (R$ 110,00), espeto misto 2 (R$ 80,00), galeto Pub-X (R$ 35,00), tilápia (R$ 45,00) e tilápia sem espinha (R$ 50,00). Também constam meio galeto por R$ 15,00 e galeto inteiro por R$ 25,00. As guarnições registradas possuem tamanhos pequeno/grande: salada (R$ 3,00/R$ 6,00), arroz com brócolis (R$ 8,00/R$ 16,00), feijão (R$ 5,00/R$ 10,00), arroz (R$ 5,00/R$ 10,00), arroz à grega (R$ 8,00/R$ 16,00), arroz à piemontese (R$ 8,00/R$ 16,00), baião sem nata (R$ 6,00/R$ 12,00), baião com nata (R$ 8,00/R$ 16,00) e legumes cozidos (R$ 7,00/R$ 10,00).
+Para duas a três pessoas, foram confirmados: parmegiana de frango PF/família (R$ 25,00 / R$ 55,00), parmegiana de carne PF/família (R$ 28,00 / R$ 65,00), parmegiana de peixe PF/família (R$ 28,00 / R$ 60,00), picanha Comandiva — 500 g de picanha australiana e queijo, com fritas, arroz com brócolis, arroz à piemontese e baião com nata — (R$ 110,00), espeto misto 1 (R$ 110,00), espeto misto 2 (R$ 80,00), galeto Comandiva (R$ 35,00), tilápia (R$ 45,00) e tilápia sem espinha (R$ 50,00). Também constam meio galeto por R$ 15,00 e galeto inteiro por R$ 25,00. As guarnições registradas possuem tamanhos pequeno/grande: salada (R$ 3,00/R$ 6,00), arroz com brócolis (R$ 8,00/R$ 16,00), feijão (R$ 5,00/R$ 10,00), arroz (R$ 5,00/R$ 10,00), arroz à grega (R$ 8,00/R$ 16,00), arroz à piemontese (R$ 8,00/R$ 16,00), baião sem nata (R$ 6,00/R$ 12,00), baião com nata (R$ 8,00/R$ 16,00) e legumes cozidos (R$ 7,00/R$ 10,00).
 
 ## Adicionais de hambúrgueres
 

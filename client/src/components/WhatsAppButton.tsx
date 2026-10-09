@@ -14,7 +14,7 @@ export function whatsAppHref(phone: string | null | undefined, message: string):
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
 
-export default function WhatsAppButton({ phone, message = "Olá! Vim pelo site do MM System Creator e gostaria de tirar uma dúvida." }: { phone: string | null | undefined; message?: string }) {
+export default function WhatsAppButton({ phone, message = "Olá! Vim pelo site do Comandiva e gostaria de tirar uma dúvida." }: { phone: string | null | undefined; message?: string }) {
   const href = whatsAppHref(phone, message);
   if (!href) return null;
   return (

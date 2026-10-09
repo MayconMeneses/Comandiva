@@ -9,7 +9,7 @@ on:
 
 jobs:
   app-principal:
-    name: App principal (MM System Creator)
+    name: App principal (Comandiva)
     runs-on: ubuntu-latest
     # Banco real só pra este job testar a migration de verdade (drizzle-kit
     # migrate) contra um MySQL de fato, não contra mock. Sobe junto do job

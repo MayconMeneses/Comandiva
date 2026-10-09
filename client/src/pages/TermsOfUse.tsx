@@ -16,7 +16,7 @@ export default function TermsOfUse() {
       <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
-          <span className="font-display text-xl font-bold">MM System Creator</span>
+          <span className="font-display text-xl font-bold">Comandiva</span>
           <span className="w-32" />
         </div>
       </header>
@@ -28,12 +28,12 @@ export default function TermsOfUse() {
         <div className={`prose prose-sm mt-8 max-w-none space-y-6 ${marca ? "text-[#e4e9f5]" : "text-[#3a2f25]"}`}>
           <section>
             <h2 className="font-display text-xl font-bold">1. Aceitação</h2>
-            <p>Ao fazer um pedido pelo site do MM System Creator, você concorda com estes Termos de Uso e com a nossa <a href="/politica-de-privacidade" className="font-semibold text-primary underline">Política de Privacidade</a>.</p>
+            <p>Ao fazer um pedido pelo site do Comandiva, você concorda com estes Termos de Uso e com a nossa <a href="/politica-de-privacidade" className="font-semibold text-primary underline">Política de Privacidade</a>.</p>
           </section>
 
           <section>
             <h2 className="font-display text-xl font-bold">2. Pedidos e pagamento</h2>
-            <p>Os preços exibidos no cardápio já incluem os valores dos itens; a taxa de entrega, quando aplicável, é somada no checkout antes da confirmação. Aceitamos as formas de pagamento indicadas na tela de finalização do pedido (Pix, dinheiro, cartão na entrega e, quando disponível, cartão online). Ao escolher pagamento com cartão online, você será redirecionado para a página segura da processadora de pagamento — o MM System Creator não tem acesso aos dados do seu cartão.</p>
+            <p>Os preços exibidos no cardápio já incluem os valores dos itens; a taxa de entrega, quando aplicável, é somada no checkout antes da confirmação. Aceitamos as formas de pagamento indicadas na tela de finalização do pedido (Pix, dinheiro, cartão na entrega e, quando disponível, cartão online). Ao escolher pagamento com cartão online, você será redirecionado para a página segura da processadora de pagamento — o Comandiva não tem acesso aos dados do seu cartão.</p>
           </section>
 
           <section>
@@ -48,7 +48,7 @@ export default function TermsOfUse() {
 
           <section>
             <h2 className="font-display text-xl font-bold">5. Responsabilidades</h2>
-            <p>É responsabilidade do cliente informar corretamente o endereço de entrega e um telefone de contato válido. O MM System Creator não se responsabiliza por atrasos ou não-entrega decorrentes de informações incorretas fornecidas no pedido.</p>
+            <p>É responsabilidade do cliente informar corretamente o endereço de entrega e um telefone de contato válido. O Comandiva não se responsabiliza por atrasos ou não-entrega decorrentes de informações incorretas fornecidas no pedido.</p>
           </section>
 
           <section>

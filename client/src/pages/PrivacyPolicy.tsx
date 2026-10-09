@@ -12,13 +12,13 @@ export default function PrivacyPolicy() {
   const settings = trpc.catalog.settings.useQuery();
   const marca = isMarcaBackground(settings.data?.customBackgroundColor);
   useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
-  const dataRequestHref = whatsAppHref(settings.data?.phone, "Olá! Quero solicitar acesso, correção ou exclusão dos meus dados pessoais no MM System Creator, conforme a LGPD.");
+  const dataRequestHref = whatsAppHref(settings.data?.phone, "Olá! Quero solicitar acesso, correção ou exclusão dos meus dados pessoais no Comandiva, conforme a LGPD.");
   return (
     <div className="min-h-screen bg-background" style={marca ? { background: MARCA_GRADIENT } : undefined}>
       <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
-          <span className="font-display text-xl font-bold">MM System Creator</span>
+          <span className="font-display text-xl font-bold">Comandiva</span>
           <span className="w-32" />
         </div>
       </header>
@@ -30,7 +30,7 @@ export default function PrivacyPolicy() {
         <div className={`prose prose-sm mt-8 max-w-none space-y-6 ${marca ? "text-[#e4e9f5]" : "text-[#3a2f25]"}`}>
           <section>
             <h2 className="font-display text-xl font-bold">1. Quem somos</h2>
-            <p>Esta política se aplica ao site de pedidos do <strong>MM System Creator</strong>, estabelecido em Croatá/CE, e descreve como tratamos os dados pessoais fornecidos por quem faz pedidos pelo site, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD).</p>
+            <p>Esta política se aplica ao site de pedidos do <strong>Comandiva</strong>, estabelecido em Croatá/CE, e descreve como tratamos os dados pessoais fornecidos por quem faz pedidos pelo site, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD).</p>
           </section>
 
           <section>
@@ -61,7 +61,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="font-display text-xl font-bold">5. Por quanto tempo guardamos seus dados</h2>
-            <p>Guardamos os dados do seu pedido por até {DATA_RETENTION_YEARS} anos após a última interação sua com o MM System Creator, prazo adotado para cumprir as obrigações legais de guarda de registros comerciais e tributários. Depois desse prazo, se você não fizer novos pedidos, seus dados de identificação (nome, telefone, endereço) são anonimizados — o registro do pedido em si (itens e valores) pode ser mantido sem identificar você, para fins de auditoria e controle.</p>
+            <p>Guardamos os dados do seu pedido por até {DATA_RETENTION_YEARS} anos após a última interação sua com o Comandiva, prazo adotado para cumprir as obrigações legais de guarda de registros comerciais e tributários. Depois desse prazo, se você não fizer novos pedidos, seus dados de identificação (nome, telefone, endereço) são anonimizados — o registro do pedido em si (itens e valores) pode ser mantido sem identificar você, para fins de auditoria e controle.</p>
           </section>
 
           <section>

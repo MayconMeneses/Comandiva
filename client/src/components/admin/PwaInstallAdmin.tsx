@@ -28,7 +28,7 @@ export default function PwaInstallAdmin() {
       <header className="mb-6">
         <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">Configuração</p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">Instalador do app</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">Instale o MM System Creator como aplicativo neste dispositivo — fica com ícone próprio e abre em tela cheia, sem a barra do navegador. Útil pra deixar fixado numa tablet ou no computador do balcão/cozinha.</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Instale o Comandiva como aplicativo neste dispositivo — fica com ícone próprio e abre em tela cheia, sem a barra do navegador. Útil pra deixar fixado numa tablet ou no computador do balcão/cozinha.</p>
       </header>
       <div className="rounded-2xl border border-border bg-card p-6">
         {isStandalone ? (

@@ -27,7 +27,7 @@ export const dataRightsRouter = router({
     // phoneSchema normaliza sem o código do país (normalizePhone) — Twilio
     // exige E.164 completo, mesmo raciocínio de toWhatsAppDigits em
     // client/src/components/WhatsAppButton.tsx.
-    const result = await sendSms(`+55${input.phone}`, `MM System Creator: seu código de verificação é ${code}. Válido por 10 minutos.`);
+    const result = await sendSms(`+55${input.phone}`, `Comandiva: seu código de verificação é ${code}. Válido por 10 minutos.`);
     return { sent: result.sent };
   }),
 

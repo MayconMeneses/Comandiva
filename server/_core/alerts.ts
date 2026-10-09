@@ -70,8 +70,8 @@ function formatAlert(subject: string, message: string, severity: AlertSeverity, 
   const areaLine = area ? `Área: ${area}\n` : "";
   const locationLine = location ? `Local: ${location}\n` : "";
   return {
-    subject: `[MM System Creator] ${subject}`,
-    text: `${emoji} ${severity}\nSistema: MM System Creator\nAmbiente: ${environment}\n${areaLine}Evento: ${subject}\n${locationLine}\n${safeMessage}\n\nHorário: ${horario}`,
+    subject: `[Comandiva] ${subject}`,
+    text: `${emoji} ${severity}\nSistema: Comandiva\nAmbiente: ${environment}\n${areaLine}Evento: ${subject}\n${locationLine}\n${safeMessage}\n\nHorário: ${horario}`,
   };
 }
 

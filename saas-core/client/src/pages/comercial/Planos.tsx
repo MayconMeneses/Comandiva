@@ -15,7 +15,7 @@ const BASE_INCLUDES = ["Cardápio digital", "Pedidos online", "Pagamento por Pix
 const TAGLINES: Record<string, string> = {
   essencial: "Quero receber pedidos e ter meu próprio canal de vendas.",
   profissional: "Quero organizar meu restaurante, cozinha e salão.",
-  premium: "Quero tudo do MM System Creator, sem limitações e com gestão avançada.",
+  premium: "Quero tudo do Comandiva, sem limitações e com gestão avançada.",
 };
 
 // Mesmo texto usado em client/src/lib/featureCatalog.ts (painel admin) —
@@ -78,7 +78,7 @@ export default function Planos() {
   const structuredData = plans && {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: "MM System Creator",
+    name: "Comandiva",
     description: "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido.",
     offers: plans.map(plan => ({
       "@type": "Offer",
@@ -246,7 +246,7 @@ export default function Planos() {
 
           {plans && plans.length > 0 && (
             <Reveal className="mx-auto mt-14 max-w-4xl text-left">
-              <h2 className="text-center text-2xl font-bold text-ink">Compare tudo que o MM System Creator oferece</h2>
+              <h2 className="text-center text-2xl font-bold text-ink">Compare tudo que o Comandiva oferece</h2>
               <p className="mx-auto mt-2 max-w-xl text-center text-sm text-ink-soft">
                 Todo plano mostra o sistema inteiro — o que muda é o que já vem liberado. O que ainda não está no
                 seu plano continua visível, só marcado como bloqueado.

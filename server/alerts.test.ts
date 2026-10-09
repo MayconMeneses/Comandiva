@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockEnv = vi.hoisted(() => ({
   ENV: {
     isProduction: false,
-    smtpHost: "", smtpUser: "", smtpPassword: "", smtpPort: 587, smtpFrom: "MM System Creator <noreply@example.com>",
+    smtpHost: "", smtpUser: "", smtpPassword: "", smtpPort: 587, smtpFrom: "Comandiva <noreply@example.com>",
     alertEmailTo: "", alertWebhookUrl: "",
     telegramBotToken: "", telegramChatId: "",
   },

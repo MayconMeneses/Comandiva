@@ -1,8 +1,8 @@
-# MM System Creator
+# Comandiva
 
 > Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do próprio restaurante.
 
-MM System Creator é um SaaS (software como serviço) para restaurantes, lanchonetes e estabelecimentos com atendimento por mesa e/ou delivery. Cada cliente recebe seu próprio site de pedidos com a marca dele (não um marketplace compartilhado), sem cobrança de comissão por venda.
+Comandiva é um SaaS (software como serviço) para restaurantes, lanchonetes e estabelecimentos com atendimento por mesa e/ou delivery. Cada cliente recebe seu próprio site de pedidos com a marca dele (não um marketplace compartilhado), sem cobrança de comissão por venda.
 
 ## Principais recursos
 - Cardápio digital com fotos, categorias, complementos e promoções.

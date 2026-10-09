@@ -53,7 +53,7 @@ const STRUCTURED_DATA = {
   "@graph": [
     {
       "@type": "SoftwareApplication",
-      name: "MM System Creator",
+      name: "Comandiva",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
@@ -68,7 +68,7 @@ const STRUCTURED_DATA = {
     },
     {
       "@type": "Organization",
-      name: "MM System Creator",
+      name: "Comandiva",
       url: "https://mmsystem.tech/comercial",
       logo: "https://mmsystem.tech/mm-logo-full.png",
     },
@@ -455,7 +455,7 @@ export default function Home() {
             sizes="100vw"
             width={1600}
             height={900}
-            alt="Painel do MM System Creator em uso: vendas, pedidos e financeiro do restaurante em tempo real"
+            alt="Painel do Comandiva em uso: vendas, pedidos e financeiro do restaurante em tempo real"
             className="h-auto w-full"
             fetchPriority="high"
           />
@@ -539,7 +539,7 @@ export default function Home() {
       {/* Resumo rápido */}
       <section className="border-y border-border bg-paper-raised/60">
         <div className="mx-auto max-w-5xl px-6 py-16">
-          <h2 className="text-center text-2xl font-bold text-ink sm:text-3xl">Por que escolher o MM System Creator?</h2>
+          <h2 className="text-center text-2xl font-bold text-ink sm:text-3xl">Por que escolher o Comandiva?</h2>
           <div className="mt-12 grid gap-10 sm:grid-cols-3">
             {RESUMO.map((item, index) => (
               <Reveal key={item.title} delayMs={index * 100} className="group text-center">
@@ -719,7 +719,7 @@ export default function Home() {
           </div>
           <h2 className="mt-4 text-2xl font-bold text-ink sm:text-3xl">Maycon Meneses</h2>
           <p className="mt-4 text-ink-soft">
-            O MM System Creator é um projeto <strong className="text-ink">100% autoral</strong> — idealizado,
+            O Comandiva é um projeto <strong className="text-ink">100% autoral</strong> — idealizado,
             projetado e construído do zero por Maycon Meneses, sem plataforma no-code por trás e sem
             terceirização. Da ideia ao código, cada parte do sistema foi pensada pra resolver o problema de
             verdade de quem administra um restaurante.

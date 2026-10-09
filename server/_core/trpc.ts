@@ -28,7 +28,7 @@ const AREA_BY_NAMESPACE: Record<string, string> = {
 };
 export function describeArea(path: string | undefined): string {
   const namespace = path?.split(".")[0];
-  return (namespace && AREA_BY_NAMESPACE[namespace]) || "Pub X (área desconhecida)";
+  return (namespace && AREA_BY_NAMESPACE[namespace]) || "Comandiva (área desconhecida)";
 }
 
 /**

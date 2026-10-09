@@ -44,7 +44,7 @@ export type BackgroundPreset = { key: string; label: string; hex: string };
 /**
  * Atalhos pra "Cor de fundo personalizada" — o seletor livre continua
  * disponível, isso só poupa quem quer uma cor já testada. "marca" e
- * "comercial" reproduzem a identidade visual real do MM System Creator:
+ * "comercial" reproduzem a identidade visual real do Comandiva:
  * "marca" é o ponto médio entre os dois tons do gradiente da logo (azul
  * #008cfe → roxo #6146fd, ver client/public/mm-logo-icon.png do saas-core) —
  * o fundo aceita só uma cor sólida, não um gradiente, porque o contraste do
@@ -58,7 +58,7 @@ export type BackgroundPreset = { key: string; label: string; hex: string };
 export const MARCA_BACKGROUND_HEX = "#3169fe";
 
 export const BACKGROUND_PRESETS: BackgroundPreset[] = [
-  { key: "marca", label: "Marca MM System Creator", hex: MARCA_BACKGROUND_HEX },
+  { key: "marca", label: "Marca Comandiva", hex: MARCA_BACKGROUND_HEX },
   { key: "comercial", label: "Site comercial", hex: "#4338ca" },
   { key: "escuro", label: "Escuro elegante", hex: "#120e0c" },
 ];

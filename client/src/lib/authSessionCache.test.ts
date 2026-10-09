@@ -10,7 +10,7 @@ const SUPPORT_USER = {
   name: "Suporte (dev@plataforma.com)",
   email: "dev@plataforma.com",
   viaSupportSession: true,
-  supportRestaurantName: "Pub X",
+  supportRestaurantName: "Comandiva",
   supportExpiresAt: new Date().toISOString(),
   permissions: [],
 } as unknown as AuthUser;

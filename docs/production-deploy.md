@@ -1,6 +1,6 @@
 # Deploy em produção — Hostinger VPS + Docker
 
-Guia passo a passo para colocar o MM System Creator no ar numa VPS da Hostinger, com domínio próprio,
+Guia passo a passo para colocar o Comandiva no ar numa VPS da Hostinger, com domínio próprio,
 HTTPS e os dados protegidos. Todos os comandos abaixo são os mesmos scripts que já existem
 no projeto — nada novo para aprender, só a ordem certa de rodar.
 
@@ -21,7 +21,7 @@ publicadas apenas em `127.0.0.1`).
 
 ## Etapa 1 — Criar a VPS na Hostinger
 
-1. Contrate um plano **KVM** (VPS 1 ou 2 já atendem o MM System Creator no começo).
+1. Contrate um plano **KVM** (VPS 1 ou 2 já atendem o Comandiva no começo).
 2. Escolha o datacenter **São Paulo** (menor latência para os clientes).
 3. No sistema operacional, escolha **Ubuntu 24.04 LTS** (ou 22.04).
 4. Configure acesso por **chave SSH** (evite senha root pura). A Hostinger deixa isso pronto

@@ -15,7 +15,7 @@ export default function ComercialNotFound() {
     meta.content = "noindex";
     document.head.appendChild(meta);
     const previousTitle = document.title;
-    document.title = "Página não encontrada | MM System Creator";
+    document.title = "Página não encontrada | Comandiva";
     return () => {
       meta.remove();
       document.title = previousTitle;

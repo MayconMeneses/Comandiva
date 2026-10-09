@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-#   PUB X — INICIAR TUDO COM UM ÚNICO COMANDO
+#   COMANDIVA — INICIAR TUDO COM UM ÚNICO COMANDO
 # ============================================================
 # Uso:
 #   chmod +x iniciar.sh
@@ -82,7 +82,7 @@ docker compose -f docker-compose.independent.yml up -d --build
 
 echo ""
 echo "============================================================"
-echo " Pronto! O MM System Creator está subindo."
+echo " Pronto! O Comandiva está subindo."
 echo " Acesse em alguns segundos: http://localhost:3000"
 echo ""
 echo " Para acompanhar os logs em tempo real:"

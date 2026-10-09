@@ -35,7 +35,7 @@ function contextFromIp(ip: string): TrpcContext {
 }
 
 const validRedeemBody = {
-  result: { data: { supportSessionId: 42, restaurantName: "MM System Creator (teste)", platformAdminEmail: "dono@plataforma.com", expiresAt: Date.now() + 10 * 60_000 } },
+  result: { data: { supportSessionId: 42, restaurantName: "Comandiva (teste)", platformAdminEmail: "dono@plataforma.com", expiresAt: Date.now() + 10 * 60_000 } },
 };
 
 describe("support.enter — troca de token de handoff por sessão local", () => {
@@ -49,12 +49,12 @@ describe("support.enter — troca de token de handoff por sessão local", () => 
 
     const result = await appRouter.createCaller(ctx).support.enter({ token: "a".repeat(24) });
 
-    expect(result).toEqual({ success: true, restaurantName: "MM System Creator (teste)", expiresAt: validRedeemBody.result.data.expiresAt });
+    expect(result).toEqual({ success: true, restaurantName: "Comandiva (teste)", expiresAt: validRedeemBody.result.data.expiresAt });
     const cookieMock = ctx.res.cookie as unknown as ReturnType<typeof vi.fn>;
     expect(cookieMock).toHaveBeenCalled();
     const [, token] = cookieMock.mock.calls[0] as [string, string];
     const payload = await verifySupportSessionToken(token);
-    expect(payload).toMatchObject({ supportSessionId: 42, restaurantName: "MM System Creator (teste)", platformAdminEmail: "dono@plataforma.com" });
+    expect(payload).toMatchObject({ supportSessionId: 42, restaurantName: "Comandiva (teste)", platformAdminEmail: "dono@plataforma.com" });
   });
 
   it("saas-core rejeita o token (link expirado/já usado): FORBIDDEN, nenhum cookie gravado", async () => {

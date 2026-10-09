@@ -1,7 +1,7 @@
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 
-const ISSUER = "MM System Creator";
+const ISSUER = "Comandiva";
 
 /** Segredo novo em base32 — cada tentativa de setup gera um, só é salvo de vez quando o primeiro código bate (ver masterPanel/auth.ts). */
 export function generateTotpSecret(): string {

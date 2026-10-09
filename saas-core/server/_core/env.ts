@@ -28,7 +28,7 @@ export const ENV = {
   // desligado (loga e segue, nunca derruba o fluxo que disparou o e-mail).
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom: process.env.EMAIL_FROM ?? "",
-  emailFromName: process.env.EMAIL_FROM_NAME || "MM System Creator",
+  emailFromName: process.env.EMAIL_FROM_NAME || "Comandiva",
   // Fora de produção, nunca manda e-mail de verdade pro destinatário real —
   // se preenchido, redireciona todo envio pra cá (pra poder ver o resultado
   // de verdade sem arriscar mandar pra um cliente real); se vazio, só loga.
@@ -59,7 +59,7 @@ export const ENV = {
   // Trocado o padrão em si pra não depender de env var pra ficar certo.
   implementationFeeCents: Number(process.env.IMPLEMENTATION_FEE_CENTS) || 10000,
   // Restaurante(s) de uso interno/demonstração do dono da plataforma (ex.:
-  // Pub X) — nunca perdem acesso por fim de trial: em vez de "ended",
+  // Comandiva) — nunca perdem acesso por fim de trial: em vez de "ended",
   // applyDueScheduledChanges renova o período de 30 dias a partir de agora,
   // então o aviso "faltam N dias" continua aparecendo (útil pra mostrar a
   // clientes em potencial) mas nunca vira o bloqueio total. Lista separada

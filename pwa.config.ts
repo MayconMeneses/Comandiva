@@ -14,11 +14,11 @@
 // aqui, atualize aquelas duas linhas também. É a única duplicação aceita.
 export const PWA_BRANDING = {
   /** Nome completo — aparece na tela de instalação e no splash screen. */
-  name: "MM System Creator — Peça online",
+  name: "Comandiva — Peça online",
   /** Nome curto — aparece embaixo do ícone na home screen (máx. ~12 chars). */
-  shortName: "MM System",
+  shortName: "Comandiva",
   /** Descrição curta usada no manifest. */
-  description: "Peça online no MM System Creator: hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada, com acompanhamento do pedido em tempo real.",
+  description: "Peça online no Comandiva: hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada, com acompanhamento do pedido em tempo real.",
   /** Cor da barra de status/tema do navegador e do splash screen. */
   themeColor: "#15120f",
   /** Cor de fundo do splash screen mostrado durante o carregamento do app instalado. */

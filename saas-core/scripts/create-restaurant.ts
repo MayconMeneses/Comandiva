@@ -9,7 +9,7 @@ import { createRestaurantWithSubscription } from "../server/db/restaurants";
  * HTTP novo pra proteger, mesmo padrão de scripts/seed-cardapio-mm.ts.
  *
  * Uso:
- *   pnpm create-restaurant --name "MM System Creator" --plan essencial --contact-email dono@exemplo.com
+ *   pnpm create-restaurant --name "Comandiva" --plan essencial --contact-email dono@exemplo.com
  */
 async function main() {
   const { values } = parseArgs({
@@ -23,7 +23,7 @@ async function main() {
   });
 
   if (!values.name || !values.plan) {
-    console.error('Uso: tsx scripts/create-restaurant.ts --name "MM System Creator" --plan essencial [--contact-email ...] [--contact-name ...] [--contact-phone ...]');
+    console.error('Uso: tsx scripts/create-restaurant.ts --name "Comandiva" --plan essencial [--contact-email ...] [--contact-name ...] [--contact-phone ...]');
     console.error("Planos válidos: essencial, profissional, premium");
     process.exit(1);
   }

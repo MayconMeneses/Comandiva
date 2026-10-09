@@ -38,11 +38,11 @@ export function ComercialFooter() {
         </div>
 
         <p className="text-sm text-ink-soft">
-          Criado do zero por <strong className="text-ink">Maycon Meneses</strong> — MM System Creator
+          Criado do zero por <strong className="text-ink">Maycon Meneses</strong> — Comandiva
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-ink-soft">
-          <span>© {new Date().getFullYear()} MM System Creator. Todos os direitos reservados.</span>
+          <span>© {new Date().getFullYear()} Comandiva. Todos os direitos reservados.</span>
           <Link href="/comercial/termos" className="underline-offset-2 hover:underline">
             Termos de uso
           </Link>

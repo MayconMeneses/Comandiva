@@ -46,7 +46,7 @@ export function SavingsCalculator() {
           <p className="mt-2 font-mono text-2xl font-bold text-ink tabular-nums">{money(commissionCents)}<span className="text-sm font-normal text-ink-soft">/mês</span></p>
         </div>
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">Com o MM System Creator</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">Com o Comandiva</p>
           <p className="mt-2 font-mono text-2xl font-bold text-ink tabular-nums">{money(BASE_PLAN_CENTS)}<span className="text-sm font-normal text-ink-soft">/mês fixo</span></p>
         </div>
       </div>

@@ -51,7 +51,7 @@ vi.mock("./db", () => ({
 import { appRouter } from "./routers";
 
 const now = Date.now();
-const SUPPORT_SESSION = { supportSessionId: 1, restaurantName: "MM System Creator (teste)", platformAdminEmail: "dono@plataforma.com", expiresAt: now + 60_000 };
+const SUPPORT_SESSION = { supportSessionId: 1, restaurantName: "Comandiva (teste)", platformAdminEmail: "dono@plataforma.com", expiresAt: now + 60_000 };
 const REAL_ADMIN = { id: 7, role: "admin", name: "Dono", username: "dono", email: "dono@mmsystemcreator.com" } as unknown as TrpcContext["user"];
 
 function contextWith(overrides: { user?: TrpcContext["user"]; supportSession?: TrpcContext["supportSession"] }): TrpcContext {
@@ -136,7 +136,7 @@ describe("Modo Suporte — leitura e escrita liberadas, exceto credenciais/pagam
 
   it("auth.me devolve identidade sintética de admin pra sessão de suporte; login real tem prioridade; sem nenhuma das duas devolve null", async () => {
     const supportIdentity = await appRouter.createCaller(supportOnlyContext).auth.me();
-    expect(supportIdentity).toMatchObject({ role: "admin", email: "dono@plataforma.com", viaSupportSession: true, supportRestaurantName: "MM System Creator (teste)" });
+    expect(supportIdentity).toMatchObject({ role: "admin", email: "dono@plataforma.com", viaSupportSession: true, supportRestaurantName: "Comandiva (teste)" });
 
     const bothContext = contextWith({ user: REAL_ADMIN, supportSession: SUPPORT_SESSION });
     await expect(appRouter.createCaller(bothContext).auth.me()).resolves.toEqual({ ...REAL_ADMIN, permissions: [...GRANTABLE_STAFF_AREAS] });

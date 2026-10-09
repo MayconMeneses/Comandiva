@@ -1,8 +1,8 @@
-# Auditoria de independência do MM System Creator
+# Auditoria de independência do Comandiva
 
 ## Resumo executivo
 
-O MM System Creator é uma aplicação full-stack com frontend React, backend Express/tRPC, Drizzle ORM, MySQL/MariaDB, sessão JWT local e storage S3-compatible. O código executável exportável não registra rotas, clientes HTTP, SDKs, plugins ou serviços de uma plataforma externa proprietária.
+O Comandiva é uma aplicação full-stack com frontend React, backend Express/tRPC, Drizzle ORM, MySQL/MariaDB, sessão JWT local e storage S3-compatible. O código executável exportável não registra rotas, clientes HTTP, SDKs, plugins ou serviços de uma plataforma externa proprietária.
 
 | Área | Implementação independente |
 |---|---|

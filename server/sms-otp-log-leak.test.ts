@@ -23,7 +23,7 @@ describe("sendSms — sem provedor configurado, nunca vaza o código em produç�
 
   it("em produção: NÃO loga o código de verificação", async () => {
     mocks.ENV.isProduction = true;
-    await sendSms("85999991234", "MM System Creator: seu código de verificação é 482913. Válido por 10 minutos.");
+    await sendSms("85999991234", "Comandiva: seu código de verificação é 482913. Válido por 10 minutos.");
 
     const loggedText = warnSpy.mock.calls.map(call => call.join(" ")).join("\n");
     expect(loggedText).not.toContain("482913");
@@ -31,7 +31,7 @@ describe("sendSms — sem provedor configurado, nunca vaza o código em produç�
 
   it("fora de produção: continua logando o código de propósito (permite testar sem Twilio)", async () => {
     mocks.ENV.isProduction = false;
-    await sendSms("85999991234", "MM System Creator: seu código de verificação é 482913. Válido por 10 minutos.");
+    await sendSms("85999991234", "Comandiva: seu código de verificação é 482913. Válido por 10 minutos.");
 
     const loggedText = warnSpy.mock.calls.map(call => call.join(" ")).join("\n");
     expect(loggedText).toContain("482913");

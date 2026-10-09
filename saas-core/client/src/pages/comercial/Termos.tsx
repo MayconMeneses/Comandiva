@@ -16,7 +16,7 @@ export default function Termos() {
 
         <div className="mt-8 space-y-6 text-sm leading-relaxed text-ink-soft">
           <p>
-            O <strong className="text-ink">MM System Creator</strong> é um sistema próprio, criado do zero por{" "}
+            O <strong className="text-ink">Comandiva</strong> é um sistema próprio, criado do zero por{" "}
             <strong className="text-ink">Maycon Meneses</strong>, oferecido como assinatura mensal pra restaurantes
             que querem cardápio digital, pedidos online e gestão de entregas com a marca do próprio negócio.
           </p>

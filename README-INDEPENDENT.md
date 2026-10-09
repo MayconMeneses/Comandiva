@@ -1,6 +1,6 @@
-# MM System Creator — sistema independente de pedidos
+# Comandiva — sistema independente de pedidos
 
-Este pacote contém o código-fonte do sistema de pedidos do MM System Creator, organizado em frontend React, backend Express/tRPC, schema Drizzle/MariaDB, scripts, assets e documentação.
+Este pacote contém o código-fonte do sistema de pedidos do Comandiva, organizado em frontend React, backend Express/tRPC, schema Drizzle/MariaDB, scripts, assets e documentação.
 
 | Área | Local | Responsabilidade |
 |---|---|---|

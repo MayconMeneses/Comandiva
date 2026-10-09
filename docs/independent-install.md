@@ -2,7 +2,7 @@
 
 ## Estado de portabilidade
 
-O pacote contém o código-fonte e os arquivos versionados do MM System Creator, já auditado e sem dependências obrigatórias de uma plataforma externa (veja `docs/portability-audit.md`). Para operar de forma independente, use `DATABASE_URL` (MySQL/MariaDB próprio) e `S3_ENDPOINT`/`S3_*` (S3-compatible/MinIO próprio); não há autenticação externa nem proxy de storage obrigatório na versão exportada. O banco pode ser trocado sem alterar o frontend porque as procedures tRPC acessam os helpers centralizados em `server/db.ts`.
+O pacote contém o código-fonte e os arquivos versionados do Comandiva, já auditado e sem dependências obrigatórias de uma plataforma externa (veja `docs/portability-audit.md`). Para operar de forma independente, use `DATABASE_URL` (MySQL/MariaDB próprio) e `S3_ENDPOINT`/`S3_*` (S3-compatible/MinIO próprio); não há autenticação externa nem proxy de storage obrigatório na versão exportada. O banco pode ser trocado sem alterar o frontend porque as procedures tRPC acessam os helpers centralizados em `server/db.ts`.
 
 ## Caminho mais simples: um único comando
 

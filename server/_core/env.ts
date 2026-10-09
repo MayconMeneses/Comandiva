@@ -28,7 +28,7 @@ export const ENV = {
   smtpPort: Number(process.env.SMTP_PORT ?? "587"),
   smtpUser: process.env.SMTP_USER ?? "",
   smtpPassword: process.env.SMTP_PASSWORD ?? "",
-  smtpFrom: process.env.SMTP_FROM ?? "MM System Creator <noreply@example.com>",
+  smtpFrom: process.env.SMTP_FROM ?? "Comandiva <noreply@example.com>",
   alertEmailTo: process.env.ALERT_EMAIL_TO ?? "",
   alertWebhookUrl: process.env.ALERT_WEBHOOK_URL ?? "",
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",

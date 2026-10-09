@@ -1,4 +1,4 @@
-// Script de importação do cardápio real do MM System Creator (Croatá/CE).
+// Script de importação do cardápio real do Comandiva (Croatá/CE).
 // Lê os dados abaixo (extraídos das fotos do cardápio enviadas) e cadastra
 // categorias, produtos, grupos de complemento (tamanhos/porções/adicionais)
 // e promoções vinculadas. É seguro rodar mais de uma vez: itens que já
@@ -43,7 +43,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
     {
       "key": "hamb_trad",
       "name": "Hambúrguer Tradicional",
-      "description": "Os clássicos do MM System Creator, pão + 120g de carne artesanal.",
+      "description": "Os clássicos do Comandiva, pão + 120g de carne artesanal.",
       "sortOrder": 10,
       "aliases": [
         "Hambúrgueres Tradicionais"
@@ -1777,7 +1777,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
       "aliases": [],
       "products": [
         {
-          "name": "Picanha PUB-X",
+          "name": "Picanha Comandiva",
           "description": "500g de picanha australiana e queijo. Acompanha fritas, arroz com brócolis, arroz à piemontese ou baião com nata.",
           "priceCents": 11000
         },
@@ -1792,7 +1792,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
           "priceCents": 8000
         },
         {
-          "name": "Galeto PUB-X",
+          "name": "Galeto Comandiva",
           "description": "Acompanha arroz e feijão ou baião sem nata, fritas, vinagrete e farofa.",
           "priceCents": 3500
         },
@@ -2370,7 +2370,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
           ]
         },
         {
-          "name": "PUB-X",
+          "name": "Comandiva",
           "description": "Molho de tomate, mussarela, bacon, calabresa, cebola e orégano.",
           "priceCents": 3500,
           "addonGroups": [
@@ -2478,7 +2478,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
           ]
         },
         {
-          "name": "PUB-X Oriental",
+          "name": "Comandiva Oriental",
           "description": "Molho de tomate, muçarela, atum, cream cheese, molho tarê e cebolinha. Lançamento — preço a confirmar.",
           "priceCents": 3500,
           "imageUrl": "/assets/pubx/pizza-oriental.jpg",
@@ -2697,7 +2697,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
         },
         {
           "name": "Drink da Casa",
-          "description": "Maçã verde, tropical ou Pub-X.",
+          "description": "Maçã verde, tropical ou Comandiva.",
           "priceCents": 1000
         }
       ]
@@ -2756,7 +2756,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
         },
         {
           "name": "Drink da Casa (Happy Hour)",
-          "description": "Maçã verde, tropical ou Pub-X. Terça a sexta, das 17h às 21h.",
+          "description": "Maçã verde, tropical ou Comandiva. Terça a sexta, das 17h às 21h.",
           "priceCents": 1000
         }
       ]
@@ -2791,7 +2791,7 @@ const DATA: { categories: CategoryInput[]; promotions: PromotionInput[] } = {
       "linkTo": null
     },
     {
-      "title": "Happy Hour do MM System Creator",
+      "title": "Happy Hour do Comandiva",
       "description": "Petiscos porção inteira e bebidas com preço especial.",
       "badge": "HAPPY HOUR",
       "priceLabel": "A partir de R$ 9,00",

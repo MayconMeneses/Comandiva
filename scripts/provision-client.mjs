@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Sobe uma instância Docker isolada e nova do MM System Creator pra um
+// Sobe uma instância Docker isolada e nova do Comandiva pra um
 // cliente específico, nesta mesma máquina — chamado pelo saas-core
 // (server/_core/systemProvisioning.ts) logo após o pagamento ser
 // confirmado. Reaproveita o mesmo docker-compose.independent.yml/imagem de

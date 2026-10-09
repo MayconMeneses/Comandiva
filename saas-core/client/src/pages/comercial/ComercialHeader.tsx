@@ -13,7 +13,7 @@ const PRIMARY_LINK_CLASSES =
  */
 export function ComercialHeader({ showNav = true }: { showNav?: boolean }) {
   useEffect(() => {
-    document.title = "MM System Creator — Sistema para restaurantes";
+    document.title = "Comandiva — Sistema para restaurantes";
   }, []);
 
   return (
@@ -27,7 +27,7 @@ export function ComercialHeader({ showNav = true }: { showNav?: boolean }) {
       <header className="sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
       <div className="flex w-full items-center justify-between px-6 py-3">
         <Link href="/comercial" className="inline-flex items-center rounded-lg bg-[#1a1a1a] px-3 py-1.5">
-          <img src="/mm-logo-full.png" alt="MM System Creator" className="h-7 w-auto sm:h-8" />
+          <img src="/mm-logo-full.png" alt="Comandiva" className="h-7 w-auto sm:h-8" />
         </Link>
         {showNav && (
           <nav className="flex items-center gap-4 text-sm">

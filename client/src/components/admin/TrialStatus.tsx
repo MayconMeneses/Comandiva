@@ -32,7 +32,7 @@ export function TrialEndingBanner({ daysLeft, periodEndLabel }: { daysLeft: numb
 const ACCESS_BLOCKED_COPY: Record<string, { title: string; body: string }> = {
   ended: {
     title: "Seu teste grátis terminou",
-    body: "Os 30 dias grátis do MM System Creator acabaram. Assine um plano pra continuar usando o painel — seus dados continuam salvos, nada foi perdido.",
+    body: "Os 30 dias grátis do Comandiva acabaram. Assine um plano pra continuar usando o painel — seus dados continuam salvos, nada foi perdido.",
   },
   canceled: {
     title: "Sua assinatura foi cancelada",

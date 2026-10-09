@@ -3,7 +3,7 @@ import * as OTPAuth from "otpauth";
 import { buildTotpQrCodeDataUrl, generateTotpSecret, verifyTotpToken } from "./totp";
 
 function currentCodeFor(secret: string, email: string): string {
-  const totp = new OTPAuth.TOTP({ issuer: "MM System Creator", label: email, algorithm: "SHA1", digits: 6, period: 30, secret: OTPAuth.Secret.fromBase32(secret) });
+  const totp = new OTPAuth.TOTP({ issuer: "Comandiva", label: email, algorithm: "SHA1", digits: 6, period: 30, secret: OTPAuth.Secret.fromBase32(secret) });
   return totp.generate();
 }
 

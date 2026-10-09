@@ -1,11 +1,11 @@
-# MM System Creator — Sistema de pedidos (contexto do projeto)
+# Comandiva — Sistema de pedidos (contexto do projeto)
 
 Este arquivo é lido automaticamente pelo Claude Code no início de cada sessão nesta pasta.
 Serve para não precisar reexplicar o histórico do projeto a cada conversa nova.
 
 ## O que é
 
-Sistema completo de pedidos online para o restaurante **MM System Creator** (Croatá/CE), rodando de forma
+Sistema completo de pedidos online para o restaurante **Comandiva** (Croatá/CE), rodando de forma
 independente (sem depender de nenhuma plataforma no-code). Cliente faz pedido pelo site público,
 equipe gerencia tudo pelo painel administrativo.
 
@@ -51,7 +51,7 @@ Serviço central separado dentro deste mesmo repositório (pasta `saas-core/`), 
 (Express + tRPC + Drizzle + MySQL), próprio banco e próprio Docker Compose
 (`saas-core/docker-compose.saas-core.yml`, containers `saas-core-app-1`/`saas-core-db-1`).
 **Nunca guarda dado operacional de restaurante nenhum** (pedidos, cardápio, clientes) — só
-planos/assinaturas/cobrança e o cadastro dos restaurantes-cliente. Cada restaurante (MM System
+planos/assinaturas/cobrança e o cadastro dos restaurantes-cliente. Cada restaurante (Comandiva
 Creator, futuros clientes) continua com seu próprio deployment Docker isolado, exatamente como
 hoje; o app principal consulta o `saas-core` via `server/_core/license.ts` (sync em background,
 cache local com fail-open se o `saas-core` cair) e recursos pagos são bloqueados de fato no

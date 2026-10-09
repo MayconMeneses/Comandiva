@@ -104,7 +104,7 @@ export const publicRouter = router({
       const origin = input.returnOrigin.replace(/\/$/, "");
       const preference = await createImplementationFeePreference({
         accessToken: ENV.mercadoPagoAccessToken,
-        title: "Taxa de implementação — MM System Creator",
+        title: "Taxa de implementação — Comandiva",
         externalReference: String(signupPaymentId),
         amountCents: ENV.implementationFeeCents,
         payerEmail: input.contactEmail,

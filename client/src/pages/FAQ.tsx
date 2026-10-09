@@ -25,7 +25,7 @@ export default function FAQ() {
       <header className="border-b bg-[#fffdf8] text-[#231d18]">
         <div className="page-shell flex h-16 items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" />Voltar ao cardápio</button>
-          <span className="font-display text-xl font-bold">MM System Creator</span>
+          <span className="font-display text-xl font-bold">Comandiva</span>
           <span className="w-32" />
         </div>
       </header>
