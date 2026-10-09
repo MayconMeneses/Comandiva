@@ -1,9 +1,6 @@
 import { generateClientId } from "./randomId";
 
 const STORAGE_KEY = "comandiva-device-id-v1";
-// Chave antiga (antes da renomeação do produto) — lida uma vez só pra o aparelho
-// manter o mesmo id depois da atualização, em vez de parecer um aparelho novo.
-const LEGACY_STORAGE_KEY = "mm-system-creator-device-id-v1";
 
 /**
  * Identifica este NAVEGADOR (não a pessoa nem a conta) pro painel operacional
@@ -19,12 +16,6 @@ export function getDeviceId(): string {
   try {
     const existing = localStorage.getItem(STORAGE_KEY);
     if (existing) return existing;
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      localStorage.setItem(STORAGE_KEY, legacy);
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-      return legacy;
-    }
     const created = generateClientId();
     localStorage.setItem(STORAGE_KEY, created);
     return created;

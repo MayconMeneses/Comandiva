@@ -1,31 +1,26 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_CART_STORAGE_KEY, LEGACY_CART_STORAGE_KEY, loadStoredCart, saveStoredCart } from "./cartStorage";
+import { DEFAULT_CART_STORAGE_KEY, loadStoredCart, saveStoredCart } from "./cartStorage";
 
-describe("carrinho salvo — migração da chave antiga (renomeação para Comandiva)", () => {
+describe("carrinho salvo no navegador", () => {
   beforeEach(() => localStorage.clear());
 
-  it("carrinho na chave antiga é lido pelo carrinho padrão do site", () => {
-    localStorage.setItem(LEGACY_CART_STORAGE_KEY, JSON.stringify([{ id: "a", productId: 1 }]));
+  it("grava e lê de volta o mesmo carrinho", () => {
+    saveStoredCart(DEFAULT_CART_STORAGE_KEY, [{ id: "a", productId: 1 }]);
     expect(loadStoredCart(DEFAULT_CART_STORAGE_KEY)).toEqual([{ id: "a", productId: 1 }]);
   });
 
-  it("ao salvar, grava na chave nova e apaga a antiga", () => {
-    localStorage.setItem(LEGACY_CART_STORAGE_KEY, "[]");
-    saveStoredCart(DEFAULT_CART_STORAGE_KEY, [{ id: "b" }]);
-    expect(JSON.parse(localStorage.getItem(DEFAULT_CART_STORAGE_KEY)!)).toEqual([{ id: "b" }]);
-    expect(localStorage.getItem(LEGACY_CART_STORAGE_KEY)).toBeNull();
+  it("usa a chave da Comandiva e ignora a chave antiga do nome anterior", () => {
+    expect(DEFAULT_CART_STORAGE_KEY).toBe("comandiva-cart-v1");
+    localStorage.setItem("mm-system-creator-cart-v1", JSON.stringify([{ id: "velho" }]));
+    expect(loadStoredCart(DEFAULT_CART_STORAGE_KEY)).toEqual([]);
   });
 
-  it("a chave nova tem prioridade sobre a antiga", () => {
-    localStorage.setItem(LEGACY_CART_STORAGE_KEY, JSON.stringify([{ id: "velho" }]));
-    localStorage.setItem(DEFAULT_CART_STORAGE_KEY, JSON.stringify([{ id: "novo" }]));
-    expect(loadStoredCart(DEFAULT_CART_STORAGE_KEY)).toEqual([{ id: "novo" }]);
-  });
-
-  it("carrinho de mesa (outra chave) nunca puxa o carrinho antigo do site", () => {
-    localStorage.setItem(LEGACY_CART_STORAGE_KEY, JSON.stringify([{ id: "site" }]));
-    expect(loadStoredCart("mm-table-cart-abc")).toEqual([]);
+  it("carrinhos de contextos diferentes (site x mesa) não se misturam", () => {
+    saveStoredCart(DEFAULT_CART_STORAGE_KEY, [{ id: "site" }]);
+    saveStoredCart("mm-table-cart-abc", [{ id: "mesa" }]);
+    expect(loadStoredCart(DEFAULT_CART_STORAGE_KEY)).toEqual([{ id: "site" }]);
+    expect(loadStoredCart("mm-table-cart-abc")).toEqual([{ id: "mesa" }]);
   });
 
   it("JSON corrompido ou que não é lista vira carrinho vazio", () => {
