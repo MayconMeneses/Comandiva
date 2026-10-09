@@ -15,7 +15,7 @@ const {
   buildNewPaidSignupMessage,
   buildRestaurantDeliveredMessage,
   buildMenuReferenceCaption,
-  buildLeadMessage,
+  buildNewSignupMessage,
   buildProvisionCommandMessage,
   buildSystemErrorMessage,
   buildSubscriptionRenewedMessage,
@@ -217,38 +217,36 @@ describe("telegramService.sendTelegramDocument", () => {
   });
 });
 
-describe("telegramService.buildLeadMessage", () => {
-  const base = { name: "Pizzaria do Zé", planName: "Profissional", contactEmail: "ze@exemplo.com", amountCents: 10000 };
+describe("telegramService.buildNewSignupMessage", () => {
+  const base = { restaurantId: 9, restaurantName: "Pizzaria do Zé", planName: "Profissional", apiKey: "rk_live_x" };
 
-  it("traz tudo que a pessoa preencheu e um link de WhatsApp com DDI 55", () => {
-    const text = buildLeadMessage({ ...base, contactName: "José", contactPhone: "(88) 99940-1565" });
-    expect(text).toContain("Possível cliente");
-    expect(text).toContain("Pizzaria do Zé");
-    expect(text).toContain("Profissional");
-    expect(text).toContain("José");
-    expect(text).toContain("ze@exemplo.com");
-    expect(text).toContain("(88) 99940-1565");
-    expect(text).toContain("https://wa.me/5588999401565");
-    expect(text).toContain("Ainda não pagou");
+  it("traz tudo que a pessoa preencheu, link de WhatsApp com DDI 55 e a API key, sem falar de taxa", () => {
+    const text = buildNewSignupMessage({ ...base, contactName: "José", contactEmail: "ze@exemplo.com", contactPhone: "(88) 99940-1565" });
+    for (const part of ["Novo cadastro", "Pizzaria do Zé", "#9", "Profissional", "José", "ze@exemplo.com", "(88) 99940-1565", "https://wa.me/5588999401565", "rk_live_x"]) expect(text).toContain(part);
+    expect(text).not.toMatch(/taxa|pago|R\$/i);
   });
 
   it("não duplica o 55 quando o telefone já vem com DDI", () => {
-    expect(buildLeadMessage({ ...base, contactPhone: "+55 88 99940-1565" })).toContain("https://wa.me/5588999401565");
+    expect(buildNewSignupMessage({ ...base, contactPhone: "+55 88 99940-1565" })).toContain("https://wa.me/5588999401565");
   });
 
   it("sem telefone ou nome: omite essas linhas e o link", () => {
-    const text = buildLeadMessage(base);
+    const text = buildNewSignupMessage(base);
     expect(text).not.toContain("Telefone:");
     expect(text).not.toContain("Contato:");
     expect(text).not.toContain("wa.me");
   });
 
   it("telefone curto demais não gera link de WhatsApp quebrado", () => {
-    expect(buildLeadMessage({ ...base, contactPhone: "12345" })).not.toContain("wa.me");
+    expect(buildNewSignupMessage({ ...base, contactPhone: "12345" })).not.toContain("wa.me");
+  });
+
+  it("contato repetido é sinalizado", () => {
+    expect(buildNewSignupMessage({ ...base, repeatContact: true })).toContain("Contato repetido");
   });
 
   it("escapa HTML vindo do formulário público", () => {
-    const text = buildLeadMessage({ ...base, name: "<b>X</b> & Cia", contactName: "<script>" });
+    const text = buildNewSignupMessage({ ...base, restaurantName: "<b>X</b> & Cia", contactName: "<script>" });
     expect(text).not.toContain("<script>");
     expect(text).toContain("&lt;b&gt;X&lt;/b&gt; &amp; Cia");
   });

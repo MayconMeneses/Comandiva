@@ -70,7 +70,6 @@ export default function Planos() {
   const plansQuery = trpc.public.plans.useQuery();
   const plans = plansQuery.data?.plans;
   const allFeatures = plansQuery.data?.allFeatures ?? [];
-  const implementationFeeCents = plansQuery.data?.implementationFeeCents ?? 15000;
 
   // Preço/nome de cada plano vêm da API (fonte real, `seed-plans.ts`) — só
   // renderiza depois que `plans` carrega, pra nunca publicar um preço
@@ -312,16 +311,6 @@ export default function Planos() {
               </div>
             </Reveal>
           )}
-
-          <Reveal className="mx-auto mt-10 max-w-xl rounded-2xl border border-accent/30 bg-paper-raised/90 p-5 text-left shadow-sm backdrop-blur">
-            <p className="text-sm font-semibold text-ink">
-              Taxa de implementação: <span className="text-accent-text">{money(implementationFeeCents)}</span>
-            </p>
-            <p className="mt-1 text-sm text-ink-soft">
-              Cobrimos a configuração completa: subir seus produtos no sistema, testar tudo até funcionar
-              100% e entregar pronto pra vender. Cobrada uma única vez, no cadastro.
-            </p>
-          </Reveal>
 
           <p className="mt-6 text-sm text-ink-soft">Pode trocar de plano quando quiser, direto no seu painel — sem multa.</p>
         </div>

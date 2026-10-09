@@ -1,18 +1,16 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { trpc } from "@/lib/trpc";
-import { useMercadoPagoSecurity } from "@/lib/useMercadoPagoSecurity";
 import { track } from "@/lib/track";
 import { FormEvent, useRef, useState } from "react";
-import { Link, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { ComercialHeader } from "./ComercialHeader";
 
 const PLAN_LABELS: Record<string, string> = { essencial: "Entrada", profissional: "Profissional", premium: "Premium" };
-const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
 export default function Cadastro() {
-  useMercadoPagoSecurity();
   const { planKey } = useParams<{ planKey: string }>();
+  const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -20,36 +18,22 @@ export default function Cadastro() {
   // Funil: "start" no primeiro foco em qualquer campo, "step" ao chegar no último (WhatsApp).
   const startedRef = useRef(false);
   const stepRef = useRef(false);
-  const plansQuery = trpc.public.plans.useQuery();
-  const implementationFeeCents = plansQuery.data?.implementationFeeCents ?? 15000;
 
   const signup = trpc.public.signup.useMutation({
-    onSuccess: data => {
-      // Nunca navega pro "sucesso" direto — o cadastro só vira restaurante de
-      // verdade depois que o webhook confirmar o pagamento (nunca só pelo
-      // retorno da URL). O Mercado Pago é quem manda de volta pra
-      // /comercial/cadastro/confirmando quando o cliente terminar por lá.
-      window.location.href = data.checkoutUrl;
-    },
+    // Sem taxa de implementação: o envio das informações já conclui o cadastro
+    // e leva direto pra tela de "Cadastro recebido" (com o envio do cardápio).
+    onSuccess: data => setLocation(`/comercial/cadastro/sucesso?ref=${data.restaurantId}`),
   });
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     track("signup_submit");
-    // window.MP_DEVICE_SESSION_ID é setado pelo security.js (ver
-    // useMercadoPagoSecurity, importado acima) — sem mandar isso pro
-    // backend, que repassa pro Mercado Pago via header X-meli-session-id
-    // na criação da preferência, o checkout hospedado deles pode travar o
-    // botão de pagar (visto em produção no Safari/iPhone).
-    const deviceId = (window as unknown as { MP_DEVICE_SESSION_ID?: string }).MP_DEVICE_SESSION_ID;
     signup.mutate({
       name,
       planKey: planKey as "essencial" | "profissional" | "premium",
       contactName,
       contactEmail,
       contactPhone,
-      returnOrigin: window.location.origin,
-      deviceId,
     });
   };
 
@@ -82,14 +66,6 @@ export default function Cadastro() {
             Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis — podendo ser
             antes. Só depois de tudo pronto é que seu teste grátis de 7 dias começa a valer.
           </p>
-
-          <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3 text-sm">
-            <p className="font-semibold text-ink">Taxa de implementação: {money(implementationFeeCents)}</p>
-            <p className="mt-1 text-ink-soft">
-              Cobre a configuração completa do seu sistema. Cobrada agora, ao confirmar o cadastro, via
-              Mercado Pago.
-            </p>
-          </div>
 
           <div className="mt-5 space-y-3">
             <div>
@@ -146,7 +122,7 @@ export default function Cadastro() {
             disabled={signup.isPending}
             className="mt-5 w-full !bg-gradient-to-r !from-[#008cfe] !to-[#6146fd] shadow-lg shadow-[#6146fd]/20 transition-all duration-200 hover:!brightness-110"
           >
-            {signup.isPending ? "Enviando..." : `Pagar ${money(implementationFeeCents)} e continuar`}
+            {signup.isPending ? "Enviando..." : "Enviar informações"}
           </Button>
         </form>
       </div>

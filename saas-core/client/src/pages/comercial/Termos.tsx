@@ -23,7 +23,7 @@ export default function Termos() {
           <div>
             <h2 className="font-semibold text-ink">Assinatura e cobrança</h2>
             <p className="mt-1">
-              A taxa de implementação é cobrada uma única vez, no cadastro. A mensalidade cobre o aluguel do
+              A mensalidade cobre o aluguel do
               sistema e a hospedagem, e só começa a valer 7 dias depois da entrega (configuração concluída) do
               seu restaurante. Você pode trocar de plano ou cancelar quando quiser, direto no seu painel.
             </p>

@@ -2,10 +2,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { planKeyValues } from "../../drizzle/schema";
 import { listPlansWithFeaturesAndLimits, listPlansWithFeaturesAndLimitsCached, listAllFeatures } from "../db/plans";
-import { attachMpPreference, createSignupPayment, getSignupPaymentById } from "../db/signupPayments";
+import { getSignupPaymentById } from "../db/signupPayments";
+import { createRestaurantFromPublicSignup } from "../db/publicSignup";
 import { getRestaurantById } from "../db/restaurants";
-import { createImplementationFeePreference } from "../_core/mercadoPagoCheckout";
-import { buildLeadMessage, buildMenuReferenceCaption, sendTelegramDocumentAsync, sendTelegramMessageAsync } from "../_core/telegramService";
+import { buildMenuReferenceCaption, sendTelegramDocumentAsync } from "../_core/telegramService";
 import { ENV } from "../_core/env";
 import { checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
@@ -24,11 +24,10 @@ const MAX_MENU_FILE_BYTES = 8 * 1024 * 1024; // 8MB — cabe folgado num cardáp
  * Único namespace acessível sem token de operador, API key de restaurante ou
  * sessão de admin — a porta de entrada do site comercial público.
  *
- * `signup` NÃO cria o restaurante direto — grava a intenção de cadastro
- * (`signup_payments`, status "pending") e devolve um checkout do Mercado
- * Pago pra taxa de implementação. O restaurante só nasce de verdade quando
- * o webhook (server/_core/mercadoPagoSignupWebhook.ts) confirma o
- * pagamento aprovado — nunca antes, nunca só pelo retorno da URL.
+ * `signup` cria o restaurante direto, SEM pagamento (a taxa de implementação
+ * saiu do fluxo em 2026-10-09) e avisa o dono no Telegram — ver
+ * server/db/publicSignup.ts. O webhook de taxa (mercadoPagoSignupWebhook.ts)
+ * continua só pra cadastros antigos que ficaram pendentes.
  */
 export const publicRouter = router({
   plans: publicProcedure.query(async () => {
@@ -41,7 +40,6 @@ export const publicRouter = router({
       // comercial usa isto pra montar a tabela comparativa completa
       // (✅/🔒 por recurso x plano), não só a lista do que cada plano tem.
       allFeatures: allFeatures.map(feature => ({ featureId: feature.featureId, name: feature.name })),
-      implementationFeeCents: ENV.implementationFeeCents,
     };
   }),
 
@@ -53,22 +51,13 @@ export const publicRouter = router({
         contactName: z.string().trim().max(160).optional(),
         contactEmail: z.string().trim().email(),
         contactPhone: z.string().trim().max(24).optional(),
-        // Origem do site (ex.: "https://mmsystemcreator.com") — usada só pra
-        // montar as URLs de volta do checkout. Nunca a URL inteira (evita
-        // open redirect: sempre concatenamos caminhos fixos aqui, nunca
-        // aceitamos um path vindo do cliente).
-        returnOrigin: z.string().url(),
-        // window.MP_DEVICE_SESSION_ID, setado pelo security.js do Mercado
-        // Pago (ver useMercadoPagoSecurity.ts) — opcional (script pode não
-        // ter carregado a tempo), mas sem ele o botão de pagar no checkout
-        // deles pode travar em alguns navegadores/dispositivos.
-        deviceId: z.string().trim().max(1000).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       // Mesma janela/limite do login do Painel Master (8 tentativas/10min) —
-      // essa mutation cria dado de verdade sem nenhum token, então precisa
-      // de proteção contra abuso.
+      // essa mutation cria dado de verdade sem nenhum token (e, sem a taxa de
+      // implementação, sem nenhuma barreira de pagamento), então precisa de
+      // proteção contra abuso.
       const rateLimitKey = `public-signup:${ctx.req.ip}`;
       const limit = checkRateLimit(rateLimitKey);
       if (!limit.allowed) {
@@ -86,50 +75,15 @@ export const publicRouter = router({
       if (!plan) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Plano indisponível no momento." });
       }
-      if (!ENV.mercadoPagoAccessToken) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Cobrança automática não está configurada no momento. Tente novamente mais tarde." });
-      }
 
-      const { id: signupPaymentId } = await createSignupPayment({
-        payload: {
-          name: input.name,
-          planKey: input.planKey,
-          contactName: input.contactName,
-          contactEmail: input.contactEmail,
-          contactPhone: input.contactPhone,
-        },
-        amountCents: ENV.implementationFeeCents,
+      const { restaurantId } = await createRestaurantFromPublicSignup({
+        name: input.name,
+        planKey: input.planKey,
+        contactName: input.contactName,
+        contactEmail: input.contactEmail,
+        contactPhone: input.contactPhone,
       });
-
-      const origin = input.returnOrigin.replace(/\/$/, "");
-      const preference = await createImplementationFeePreference({
-        accessToken: ENV.mercadoPagoAccessToken,
-        title: "Taxa de implementação — Comandiva",
-        externalReference: String(signupPaymentId),
-        amountCents: ENV.implementationFeeCents,
-        payerEmail: input.contactEmail,
-        successUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
-        pendingUrl: `${origin}/comercial/cadastro/confirmando?ref=${signupPaymentId}`,
-        failureUrl: `${origin}/comercial/cadastro/${input.planKey}?pagamento=falhou`,
-        notificationUrl: `${origin}/api/webhooks/mercadopago`,
-        deviceId: input.deviceId,
-      });
-      await attachMpPreference(signupPaymentId, preference.id);
-
-      // Possível cliente: já preencheu tudo e está indo pagar. Fire-and-forget
-      // (nunca segura nem derruba o checkout) e só depois de o checkout existir.
-      sendTelegramMessageAsync(
-        buildLeadMessage({
-          name: input.name,
-          planName: plan.name,
-          contactName: input.contactName,
-          contactEmail: input.contactEmail,
-          contactPhone: input.contactPhone,
-          amountCents: ENV.implementationFeeCents,
-        }),
-      );
-
-      return { checkoutUrl: preference.initPoint, signupPaymentId };
+      return { restaurantId };
     }),
 
   signupStatus: publicProcedure.input(z.object({ signupPaymentId: z.number().int().positive() })).query(async ({ input }) => {

@@ -33,10 +33,6 @@ const FAQ = [
     question: "Como funciona o pagamento?",
     answer: "Pix e cartão, processados com segurança pelo Mercado Pago. Nunca pedimos dados de cartão diretamente.",
   },
-  {
-    question: "O que é a taxa de implementação?",
-    answer: "Cobre a configuração completa: subir seus produtos no sistema, testar tudo até funcionar 100% e entregar pronto pra vender. Cobrada uma única vez, no cadastro.",
-  },
 ];
 
 // Organization + FAQPage junto com o SoftwareApplication existente, num

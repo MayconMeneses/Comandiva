@@ -109,25 +109,35 @@ export function buildMenuReferenceCaption(params: { restaurantId: number; restau
 }
 
 /**
- * Possível cliente: quem preencheu o cadastro e foi levado ao checkout da taxa
- * de implementação, mas ainda NÃO pagou. Traz tudo que ele digitou pro dono
- * poder chamar a pessoa (inclusive um link direto de WhatsApp) sem esperar o
- * pagamento. Os campos vêm de um formulário público — sempre escapados.
+ * Novo cadastro vindo do site comercial (sem pagamento — a taxa de
+ * implementação saiu do fluxo). Traz tudo que a pessoa preencheu e um link
+ * direto de WhatsApp pro dono chamar. Os campos vêm de um formulário público
+ * — sempre escapados.
  */
-export function buildLeadMessage(params: { name: string; planName: string; contactName?: string; contactEmail: string; contactPhone?: string; amountCents: number }): string {
-  const amount = (params.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+export function buildNewSignupMessage(params: {
+  restaurantId: number;
+  restaurantName: string;
+  planName: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  apiKey: string;
+  // true = este e-mail/telefone já teve restaurante antes — o teste grátis NÃO foi concedido.
+  repeatContact?: boolean;
+}): string {
   const digits = params.contactPhone?.replace(/\D/g, "") ?? "";
   // Número brasileiro sem DDI (10–11 dígitos) ganha o 55; já com DDI fica como está.
   const waNumber = digits.length >= 10 && digits.length <= 11 ? `55${digits}` : digits;
   const lines = [
-    "🔥 <b>Possível cliente — foi para o pagamento</b>",
-    `Restaurante: <b>${escapeHtml(params.name)}</b>`,
-    `Plano: <b>${escapeHtml(params.planName)}</b> · taxa ${amount}`,
+    "📩 <b>Novo cadastro no site</b>",
+    `Restaurante: <b>${escapeHtml(params.restaurantName)}</b> (#${params.restaurantId})`,
+    `Plano: <b>${escapeHtml(params.planName)}</b>`,
     params.contactName?.trim() ? `Contato: ${escapeHtml(params.contactName.trim())}` : null,
-    `E-mail: ${escapeHtml(params.contactEmail)}`,
+    params.contactEmail ? `E-mail: ${escapeHtml(params.contactEmail)}` : null,
     params.contactPhone?.trim() ? `Telefone: ${escapeHtml(params.contactPhone.trim())}` : null,
     waNumber.length >= 10 ? `WhatsApp: https://wa.me/${waNumber}` : null,
-    "⏳ Ainda não pagou. Se virar pagamento aprovado, você recebe outro aviso.",
+    `API key: <code>${escapeHtml(params.apiKey)}</code>`,
+    params.repeatContact ? "⚠️ <b>Contato repetido</b> — já teve restaurante antes, teste grátis de 7 dias NÃO foi concedido desta vez." : null,
   ];
   return lines.filter((line): line is string => line !== null).join("\n");
 }
