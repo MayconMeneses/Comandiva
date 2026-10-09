@@ -54,7 +54,7 @@ function TableLanding({ token, onOrder }: { token: string; onOrder: () => void }
   const billRequested = session.status === "AWAITING_PAYMENT";
 
   return <div className="grid min-h-screen place-items-center bg-background p-6" style={marca ? { background: MARCA_GRADIENT } : undefined}><div className="w-full max-w-sm text-center">
-    <img src={settings.data?.logoUrl || "/mm-logo-icon.png"} alt="Logotipo do restaurante" className="mx-auto h-16 w-16 object-contain" />
+    <img src={settings.data?.logoUrl || "/comandiva-icon.png"} alt="Logotipo do restaurante" className="mx-auto h-16 w-16 object-contain" />
     <p className="mt-4 text-xs font-bold uppercase tracking-[.18em] text-primary">{table.sector || "Salão"}</p>
     <h1 className="mt-1 font-display text-3xl font-bold">{table.label}</h1>
     <p className="mt-2 text-sm text-muted-foreground">O que você quer fazer?</p>

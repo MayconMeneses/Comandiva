@@ -20,7 +20,7 @@ describe("cartões públicos do cardápio", () => {
   });
 
   it("usa o logotipo enviado no cabeçalho público", () => {
-    expect(homeSource).toContain("/mm-logo-icon.png");
+    expect(homeSource).toContain("/comandiva-icon.png");
     expect(homeSource).toContain('alt="Logotipo Comandiva"');
   });
 

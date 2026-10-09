@@ -13,7 +13,7 @@ describe("mídia de produtos e navegação administrativa", () => {
   });
 
   it("usa o logotipo enviado no cabeçalho administrativo", () => {
-    expect(sidebarSource).toContain("/mm-logo-icon.png");
+    expect(sidebarSource).toContain("/comandiva-icon.png");
     expect(sidebarSource).toContain('alt="Logotipo Comandiva"');
   });
 

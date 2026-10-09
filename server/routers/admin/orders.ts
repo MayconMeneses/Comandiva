@@ -187,7 +187,7 @@ export const adminOrdersRouter = router({
     // ainda desatualizada mostrando PENDING, manda CANCELLED — como CANCELLED
     // é alcançável de PENDING/ACCEPTED/PREPARING, o cancelamento passava e
     // cancelava silenciosamente um pedido que já estava em preparo.
-    const current = await db.transaction(async tx => {
+    await db.transaction(async tx => {
       const [row] = await tx.select().from(orders).where(eq(orders.id, input.orderId)).limit(1).for("update");
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
       // expectedStatus é o status que a TELA do dispositivo achava que o

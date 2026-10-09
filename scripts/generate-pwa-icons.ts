@@ -1,6 +1,8 @@
 // Gera os ícones do PWA + favicon a partir da logo oficial em
-// client/public/mm-logo-icon.png (marca "Comandiva", já um PNG
-// quadrado com fundo próprio — nenhuma forma é desenhada aqui).
+// client/public/comandiva-icon.png (marca "Comandiva", PNG quadrado com
+// fundo TRANSPARENTE). ATENÇÃO: os ícones atuais em client/public/icons têm
+// fundo azul-marinho (#0f172a) aplicado à parte; rodar este script sem ajustar
+// o fundo geraria ícones transparentes.
 //
 // Rodar de novo sempre que a logo mudar (troca de marca/cliente):
 //   npx tsx scripts/generate-pwa-icons.ts
@@ -13,7 +15,7 @@ import path from "node:path";
 import sharp from "sharp";
 
 const PUBLIC_DIR = path.resolve(import.meta.dirname, "../client/public");
-const SOURCE = path.join(PUBLIC_DIR, "mm-logo-icon.png");
+const SOURCE = path.join(PUBLIC_DIR, "comandiva-icon.png");
 const ICONS_DIR = path.join(PUBLIC_DIR, "icons");
 
 async function main() {

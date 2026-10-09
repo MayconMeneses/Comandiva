@@ -1,10 +1,10 @@
 // Branding do PWA (Progressive Web App) — usado por `vite.config.ts` (injeta o
 // manifest.webmanifest e as meta tags de tema) e por `scripts/generate-pwa-icons.mjs`
-// (gera os ícones a partir do logo em client/public/mm-logo-icon.png).
+// (gera os ícones a partir do logo em client/public/comandiva-icon.png).
 //
 // Este é o ÚNICO lugar que deve mudar ao adaptar este mesmo código para um
 // cliente-restaurante diferente: troque os valores abaixo, troque
-// `client/public/mm-logo-icon.png` pelo logo do
+// `client/public/comandiva-icon.png` pelo logo do
 // cliente e rode `node scripts/generate-pwa-icons.mjs` de novo. Não é preciso
 // mexer em nenhum outro arquivo para isso.
 //

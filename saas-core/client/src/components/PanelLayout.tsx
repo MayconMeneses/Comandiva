@@ -61,7 +61,7 @@ export function PanelLayout({ children }: { children: React.ReactNode }) {
       </aside>
       <main className="relative flex-1 overflow-hidden p-6">
         {/* Marca d'água — puramente decorativa, atrás do conteúdo real (z-0 vs z-10), sem interceptar clique. Centralizada de verdade (top/left 50% + translate -50%), não ancorada num canto — evita cortar a imagem contra o overflow-hidden do <main>. */}
-        <img src="/mm-logo-full.png" alt="" aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-0 w-[32rem] max-w-[70vw] -translate-x-1/2 -translate-y-1/2 opacity-[0.04] select-none" />
+        <img src="/comandiva-logo-horizontal-dark.png" alt="" aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-0 w-[32rem] max-w-[70vw] -translate-x-1/2 -translate-y-1/2 opacity-[0.04] select-none" />
         <div className="relative z-10">{children}</div>
       </main>
     </div>

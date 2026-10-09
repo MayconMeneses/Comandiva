@@ -245,7 +245,7 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <img src={settings.data?.logoUrl || "/mm-logo-icon.png"} alt="Logotipo Comandiva" className="h-10 w-10 shrink-0 object-contain" />
+                    <img src={settings.data?.logoUrl || "/comandiva-icon.png"} alt="Logotipo Comandiva" className="h-10 w-10 shrink-0 object-contain" />
                     <span className="font-display font-semibold tracking-tight truncate">Comandiva</span>
                     <a href="/" target="_blank" rel="noopener noreferrer" className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-[#e1d0bb] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#613b2a] shadow-sm transition-colors hover:bg-[#f2e3d4]" title="Abrir o site de pedidos">
                       <ExternalLink className="h-3.5 w-3.5" />Ver site

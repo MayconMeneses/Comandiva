@@ -46,7 +46,7 @@ export type BackgroundPreset = { key: string; label: string; hex: string };
  * disponível, isso só poupa quem quer uma cor já testada. "marca" e
  * "comercial" reproduzem a identidade visual real do Comandiva:
  * "marca" é o ponto médio entre os dois tons do gradiente da logo (azul
- * #008cfe → roxo #6146fd, ver client/public/mm-logo-icon.png do saas-core) —
+ * #008cfe → roxo #6146fd, ver client/public/comandiva-icon.png do saas-core) —
  * o fundo aceita só uma cor sólida, não um gradiente, porque o contraste do
  * texto é calculado a partir de UMA luminância; "comercial" é a cor de
  * destaque usada em todo o site comercial (hero, botões, selos de plano —
