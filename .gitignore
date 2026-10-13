@@ -1,0 +1,9 @@
+# Pastas pesadas/locais: ficam só no computador
+Backups/
+Midia/
+*.bundle
+*.mp4
+node_modules/
+.env
+.env.*
+!.env.example
