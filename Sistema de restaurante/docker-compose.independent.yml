@@ -1,3 +1,8 @@
+# Nome fixo do projeto Docker: os volumes de dados (banco, fotos, backups) levam
+# esse prefixo. Sem isso o Docker usa o nome da PASTA, e mudar a pasta de lugar
+# criaria volumes novos e vazios (cardápio e fotos pareceriam sumir).
+name: pubx
+
 services:
   db:
     image: mysql:8.4
