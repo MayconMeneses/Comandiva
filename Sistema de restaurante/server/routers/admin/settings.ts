@@ -1,0 +1,95 @@
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { restaurantSettings } from "../../../drizzle/schema";
+import { COLOR_THEME_KEYS } from "../../../shared/colorThemes";
+import { sendOwnerAlert } from "../../_core/alerts";
+import { getDb, getStoreSettings, recordAccountAudit } from "../../db";
+import { adminOnlyProcedure, adminProcedure, assertFeatureAvailable, router } from "../../_core/trpc";
+import { assertRealImageMatchesDeclaredType, storagePut } from "../../storage";
+
+export const adminSettingsRouter = router({
+  // Só o essencial pra tela de Conta (Pix) — admin.dashboard (reports, e
+  // acessível em Modo Suporte) NÃO pode incluir pixKey/pixQrCodeUrl, mesmo
+  // raciocínio de credencial sensível já aplicado a paymentGateways.ts/team.ts.
+  getAccountSettings: adminOnlyProcedure.query(async () => {
+    const settings = await getStoreSettings();
+    if (!settings) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Configurações indisponíveis" });
+    return settings;
+  }),
+  sendTestAlert: adminProcedure.mutation(async () => {
+    await sendOwnerAlert("Teste de notificação", "Se você recebeu esta mensagem, os alertas do Comandiva estão funcionando corretamente.", "test");
+    return { success: true };
+  }),
+  updateSettings: adminProcedure.input(z.object({ isAcceptingOrders: z.boolean(), deliveryFeeCents: z.number().int().min(0).max(999999), minimumOrderCents: z.number().int().min(0).max(9999999), estimatedDeliveryMin: z.number().int().min(1).max(240), estimatedDeliveryMax: z.number().int().min(1).max(360), openingHours: z.string().min(2).max(255), logoUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), pixKey: z.string().max(255).optional(), pixQrCodeUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), lunchStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), lunchEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerStartTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), dinnerEndTime: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")).optional(), promotionCategoryImageUrl: z.string().url().or(z.string().startsWith("/")).or(z.literal("")).optional(), address: z.string().max(2000).optional(), phone: z.string().max(24).optional(), aboutText: z.string().max(5000).optional(), colorTheme: z.enum(COLOR_THEME_KEYS).optional(), customBackgroundColor: z.string().regex(/^#[0-9a-f]{6}$/i).nullable().optional() }).superRefine((value, context) => {
+    if (value.estimatedDeliveryMin > value.estimatedDeliveryMax) context.addIssue({ code: "custom", path: ["estimatedDeliveryMin"], message: "O tempo mínimo deve ser menor ou igual ao máximo." });
+  })).mutation(async ({ input, ctx }) => {
+    // Chave Pix fica de fora do Modo Suporte mesmo com escrita liberada no
+    // resto (mesma categoria de credenciais de pagamento em paymentGateways.ts)
+    // — updateSettings mistura campos sensíveis e não-sensíveis num único
+    // endpoint, então a guarda é por campo, não pelo procedure inteiro.
+    if (!ctx.user && (input.pixKey !== undefined || input.pixQrCodeUrl !== undefined)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "A chave Pix não pode ser alterada em Modo Suporte." });
+    }
+    const db = await getDb();
+    const settings = await getStoreSettings();
+    if (!db || !settings) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Configurações indisponíveis" });
+    // Gate só na TROCA pra um tema pago novo — nunca no reenvio do valor já
+    // salvo (o formulário manda o objeto inteiro a cada save) nem ao voltar
+    // pro "classico", pra não quebrar um restaurante que já tinha um tema
+    // pago configurado antes de um downgrade de plano (mesmo raciocínio de
+    // catalog.ts::saveProduct/promotions).
+    if (input.colorTheme !== undefined && input.colorTheme !== settings.colorTheme && input.colorTheme !== "classico") {
+      await assertFeatureAvailable("custom_theme");
+    }
+    // Mesma regra de trava do colorTheme acima: só na troca pra um valor novo
+    // não-nulo, nunca ao reenviar o valor já salvo nem ao voltar pro padrão
+    // (customBackgroundColor: null) — não pode travar quem já tinha configurado
+    // antes de um downgrade de plano.
+    if (input.customBackgroundColor !== undefined && input.customBackgroundColor !== settings.customBackgroundColor && input.customBackgroundColor !== null) {
+      await assertFeatureAvailable("custom_theme");
+    }
+    const { logoUrl, pixKey, pixQrCodeUrl, lunchStartTime, lunchEndTime, dinnerStartTime, dinnerEndTime, promotionCategoryImageUrl, address, phone, aboutText, customBackgroundColor, ...rest } = input;
+    const pixUpdates: Record<string, unknown> = {};
+    if (customBackgroundColor !== undefined) pixUpdates.customBackgroundColor = customBackgroundColor ? customBackgroundColor.toLowerCase() : null;
+    if (pixKey !== undefined) pixUpdates.pixKey = pixKey ? pixKey : null;
+    if (pixQrCodeUrl !== undefined) pixUpdates.pixQrCodeUrl = pixQrCodeUrl ? pixQrCodeUrl : null;
+    if (lunchStartTime !== undefined) pixUpdates.lunchStartTime = lunchStartTime ? lunchStartTime : null;
+    if (lunchEndTime !== undefined) pixUpdates.lunchEndTime = lunchEndTime ? lunchEndTime : null;
+    if (dinnerStartTime !== undefined) pixUpdates.dinnerStartTime = dinnerStartTime ? dinnerStartTime : null;
+    if (dinnerEndTime !== undefined) pixUpdates.dinnerEndTime = dinnerEndTime ? dinnerEndTime : null;
+    if (promotionCategoryImageUrl !== undefined) pixUpdates.promotionCategoryImageUrl = promotionCategoryImageUrl ? promotionCategoryImageUrl : null;
+    if (address !== undefined) pixUpdates.address = address ? address : null;
+    if (phone !== undefined) pixUpdates.phone = phone ? phone : null;
+    if (aboutText !== undefined) pixUpdates.aboutText = aboutText ? aboutText : null;
+    await db.update(restaurantSettings).set({ ...rest, logoUrl: logoUrl ? logoUrl : null, ...pixUpdates, updatedAt: Date.now() }).where(eq(restaurantSettings.id, settings.id));
+    // Só audita a troca da chave Pix em si — nunca o valor dela (mesmo
+    // raciocínio de paymentGateways.ts) e nunca os outros ~15 campos não
+    // sensíveis deste endpoint (horário, taxa de entrega etc.), pra não virar
+    // ruído no log (achado M1 da auditoria).
+    if (ctx.user && (pixKey !== undefined || pixQrCodeUrl !== undefined)) {
+      await recordAccountAudit({ actorUserId: ctx.user.id, actorName: ctx.user.name ?? ctx.user.openId, action: "settings.pixChanged", entityType: "restaurantSettings", entityId: settings.id, after: { pixKeyChanged: pixKey !== undefined, pixQrCodeChanged: pixQrCodeUrl !== undefined }, ip: ctx.req.ip });
+    }
+    return { success: true };
+  }),
+  // Sem "image/svg+xml" — mesmo raciocínio de uploadCategoryImage
+  // (server/routers/admin/catalog.ts): SVG servido pelo bucket público sem
+  // Content-Disposition executa <script>/onload embutido se a URL for
+  // aberta direto. Ver auditoria de segurança.
+  uploadLogo: adminProcedure.input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 45_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 45 MB." });
+    await assertRealImageMatchesDeclaredType(bytes, input.contentType);
+    const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
+    const stored = await storagePut(`branding/logo/${Date.now()}-${safeFilename}`, bytes, input.contentType);
+    return { url: stored.url };
+  }),
+  uploadPixQr: adminOnlyProcedure.input(z.object({ filename: z.string().min(1).max(160), contentType: z.enum(["image/jpeg", "image/png", "image/webp"]), dataBase64: z.string().min(8).max(70_000_000) })).mutation(async ({ input }) => {
+    const bytes = Buffer.from(input.dataBase64, "base64");
+    if (!bytes.length || bytes.length > 45_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem de até 45 MB." });
+    await assertRealImageMatchesDeclaredType(bytes, input.contentType);
+    const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
+    const stored = await storagePut(`branding/pix/${Date.now()}-${safeFilename}`, bytes, input.contentType);
+    return { url: stored.url };
+  }),
+});

@@ -1,0 +1,77 @@
+name: CI Master
+
+# Painel Master. O site comercial é a pasta irmã "Site comercial" deste mesmo
+# repositório e é copiado pra dentro do Master antes de compilar
+# (scripts/sync-site-comercial.mjs).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Master/**"
+      - "Site comercial/**"
+      - ".github/workflows/master.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Master/**"
+      - "Site comercial/**"
+      - ".github/workflows/master.yml"
+  workflow_dispatch:
+
+jobs:
+  master:
+    name: Master (billing / Painel Master / site comercial)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Master
+    # Mesma lógica do job acima: banco real só pra testar a migration deste
+    # serviço (schema/tabelas próprias do saas-core, nunca dado de restaurante).
+    services:
+      db:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ci_saas_core
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      # Versão fixa (11.24.0), igual ao "packageManager" do package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Master/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # Auditoria de vulnerabilidades — zero críticas desde a rodada de
+      # atualização de 2026-09 (vitest/vite/drizzle-kit/tailwind bumpados;
+      # 7→1 vulnerabilidade). A que sobrou é o mesmo caso do app principal
+      # (esbuild via drizzle-kit>@esbuild-kit, upstream, sem correção ainda).
+      # Agora que não há crítica pendente, o passo passa a bloquear de
+      # verdade (sem continue-on-error) — reavaliar se uma crítica nova
+      # aparecer aqui.
+      - name: Auditoria de vulnerabilidades (bloqueia em CRITICAL)
+        run: pnpm audit --audit-level=critical
+      - name: Lint
+        run: pnpm run lint
+      - run: pnpm run check
+      # Aplica as migrations reais do saas-core contra o MySQL do serviço
+      # acima (mesmo comando usado no deploy real deste serviço).
+      - name: Migration contra banco real (drizzle-kit migrate)
+        run: pnpm run db:migrate
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/ci_saas_core
+      - run: pnpm run build
+      # Builda a imagem Docker real do Master. Só valida o build, não publica.
+      - name: Build imagem Docker (Master)
+        run: docker build -f infra/Dockerfile .
+      - run: pnpm test

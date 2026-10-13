@@ -1,0 +1,48 @@
+packages:
+  - "."
+
+patchedDependencies:
+  wouter@3.7.1: patches/wouter@3.7.1.patch
+
+overrides:
+  tailwindcss>nanoid: "3.3.7"
+  # CVEs conhecidos nas versões antigas puxadas por dependências transitivas
+  # (AWS SDK e Express) — presos na mesma linha maior pra não quebrar nada.
+  # Espelhado também em package.json > pnpm.overrides por precaução, mas o
+  # pnpm (10.4.1+) agora ignora esse campo e só lê daqui — confirmado pelo
+  # próprio aviso do CLI ("pnpm field ... no longer read"), exatamente a
+  # migração que o comentário anterior já previa.
+  fast-xml-parser: "5.11.1"
+  body-parser: "1.20.8"
+  express>path-to-regexp: "0.1.13"
+  # 6.14.0 (fixado aqui até 2026-09-24) ainda era vulnerável a 3 CVEs
+  # moderados/baixos do qs (DoS via array-limit bypass e via isBuffer
+  # controlado pelo atacante — ver `pnpm audit`), só corrigidos a partir de
+  # 6.16.0. O mesmo CVE já tinha sido corrigido no saas-core (commit
+  # 5a69153) — aquele commit já registrava que o app principal ficava de
+  # fora porque usa um express mais antigo; fechando isso agora.
+  qs: "6.16.0"
+  # esbuild <=0.24.2 vulnerável (CORS do dev server) puxado pela cadeia
+  # depreciada drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils
+  # (drizzle-kit já usa esbuild ^0.25.4 direto — isso converge tudo pra
+  # essa versão segura). Sob pnpm 10.34.5 esse override nunca pegava
+  # especificamente pra essa ocorrência (bare, path de 1 nível, com/sem
+  # versão do pai, packageExtensions, `pnpm patch` direto no pacote — nada
+  # funcionava, mesmo com lockfile+store zerados — bug real do pnpm nessa
+  # versão: https://github.com/pnpm/pnpm/issues/8467). Resolvido de vez
+  # subindo o `packageManager` pra pnpm@11.24.0 (mesma major que o
+  # saas-core já usa) — ver commit que trocou a versão do pnpm.
+  esbuild: "^0.25.4"
+  # picomatch <4.0.4 vulnerável (ReDoS + method injection) puxado pela
+  # cadeia vite-plugin-pwa>tinyglobby@0.2.15. tinyglobby@0.2.17 (atual)
+  # já declara picomatch ^4.0.4 como dependência própria — sobrescrever o
+  # tinyglobby (não o picomatch direto, que já foi tentado e não pegou por
+  # causa de como o fdir resolve o peer dependency) resolve de verdade.
+  vite-plugin-pwa>tinyglobby: "^0.2.17"
+
+  # source-map-js <1.2.2: DoS de event-loop (GHSA-68fv-2mgg-jv7q, severidade alta), puxado por
+  # vite/postcss/tailwind — só toolchain de build, mas fecha o aviso do pnpm audit (2026-10-10).
+  source-map-js: ">=1.2.2"
+
+allowBuilds:
+  esbuild: true

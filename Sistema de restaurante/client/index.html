@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!-- Cor deve bater com PWA_BRANDING.themeColor em pwa.config.ts (HTML puro
+         não é templável pelo Vite sem build extra — atualize os dois juntos). -->
+    <meta name="theme-color" content="#15120f" />
+    <title>Comandiva — Peça online</title>
+    <meta name="description" content="Peça online no Comandiva: hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada em Croatá/CE, com acompanhamento do pedido em tempo real." />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Comandiva" />
+    <meta property="og:title" content="Comandiva — Peça online" />
+    <meta property="og:description" content="Hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada em Croatá/CE." />
+    <meta property="og:image" content="/assets/pubx/hero-brand-burger-v2.jpg" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Comandiva — Peça online" />
+    <meta name="twitter:description" content="Hambúrgueres artesanais, pizzas, porções e bebidas. Delivery ou retirada em Croatá/CE." />
+    <meta name="twitter:image" content="/assets/pubx/hero-brand-burger-v2.jpg" />
+
+    <!-- Ícones gerados por scripts/generate-pwa-icons.ts a partir da logo
+         oficial (mesmo símbolo do manifest.webmanifest, ver pwa.config.ts). -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=comandiva" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=comandiva" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=comandiva" />
+    <!-- manifest.webmanifest é gerado e injetado automaticamente pelo
+         vite-plugin-pwa (ver vite.config.ts) a partir de pwa.config.ts —
+         não precisa de <link rel="manifest"> manual aqui. -->
+
+    <!-- Imagem principal da vitrine: a Home só a descobre depois que o React
+         renderiza e as consultas respondem — preload aqui coloca o download
+         em paralelo com o JS/API (maior ganho de LCP). WebP de ~70 KB. -->
+    <link rel="preload" as="image" href="/assets/pubx/hero-brand-burger-v2.webp" type="image/webp" fetchpriority="high" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:opsz,wght@5..1200,600;5..1200,700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+  </body>
+</html>

@@ -1,0 +1,51 @@
+import { COMMERCIAL_PAGE_META } from "@shared/commercialPageMeta";
+import { usePageMeta } from "@/lib/usePageMeta";
+import { ComercialHeader } from "./ComercialHeader";
+import { ComercialFooter } from "./ComercialFooter";
+import { Reveal } from "./Reveal";
+
+export default function Termos() {
+  usePageMeta({ ...COMMERCIAL_PAGE_META["/comercial/termos"], path: "/comercial/termos" });
+  return (
+    <div className="comercial-dark min-h-screen bg-paper text-ink">
+      <ComercialHeader showNav={false} />
+      <main id="main-content" tabIndex={-1}>
+      <Reveal className="mx-auto max-w-2xl px-6 py-16">
+        <h1 className="text-2xl font-bold text-ink">Termos de uso</h1>
+        <p className="mt-1 text-sm text-ink-soft">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
+
+        <div className="mt-8 space-y-6 text-sm leading-relaxed text-ink-soft">
+          <p>
+            O <strong className="text-ink">Comandiva</strong> é um sistema próprio, criado do zero por{" "}
+            <strong className="text-ink">Maycon Meneses</strong>, oferecido como assinatura mensal pra restaurantes
+            que querem cardápio digital, pedidos online e gestão de entregas com a marca do próprio negócio.
+          </p>
+          <div>
+            <h2 className="font-semibold text-ink">Assinatura e cobrança</h2>
+            <p className="mt-1">
+              A mensalidade cobre o aluguel do
+              sistema e a hospedagem, e só começa a valer 7 dias depois da entrega (configuração concluída) do
+              seu restaurante. Você pode trocar de plano ou cancelar quando quiser, direto no seu painel.
+            </p>
+          </div>
+          <div>
+            <h2 className="font-semibold text-ink">Seus dados</h2>
+            <p className="mt-1">
+              Os dados do seu restaurante (cardápio, pedidos, clientes) ficam no deployment isolado do seu
+              próprio restaurante — nunca compartilhados com outros clientes da plataforma.
+            </p>
+          </div>
+          <div>
+            <h2 className="font-semibold text-ink">Propriedade e direitos</h2>
+            <p className="mt-1">
+              O sistema, o código, a marca e o conteúdo deste site são de propriedade de Maycon Meneses. Todos
+              os direitos reservados.
+            </p>
+          </div>
+        </div>
+      </Reveal>
+      </main>
+      <ComercialFooter />
+    </div>
+  );
+}

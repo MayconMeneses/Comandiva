@@ -1,0 +1,1 @@
+ALTER TABLE `subscriptions` ADD `pastDueSince` bigint unsigned;

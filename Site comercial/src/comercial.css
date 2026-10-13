@@ -1,0 +1,24 @@
+/* Identidade visual do site comercial público (/comercial/*) — dark navy +
+   azul + roxo, deliberadamente diferente da paleta clara do Painel Master
+   acima. Escopado nessa classe (aplicada só nas páginas de /comercial) pra
+   nunca vazar pro resto do app: os componentes compartilhados (Button,
+   Input, etc.) já usam esses mesmos tokens, então herdam o tema escuro
+   automaticamente sem precisar duplicar nada.  */
+.comercial-dark {
+  color-scheme: dark;
+  --ink: #f8fafc;
+  --ink-soft: #94a3b8;
+  --paper: #080b16;
+  --paper-raised: #10172a;
+  --border: #1e293b;
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
+  /* --accent como TEXTO nesse fundo quase preto só bate 2.8-3.1:1 de
+     contraste — falha WCAG AA (precisa 4.5:1), mesmo pra texto pequeno/
+     negrito (que já teria o limiar mais baixo de 3:1, ainda insuficiente).
+     Tom mais claro da mesma família (indigo-400), só pra texto — os usos
+     de --accent como fundo/borda de botão (com texto branco em cima,
+     6.3:1, ok) continuam usando a variável original. */
+  --accent-text: #818cf8;
+}
+

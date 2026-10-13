@@ -1,0 +1,18 @@
+# Força final de linha LF em todo arquivo de texto, independente do
+# core.autocrlf de cada máquina — sem isso, `git archive` (usado no deploy
+# pro VPS) pode exportar scripts shell com CRLF numa máquina Windows com
+# autocrlf=true, quebrando o shebang (`#!/bin/sh` vira `#!/bin/sh\r`, que o
+# Linux não reconhece como interpretador válido: "no such file or directory").
+* text=auto eol=lf
+
+# Nunca normalizar binários (git já detecta a maioria sozinho, isto é só
+# reforço explícito pros tipos mais comuns deste projeto).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

@@ -1,0 +1,1 @@
+ALTER TABLE `orders` MODIFY COLUMN `paymentMethod` enum('PIX','CASH','CARD_ON_DELIVERY','CARD_ONLINE');

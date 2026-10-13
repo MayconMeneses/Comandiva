@@ -1,0 +1,1 @@
+ALTER TABLE `restaurant_settings` ADD `colorTheme` varchar(20) DEFAULT 'classico' NOT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE `restaurant_staff_credentials` ADD `sessionsValidAfter` bigint unsigned;

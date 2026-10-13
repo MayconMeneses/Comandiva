@@ -1,0 +1,1 @@
+ALTER TABLE `restaurant_settings` ADD `customBackgroundColor` varchar(7);

@@ -1,0 +1,111 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    # log-bin-trust-function-creators: sem isso, o MySQL recusa criar trigger
+    # (ER_BINLOG_CREATE_ROUTINE_NEED_SUPER) vindo do usuário de aplicação
+    # (`pubx`, sem privilégio SUPER de propósito) — necessário pros triggers
+    # append-only de order_change_logs/order_status_history (ver drizzle/0030_*).
+    command: --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pubx}
+      MYSQL_USER: ${MYSQL_USER:-pubx}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Defina MYSQL_PASSWORD no .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - pubx_mysql_data:/var/lib/mysql
+    # Sem limite, um restaurante provisionado automaticamente (ver
+    # saas-core/server/_core/systemProvisioning.ts) pode consumir toda a
+    # memória/CPU da máquina e derrubar os outros restaurantes hospedados
+    # junto (achado M3 da auditoria) — valores conservadores, ajustáveis por
+    # env var conforme o tamanho real da VPS.
+    mem_limit: ${DB_MEM_LIMIT:-1g}
+    cpus: ${DB_CPU_LIMIT:-1.0}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  storage:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:?Defina S3_ACCESS_KEY_ID no .env}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:?Defina S3_SECRET_ACCESS_KEY no .env}
+    ports:
+      - "127.0.0.1:${S3_PORT:-9000}:9000"
+      - "127.0.0.1:${S3_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - pubx_minio_data:/data
+    mem_limit: ${STORAGE_MEM_LIMIT:-512m}
+    cpus: ${STORAGE_CPU_LIMIT:-0.5}
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  app:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: mysql://${MYSQL_USER:-pubx}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-pubx}
+      S3_ENDPOINT: http://storage:9000
+    ports:
+      # Só 127.0.0.1: quem fala com o app é o Caddy (mesma máquina). Porta aberta
+      # pra internet deixava qualquer um mandar X-Forwarded-For falso e zerar o
+      # limite de tentativas de login (auditoria de segurança 2026-10-10).
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    volumes:
+      # Sem isso, todo backup local (scripts/backup-db.mjs) some no próximo
+      # rebuild/recreate do container — a cópia externa (BACKUP_OFFSITE_S3_*)
+      # continua sendo a proteção real contra perda da VPS inteira, mas o
+      # arquivo local precisa sobreviver a um deploy normal pra retenção
+      # (find -mtime +N) fazer sentido.
+      - pubx_backups:/app/backups
+    mem_limit: ${APP_MEM_LIMIT:-768m}
+    cpus: ${APP_CPU_LIMIT:-1.0}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  pubx_mysql_data:
+  pubx_minio_data:
+  pubx_backups:

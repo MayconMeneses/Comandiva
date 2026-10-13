@@ -1,0 +1,2 @@
+ALTER TABLE `table_reservations` ADD `clientOperationId` varchar(64);--> statement-breakpoint
+ALTER TABLE `table_reservations` ADD CONSTRAINT `table_reservations_client_operation_id_unique` UNIQUE(`clientOperationId`);

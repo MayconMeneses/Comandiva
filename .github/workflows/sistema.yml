@@ -1,0 +1,93 @@
+name: CI Sistema de restaurante
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Sistema de restaurante/**"
+      - ".github/workflows/sistema.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Sistema de restaurante/**"
+      - ".github/workflows/sistema.yml"
+  workflow_dispatch:
+
+jobs:
+  app-principal:
+    name: App principal (Comandiva)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Sistema de restaurante
+    # Banco real só pra este job testar a migration de verdade (drizzle-kit
+    # migrate) contra um MySQL de fato, não contra mock. Sobe junto do job
+    # inteiro (não é escopado a um step só) e fica acessível em 127.0.0.1
+    # porque o job roda direto na máquina do runner, não em container.
+    services:
+      db:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ci_app_principal
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      # Versão fixa (10.34.5), igual ao "packageManager" do package.json da
+      # raiz. Bumpada
+      # de 10.4.1 em 2026-09 junto da correção do CVE alto do próprio pnpm
+      # (ver step de auditoria abaixo) — se o "packageManager" mudar nesse
+      # package.json de novo, atualizar aqui junto, senão o CI quebra por
+      # incompatibilidade de formato do lockfile.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Sistema de restaurante/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # Auditoria de vulnerabilidades de dependências — zero críticas desde a
+      # rodada de atualização de 2026-09 (vitest/vite/drizzle-kit/tailwind/
+      # AWS SDK/nodemailer/jsdom bumpados; 82→29 vulnerabilidades totais, as
+      # que sobraram são moderadas/altas sem correção disponível ainda:
+      # esbuild via drizzle-kit>@esbuild-kit — upstream, não depende deste
+      # repo; picomatch via vite-plugin-pwa>tinyglobby — override do pnpm
+      # não alcança essa dependência peer; pnpm CLI em si). Agora que não há
+      # crítica pendente, o passo passa a bloquear de verdade (sem
+      # continue-on-error) — reavaliar se uma crítica nova aparecer aqui.
+      - name: Auditoria de vulnerabilidades (bloqueia em CRITICAL)
+        run: pnpm audit --audit-level=critical
+      - name: Lint
+        run: pnpm run lint
+      - run: pnpm run check
+      # Aplica as migrations reais (drizzle/*.sql) contra o MySQL do serviço
+      # acima, igual ao que acontece no boot do container de produção
+      # (infra/entrypoint.sh → drizzle-kit migrate). Pega migration quebrada
+      # ou fora de ordem antes de chegar em produção.
+      - name: Migration contra banco real (drizzle-kit migrate)
+        run: pnpm run db:migrate
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/ci_app_principal
+      - run: pnpm run build
+      # Builda a imagem Docker real (mesmo Dockerfile usado em produção) só
+      # pra garantir que o build da imagem não está quebrado — não publica/faz
+      # push, só valida localmente no runner.
+      - name: Build imagem Docker (app principal)
+        run: docker build -f infra/Dockerfile .
+      # DATABASE_URL aqui (mesmo serviço mysql:8.4 já de pé pro job inteiro,
+      # já migrado no step acima) é só pro teste de idempotência de pedido
+      # (server/order-idempotency-real-db.test.ts) — precisa de MySQL de
+      # verdade pra provar que um erro de chave duplicada dentro de uma
+      # transação não a invalida (comportamento específico do InnoDB, mock
+      # não prova isso). O resto da suíte não usa banco nenhum.
+      - run: pnpm test
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/ci_app_principal

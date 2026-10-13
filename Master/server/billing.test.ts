@@ -1,0 +1,271 @@
+import { createHmac } from "node:crypto";
+import type { Request, Response } from "express";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { verifyMercadoPagoWebhookSignature } from "./_core/mercadoPagoBilling";
+
+describe("verifyMercadoPagoWebhookSignature (saas-core)", () => {
+  const secret = "test-secret";
+  function sign(manifest: string) {
+    return createHmac("sha256", secret).update(manifest).digest("hex");
+  }
+
+  it("aceita uma assinatura corretamente calculada", () => {
+    const v1 = sign("id:abc;request-id:req-1;ts:1700000000000;");
+    expect(verifyMercadoPagoWebhookSignature({ xSignature: `ts=1700000000000,v1=${v1}`, xRequestId: "req-1", dataId: "abc", secret })).toBe(true);
+  });
+
+  it("rejeita quando o secret não bate", () => {
+    const v1 = sign("id:abc;request-id:req-1;ts:1700000000000;");
+    expect(verifyMercadoPagoWebhookSignature({ xSignature: `ts=1700000000000,v1=${v1}`, xRequestId: "req-1", dataId: "abc", secret: "outro" })).toBe(false);
+  });
+
+  it("rejeita header ausente", () => {
+    expect(verifyMercadoPagoWebhookSignature({ xSignature: undefined, xRequestId: "req-1", dataId: "abc", secret })).toBe(false);
+  });
+});
+
+const mocks = vi.hoisted(() => ({ getDb: vi.fn(), getSubscriptionPreapproval: vi.fn(), getAuthorizedPayment: vi.fn() }));
+// cached: passthrough (sem memoização de verdade) — evita que o cache real (30s de TTL,
+// num closure só por módulo) vaze estado entre testes.
+vi.mock("./db/client", () => ({ getDb: mocks.getDb, cached: (_ttlMs: number, fn: () => unknown) => fn, PLANS_CACHE_TTL_MS: 30_000 }));
+vi.mock("./_core/env", () => ({ ENV: { mercadoPagoAccessToken: "TEST-token", mercadoPagoWebhookSecret: "segredo-de-teste" } }));
+// Mantém verifyMercadoPagoWebhookSignature e o resto REAIS (usados no describe
+// acima) — só troca getSubscriptionPreapproval/getAuthorizedPayment por mocks
+// controláveis, já que os testes de idempotência/recycling do webhook
+// precisam simular estados diferentes pra MESMA preapproval/cobrança.
+vi.mock("./_core/mercadoPagoBilling", async importOriginal => {
+  const actual = await importOriginal<typeof import("./_core/mercadoPagoBilling")>();
+  return { ...actual, getSubscriptionPreapproval: mocks.getSubscriptionPreapproval, getAuthorizedPayment: mocks.getAuthorizedPayment };
+});
+// applyPreapprovalStatus/applyDueScheduledChanges/markSubscriptionPastDue
+// continuam com a implementação REAL (só embrulhadas num vi.fn pra podermos
+// contar quantas vezes cada uma foi chamada) — os describes abaixo que já
+// testavam a implementação real continuam testando o comportamento real,
+// sem quebrar.
+vi.mock("./db/subscriptions", async importOriginal => {
+  const actual = await importOriginal<typeof import("./db/subscriptions")>();
+  return {
+    ...actual,
+    applyPreapprovalStatus: vi.fn(actual.applyPreapprovalStatus),
+    applyDueScheduledChanges: vi.fn(actual.applyDueScheduledChanges),
+    markSubscriptionPastDue: vi.fn(actual.markSubscriptionPastDue),
+  };
+});
+
+import { subscriptions, webhookEvents } from "../drizzle/schema";
+import { handleMercadoPagoBillingWebhook } from "./_core/mercadoPagoWebhook";
+import { applyDueScheduledChanges, applyPreapprovalStatus, markSubscriptionPastDue, recordBillingPayment } from "./db/subscriptions";
+
+function dbStub(subscriptionRow: { id: number; restaurantId: number; status: string; gatewaySubscriptionId: string; gatewayCustomerId: string | null } | undefined, existingPayment?: unknown) {
+  const insertValues = vi.fn();
+  const updateSet = vi.fn(() => ({ where: vi.fn() }));
+  let selectCallCount = 0;
+  return {
+    db: {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => {
+              selectCallCount++;
+              // 1ª chamada = busca da subscription; 2ª (só em recordBillingPayment) = busca de pagamento existente.
+              if (selectCallCount === 1) return subscriptionRow ? [subscriptionRow] : [];
+              return existingPayment ? [existingPayment] : [];
+            },
+          }),
+        }),
+      }),
+      update: () => ({ set: updateSet }),
+      insert: () => ({ values: insertValues }),
+    },
+    updateSet,
+    insertValues,
+  };
+}
+
+describe("applyPreapprovalStatus", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("mapeia 'authorized' pra 'active' e grava evento quando o estado muda", async () => {
+    const { db, updateSet } = dbStub({ id: 5, restaurantId: 2, status: "payment_pending", gatewaySubscriptionId: "pre-1", gatewayCustomerId: null });
+    mocks.getDb.mockResolvedValue(db);
+    const result = await applyPreapprovalStatus({ preapprovalId: "pre-1", mpStatus: "authorized", payerId: 999 });
+    expect(result).toEqual({ found: true, applied: true, restaurantId: 2 });
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "active", gatewayCustomerId: "999" }));
+  });
+
+  it("é idempotente — não reaplica nem grava evento se o status já é o mesmo", async () => {
+    const { db, updateSet } = dbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    mocks.getDb.mockResolvedValue(db);
+    const result = await applyPreapprovalStatus({ preapprovalId: "pre-1", mpStatus: "authorized", payerId: 999 });
+    expect(result).toEqual({ found: true, applied: false });
+    expect(updateSet).not.toHaveBeenCalled();
+  });
+
+  it("devolve found:false quando nenhuma assinatura está vinculada a essa preapproval", async () => {
+    const { db } = dbStub(undefined);
+    mocks.getDb.mockResolvedValue(db);
+    const result = await applyPreapprovalStatus({ preapprovalId: "pre-desconhecida", mpStatus: "authorized" });
+    expect(result).toEqual({ found: false });
+  });
+});
+
+describe("recordBillingPayment", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("nunca grava duas vezes a mesma cobrança (idempotência por gatewayPaymentId)", async () => {
+    const { db, insertValues } = dbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" }, { id: 1, gatewayPaymentId: "auth-1" });
+    mocks.getDb.mockResolvedValue(db);
+    const result = await recordBillingPayment({ preapprovalId: "pre-1", gatewayPaymentId: "auth-1", amountCents: 24990, mpStatus: "processed" });
+    expect(result).toEqual({ found: true, duplicate: true });
+    expect(insertValues).not.toHaveBeenCalled();
+  });
+
+  it("nunca marca como 'paid' sozinho — status do Mercado Pago é ambíguo demais pra decidir sucesso automaticamente", async () => {
+    const { db, insertValues } = dbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" }, undefined);
+    mocks.getDb.mockResolvedValue(db);
+    await recordBillingPayment({ preapprovalId: "pre-1", gatewayPaymentId: "auth-2", amountCents: 24990, mpStatus: "processed" });
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ status: "pending", paidAt: null }));
+  });
+});
+
+/**
+ * Banco fake que exercita a implementação REAL de applyPreapprovalStatus
+ * (update de subscriptions + insert em subscriptionEvents via recordEvent) E
+ * a implementação REAL de markWebhookEventOnce (insert em webhookEvents com a
+ * mesma constraint única simulada: gateway+gatewayEventId duplicado lança
+ * ER_DUP_ENTRY) — as duas usam a MESMA instância de `db`, exatamente como em
+ * produção, então este é o teste que de fato prova o bug/a correção da chave
+ * de dedup do webhook (não só de cada função isolada).
+ */
+function buildWebhookDbStub(initial: { id: number; restaurantId: number; status: string; gatewaySubscriptionId: string; gatewayCustomerId: string | null; scheduledPlanId?: number | null }) {
+  let current: Record<string, unknown> = { scheduledPlanId: null, ...initial };
+  const insertedWebhookKeys = new Set<string>();
+  const db = {
+    select: () => ({
+      from: (table: unknown) => ({
+        where: () => ({
+          limit: async () => (table === subscriptions ? [current] : []),
+        }),
+      }),
+    }),
+    update: (table: unknown) => ({
+      set: (values: Record<string, unknown>) => ({
+        where: async () => {
+          if (table === subscriptions) current = { ...current, ...values };
+        },
+      }),
+    }),
+    insert: (table: unknown) => ({
+      values: async (values: Record<string, unknown>) => {
+        if (table === webhookEvents) {
+          const key = `${values.gateway}:${values.gatewayEventId}`;
+          if (insertedWebhookKeys.has(key)) {
+            // Formato real do drizzle-orm 0.45.x: o `code` do driver mysql2
+            // vem em `error.cause`, não no erro em si (confirmado contra
+            // MySQL de verdade no app principal,
+            // server/order-idempotency-real-db.test.ts). Um mock com
+            // `error.code` direto deixava passar um bug real em
+            // markWebhookEventOnce — nunca detectava duplicata de verdade.
+            const duplicate = new Error("ER_DUP_ENTRY") as Error & { cause?: { code?: string } };
+            duplicate.cause = { code: "ER_DUP_ENTRY" };
+            throw duplicate;
+          }
+          insertedWebhookKeys.add(key);
+          return;
+        }
+        // insert em subscriptionEvents (recordEvent) — só precisa não explodir.
+      },
+    }),
+  };
+  return { db, getCurrent: () => current };
+}
+
+function fakeRes() {
+  const res: Record<string, unknown> = {};
+  res.status = vi.fn(() => res);
+  res.json = vi.fn(() => res);
+  return res as unknown as Response;
+}
+
+// Assinatura do webhook é obrigatória (auditoria 2026-10-10): as requisições de teste já vão assinadas.
+function signedHeader(dataId: string) {
+  const v1 = createHmac("sha256", "segredo-de-teste").update(`id:${dataId};request-id:req-auto;ts:1700000000000;`).digest("hex");
+  const headers: Record<string, string> = { "x-signature": `ts=1700000000000,v1=${v1}`, "x-request-id": "req-auto" };
+  return (name: string) => headers[name.toLowerCase()];
+}
+
+function fakeReq(dataId: string) {
+  return { body: { type: "subscription_preapproval", data: { id: dataId } }, query: {}, header: signedHeader(dataId) } as unknown as Request;
+}
+
+function fakeAuthorizedPaymentReq(dataId: string) {
+  return { body: { type: "subscription_authorized_payment", data: { id: dataId } }, query: {}, header: signedHeader(dataId) } as unknown as Request;
+}
+
+describe("handleMercadoPagoBillingWebhook — idempotência por transição de status (regressão do bug real)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("duas notificações com o MESMO preapprovalId mas status diferentes (pending -> authorized) aplicam a mudança NAS DUAS — assinatura não fica travada em payment_pending pra sempre", async () => {
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "trial", gatewaySubscriptionId: "pre-1", gatewayCustomerId: null });
+    mocks.getDb.mockResolvedValue(stub.db);
+
+    mocks.getSubscriptionPreapproval.mockResolvedValueOnce({ id: "pre-1", status: "pending", externalReference: null, payerId: null });
+    await handleMercadoPagoBillingWebhook(fakeReq("pre-1"), fakeRes());
+    expect(applyPreapprovalStatus).toHaveBeenCalledTimes(1);
+    expect(stub.getCurrent().status).toBe("payment_pending");
+
+    mocks.getSubscriptionPreapproval.mockResolvedValueOnce({ id: "pre-1", status: "authorized", externalReference: null, payerId: 999 });
+    await handleMercadoPagoBillingWebhook(fakeReq("pre-1"), fakeRes());
+
+    // A prova do bug corrigido: a SEGUNDA notificação (mesmo data.id da
+    // primeira) não é descartada como duplicata — ela também chama
+    // applyPreapprovalStatus e a assinatura de fato vira "active".
+    expect(applyPreapprovalStatus).toHaveBeenCalledTimes(2);
+    expect(stub.getCurrent().status).toBe("active");
+  });
+
+  it("a MESMA notificação repetida (retry idêntico do Mercado Pago: mesmo data.id, mesmo status) continua sendo descartada", async () => {
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "trial", gatewaySubscriptionId: "pre-1", gatewayCustomerId: null });
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getSubscriptionPreapproval.mockResolvedValue({ id: "pre-1", status: "authorized", externalReference: null, payerId: 999 });
+
+    await handleMercadoPagoBillingWebhook(fakeReq("pre-1"), fakeRes());
+    await handleMercadoPagoBillingWebhook(fakeReq("pre-1"), fakeRes());
+
+    expect(applyPreapprovalStatus).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("handleMercadoPagoBillingWebhook — subscription_authorized_payment (2026-09-17: 'recycling' nunca adianta currentPeriodEnd)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("status 'recycling': marca past_due, NÃO chama applyDueScheduledChanges (período não avança)", async () => {
+    const pastPeriodEnd = Date.now() - 86400000; // já venceu — se applyDueScheduledChanges rodasse, avançaria o período
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    // Injeta currentPeriodEnd vencido na linha inicial (buildWebhookDbStub não expõe isso por padrão).
+    (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getAuthorizedPayment.mockResolvedValue({ id: "auth-1", status: "recycling", preapprovalId: "pre-1", amountCents: 24990 });
+
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-1"), fakeRes());
+
+    expect(markSubscriptionPastDue).toHaveBeenCalledTimes(1);
+    expect(applyDueScheduledChanges).not.toHaveBeenCalled();
+    expect(stub.getCurrent().status).toBe("past_due");
+    expect(stub.getCurrent().currentPeriodEnd).toBe(pastPeriodEnd); // não avançou
+  });
+
+  it("status 'processed' (cobrança normal): chama applyDueScheduledChanges, NÃO marca past_due", async () => {
+    const pastPeriodEnd = Date.now() - 86400000;
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getAuthorizedPayment.mockResolvedValue({ id: "auth-2", status: "processed", preapprovalId: "pre-1", amountCents: 24990 });
+
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-2"), fakeRes());
+
+    expect(applyDueScheduledChanges).toHaveBeenCalledTimes(1);
+    expect(markSubscriptionPastDue).not.toHaveBeenCalled();
+    expect(stub.getCurrent().currentPeriodEnd).toBeGreaterThan(pastPeriodEnd); // avançou
+  });
+});

@@ -1,0 +1,19 @@
+# Segredos — nunca devem entrar no contexto/imagem de build
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+*.log
+
+.git/
+.vscode/
+.idea/
+
+# Backups de banco de dados — nunca devem entrar no contexto/imagem de build
+backups/
+*.sql
+*.sql.gz
+*.tar.gz
+*.tar.gz.enc
