@@ -2,5 +2,13 @@ User-agent: *
 Disallow: /
 Allow: /comercial
 Allow: /sitemap.xml
+# Arquivos estáticos que o site comercial precisa para renderizar (JS, CSS, imagens, ícones).
+# Sem isso o Googlebot não carrega o JavaScript da página e a vê vazia.
+# O Painel Master continua bloqueado pelo "Disallow: /" (só rotas de página, nunca estes arquivos).
+Allow: /assets/
+Allow: /favicon
+Allow: /apple-touch-icon.png
+Allow: /og-comercial.png
+Allow: /mm-logo
 
 Sitemap: https://mmsystem.tech/sitemap.xml
