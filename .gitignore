@@ -10,3 +10,4 @@ node_modules/
 Documentos/
 
 # Relatórios internos (auditoria de segurança etc.): nunca publicar no GitHub
+Sistema de restaurante/docs/auditoria-seguranca-*.md
