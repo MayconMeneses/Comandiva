@@ -16,19 +16,20 @@
  */
 export const COMMERCIAL_PAGE_META: Record<string, { title: string; description: string }> = {
   "/comercial": {
-    title: "Sistema para Restaurante sem Comissão — Cardápio Digital e Pedidos Online | Comandiva",
-    description: "Sistema completo para restaurante: cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por venda. 7 dias grátis, sem cartão de crédito.",
+    // Títulos até ~60 caracteres e descrições até ~155 (acima disso o Google corta).
+    title: "Sistema para Restaurante sem Comissão | Comandiva",
+    description: "Sistema para restaurante com cardápio digital, pedidos online e Pix, sem comissão por venda. Teste 7 dias grátis, sem cartão de crédito.",
   },
   "/comercial/planos": {
-    title: "Planos e Preços — Sistema para Restaurante a partir de R$ 99,90/mês | Comandiva",
-    description: "Compare os planos do Comandiva: cardápio digital, pedidos online, mesas com QR Code, cozinha e relatórios. A partir de R$ 99,90/mês, sem comissão por pedido. 7 dias grátis.",
+    title: "Planos e Preços — Sistema para Restaurante | Comandiva",
+    description: "Compare os planos do Comandiva: cardápio digital, pedidos e mesas com QR Code. A partir de R$ 99,90/mês, sem comissão. 7 dias grátis.",
   },
   "/comercial/termos": {
     title: "Termos de Uso | Comandiva",
     description: "Termos de uso do Comandiva: como funciona a assinatura mensal, o que está incluído e as condições de uso do sistema para restaurantes.",
   },
   "/comercial/privacidade": {
-    title: "Política de Privacidade | Comandiva",
-    description: "Política de privacidade do Comandiva: quais dados coletamos, para que usamos e como protegemos as informações do seu restaurante e dos seus clientes.",
+    title: "Política de Privacidade e LGPD | Comandiva",
+    description: "Política de privacidade do Comandiva: quais dados coletamos, para que usamos, como protegemos e como exercer seus direitos pela LGPD.",
   },
 };

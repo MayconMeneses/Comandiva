@@ -41,12 +41,13 @@ export function ComercialFooter() {
           Criado do zero por <strong className="text-ink">Maycon Meneses</strong> — Comandiva
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-ink-soft">
-          <span>© {new Date().getFullYear()} Comandiva. Todos os direitos reservados.</span>
-          <Link href="/comercial/termos" className="underline-offset-2 hover:underline">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-ink-soft">
+          <span className="mr-2">© {new Date().getFullYear()} Comandiva. Todos os direitos reservados.</span>
+          {/* min-h-11 (44px) = área de toque confortável no celular */}
+          <Link href="/comercial/termos" className="inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline">
             Termos de uso
           </Link>
-          <Link href="/comercial/privacidade" className="underline-offset-2 hover:underline">
+          <Link href="/comercial/privacidade" className="inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline">
             Privacidade
           </Link>
         </div>

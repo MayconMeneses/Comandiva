@@ -4,6 +4,10 @@ import { ComercialHeader } from "./ComercialHeader";
 import { ComercialFooter } from "./ComercialFooter";
 import { Reveal } from "./Reveal";
 
+// Data fixa de propósito: mudar só quando o texto da política mudar de verdade
+// (antes usava a data de hoje, o que fazia a política "se atualizar" sozinha todo dia).
+const LAST_UPDATED = "13/10/2026";
+
 export default function Privacidade() {
   usePageMeta({ ...COMMERCIAL_PAGE_META["/comercial/privacidade"], path: "/comercial/privacidade" });
   return (
@@ -12,7 +16,7 @@ export default function Privacidade() {
       <main id="main-content" tabIndex={-1}>
       <Reveal className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-2xl font-bold text-ink">Política de privacidade</h1>
-        <p className="mt-1 text-sm text-ink-soft">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
+        <p className="mt-1 text-sm text-ink-soft">Última atualização: {LAST_UPDATED}</p>
 
         <div className="mt-8 space-y-6 text-sm leading-relaxed text-ink-soft">
           <p>
@@ -44,11 +48,31 @@ export default function Privacidade() {
             </p>
           </div>
           <div>
-            <h2 className="font-semibold text-ink">Seus direitos</h2>
+            <h2 className="font-semibold text-ink">Quem responde pelos dados</h2>
             <p className="mt-1">
-              Você pode pedir a correção ou exclusão dos seus dados a qualquer momento, falando diretamente com
-              a nossa equipe.
+              O Comandiva é criado e mantido por Maycon Meneses, que responde pelo tratamento dos dados descritos
+              nesta página, conforme a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).
             </p>
+          </div>
+          <div>
+            <h2 className="font-semibold text-ink">Cookies</h2>
+            <p className="mt-1">
+              O site comercial não usa cookies de rastreamento nem de publicidade. A medição de visitas descrita
+              acima funciona sem cookies.
+            </p>
+          </div>
+          <div>
+            <h2 className="font-semibold text-ink">Seus direitos pela LGPD</h2>
+            <p className="mt-1">Você pode pedir, a qualquer momento:</p>
+            <ul className="mt-1 list-disc space-y-1 pl-5">
+              <li>confirmação de que tratamos seus dados e acesso a eles;</li>
+              <li>correção de dados incompletos, errados ou desatualizados;</li>
+              <li>eliminação dos dados, ou bloqueio e anonimização dos que forem desnecessários;</li>
+              <li>portabilidade dos dados;</li>
+              <li>informação sobre com quem os dados são compartilhados;</li>
+              <li>revogação de um consentimento que você tenha dado.</li>
+            </ul>
+            <p className="mt-2">Para pedir qualquer um desses itens, fale diretamente com a nossa equipe.</p>
           </div>
         </div>
       </Reveal>
