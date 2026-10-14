@@ -13,6 +13,24 @@ const usernameSchema = z.string().trim().toLowerCase().min(3, "Use ao menos 3 ca
 const passwordSchema = z.string().min(8, "A senha deve ter pelo menos 8 caracteres.").max(128);
 const permissionsSchema = z.array(z.enum(GRANTABLE_STAFF_AREAS)).nullable().optional();
 
+// As funções de conta (server/db/users.ts) lançam Error simples para regras de
+// negócio previsíveis. Sem esta tradução, um id inexistente ou a tentativa de
+// remover o admin principal virava "Erro interno" + alerta no Telegram.
+const ACCOUNT_BUSINESS_ERRORS: Array<{ message: string; code: "NOT_FOUND" | "BAD_REQUEST" }> = [
+  { message: "Acesso não encontrado.", code: "NOT_FOUND" },
+  { message: "O administrador principal não pode ser pausado.", code: "BAD_REQUEST" },
+  { message: "O administrador principal não pode ser removido.", code: "BAD_REQUEST" },
+];
+async function translateAccountErrors<T>(action: () => Promise<T>): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    const known = error instanceof Error ? ACCOUNT_BUSINESS_ERRORS.find(item => item.message === error.message) : undefined;
+    if (known) throw new TRPCError({ code: known.code, message: known.message });
+    throw error;
+  }
+}
+
 export const teamRouter = router({
   login: publicProcedure.input(z.object({ username: usernameSchema, password: passwordSchema })).mutation(async ({ input, ctx }) => {
     const rateLimitKey = `login:${ctx.req.ip}:${input.username.toLowerCase()}`;
@@ -71,7 +89,7 @@ export const teamRouter = router({
       const changed = currentPermissions.length !== input.permissions.length || !input.permissions.every(area => currentPermissions.includes(area));
       if (changed) await assertFeatureAvailable("advanced_team");
     }
-    const result = await updateRestaurantAccessAccount(input);
+    const result = await translateAccountErrors(() => updateRestaurantAccessAccount(input));
     await recordAccountAudit({
       actorUserId: ctx.user.id,
       actorName: ctx.user.name ?? ctx.user.openId,
@@ -85,12 +103,12 @@ export const teamRouter = router({
   }),
   setActive: adminOnlyProcedure.input(z.object({ accountId: z.number().int().positive(), active: z.boolean() })).mutation(async ({ input, ctx }) => {
     if (input.active) await assertWithinPlanLimit("users"); // reativar conta pausada também conta contra o limite do plano
-    const result = await setRestaurantAccessAccountActive(input.accountId, input.active, ctx.user.id);
+    const result = await translateAccountErrors(() => setRestaurantAccessAccountActive(input.accountId, input.active, ctx.user.id));
     await recordAccountAudit({ actorUserId: ctx.user.id, actorName: ctx.user.name ?? ctx.user.openId, action: input.active ? "team.reactivated" : "team.paused", entityType: "user", entityId: input.accountId, after: { active: input.active }, ip: ctx.req.ip });
     return result;
   }),
   delete: adminOnlyProcedure.input(z.object({ accountId: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
-    const result = await deleteRestaurantAccessAccount(input.accountId, ctx.user.id);
+    const result = await translateAccountErrors(() => deleteRestaurantAccessAccount(input.accountId, ctx.user.id));
     await recordAccountAudit({ actorUserId: ctx.user.id, actorName: ctx.user.name ?? ctx.user.openId, action: "team.deleted", entityType: "user", entityId: input.accountId, ip: ctx.req.ip });
     return result;
   }),

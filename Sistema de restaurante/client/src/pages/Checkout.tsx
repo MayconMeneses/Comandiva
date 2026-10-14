@@ -192,7 +192,7 @@ export default function Checkout() {
   // catálogo ainda (1ª visita já offline, antes de nunca ter carregado
   // online) ou carrinho abaixo do mínimo mesmo no cálculo local.
   const previewBlockingError = Boolean(preview.error) && !(previewNetworkError && localPrice?.ok);
-  const deliveryFee = fulfillmentType === "DELIVERY" ? (preview.data?.deliveryFeeCents ?? (localPrice?.ok ? localPrice.deliveryFeeCents : selectedRoute?.deliveryFeeCents ?? 700)) : 0;
+  const deliveryFee = fulfillmentType === "DELIVERY" ? (preview.data?.deliveryFeeCents ?? (localPrice?.ok ? localPrice.deliveryFeeCents : selectedRoute?.deliveryFeeCents ?? settings.data?.deliveryFeeCents ?? 0)) : 0;
   const total = preview.data?.totalCents ?? (localPrice?.ok ? localPrice.totalCents : subtotalCents + deliveryFee);
   if (!items.length) return <div className="grid min-h-screen place-items-center bg-background p-6 text-center" style={marca ? { background: MARCA_GRADIENT } : undefined}><div><ShoppingBag className="mx-auto mb-5 h-10 w-10 text-primary" /><h1 className="font-display text-3xl font-bold">Sua sacola está vazia.</h1><p className="mt-2 text-muted-foreground">Escolha algo especial no nosso cardápio.</p><Button onClick={() => setLocation("/")} className="mt-6 rounded-xl bg-primary hover:bg-primary-hover">Voltar ao cardápio</Button></div></div>;
   const cpfIncomplete = paymentMethod === "PIX" && digits(cpf).length !== 11;
