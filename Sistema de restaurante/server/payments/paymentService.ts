@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { paymentGateways } from "../../drizzle/schema";
 import { getDb, markOrderPaymentFailedByPublicCode, markOrderPaymentPaidByPublicCode } from "../db";
 import { sendOwnerAlert } from "../_core/alerts";
+import { decryptSecret } from "../_core/secretBox";
 import { markWebhookEventOnce } from "./repositories/webhookEvents";
 import { mercadoPagoProvider } from "./providers/mercadoPago";
 import type { PaymentProvider } from "./types";
@@ -30,7 +31,13 @@ export async function getActiveGatewayAndProvider(): Promise<{ gateway: ActiveGa
   if (!provider) {
     throw new PaymentConfigError(`A cobrança automática para ${gateway.label} ainda não foi conectada. Escolha outra forma de pagamento ou fale com o restaurante.`);
   }
-  return { gateway: { id: gateway.id, provider: gateway.provider, label: gateway.label, apiKey: gateway.apiKey, secretKey: gateway.secretKey }, provider };
+  try {
+    return { gateway: { id: gateway.id, provider: gateway.provider, label: gateway.label, apiKey: decryptSecret(gateway.apiKey), secretKey: gateway.secretKey ? decryptSecret(gateway.secretKey) : null }, provider };
+  } catch (error) {
+    // Chave de criptografia ausente/errada: falha fechada, com mensagem amigável pro cliente e detalhe só no log.
+    console.error("[payments] Não foi possível ler as chaves do gateway:", error instanceof Error ? error.message : error);
+    throw new PaymentConfigError("Pagamento online não está disponível no momento. Escolha outra forma de pagamento.");
+  }
 }
 
 /** Erro de configuração de gateway — sempre com mensagem já pronta pra mostrar ao cliente final (nunca vaza detalhe técnico). */

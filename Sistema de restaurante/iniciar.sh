@@ -40,6 +40,7 @@ if [ ! -f "$ENV_FILE" ]; then
   cp "$ENV_EXAMPLE" "$ENV_FILE"
 
   JWT_SECRET_VALUE=$(random_secret 32)
+  DATA_ENCRYPTION_KEY_VALUE=$(random_secret 32)
   MYSQL_PASSWORD_VALUE=$(random_secret 12)
   MYSQL_ROOT_PASSWORD_VALUE=$(random_secret 12)
   S3_ACCESS_KEY_VALUE=$(random_secret 8)
@@ -49,6 +50,7 @@ if [ ! -f "$ENV_FILE" ]; then
   # Ajusta os valores no .env recém-criado
   sed -i.bak \
     -e "s#^JWT_SECRET=.*#JWT_SECRET=${JWT_SECRET_VALUE}#" \
+    -e "s#^DATA_ENCRYPTION_KEY=.*#DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY_VALUE}#" \
     -e "s#^DATABASE_URL=.*#DATABASE_URL=mysql://pubx:${MYSQL_PASSWORD_VALUE}@localhost:3306/pubx#" \
     -e "s#^BOOTSTRAP_ADMIN_PASSWORD=.*#BOOTSTRAP_ADMIN_PASSWORD=${ADMIN_PASSWORD_VALUE}#" \
     -e "s#^S3_ACCESS_KEY_ID=.*#S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_VALUE}#" \

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { paymentGateways } from "../../../drizzle/schema";
 import { getDb, recordAccountAudit } from "../../db";
 import { adminOnlyProcedure, router } from "../../_core/trpc";
+import { encryptSecret } from "../../_core/secretBox";
 import { optionalId } from "./shared";
 
 export const adminPaymentGatewaysRouter = router({
@@ -25,13 +26,13 @@ export const adminPaymentGatewaysRouter = router({
     const now = Date.now();
     if (input.id) {
       const values: Record<string, unknown> = { provider: input.provider, label: input.label, extra: input.extra || null, updatedAt: now };
-      if (input.apiKey) values.apiKey = input.apiKey; // só sobrescreve se uma nova foi digitada
-      if (input.secretKey) values.secretKey = input.secretKey; // só sobrescreve se uma nova foi digitada
+      if (input.apiKey) values.apiKey = encryptSecret(input.apiKey); // só sobrescreve se uma nova foi digitada
+      if (input.secretKey) values.secretKey = encryptSecret(input.secretKey); // só sobrescreve se uma nova foi digitada
       await db.update(paymentGateways).set(values).where(eq(paymentGateways.id, input.id));
       await recordAccountAudit({ actorUserId: ctx.user.id, actorName: ctx.user.name ?? ctx.user.openId, action: "paymentGateway.updated", entityType: "paymentGateway", entityId: input.id, after: { provider: input.provider, label: input.label, apiKeyChanged: Boolean(input.apiKey), secretKeyChanged: Boolean(input.secretKey) }, ip: ctx.req.ip });
       return { id: input.id };
     }
-    const result = await db.insert(paymentGateways).values({ provider: input.provider, label: input.label, apiKey: input.apiKey || null, secretKey: input.secretKey || null, extra: input.extra || null, active: false, createdAt: now, updatedAt: now });
+    const result = await db.insert(paymentGateways).values({ provider: input.provider, label: input.label, apiKey: input.apiKey ? encryptSecret(input.apiKey) : null, secretKey: input.secretKey ? encryptSecret(input.secretKey) : null, extra: input.extra || null, active: false, createdAt: now, updatedAt: now });
     const newId = Number(result[0].insertId);
     await recordAccountAudit({ actorUserId: ctx.user.id, actorName: ctx.user.name ?? ctx.user.openId, action: "paymentGateway.created", entityType: "paymentGateway", entityId: newId, after: { provider: input.provider, label: input.label, apiKeyChanged: Boolean(input.apiKey), secretKeyChanged: Boolean(input.secretKey) }, ip: ctx.req.ip });
     return { id: newId };

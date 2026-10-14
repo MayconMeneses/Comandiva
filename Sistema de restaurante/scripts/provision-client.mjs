@@ -50,6 +50,7 @@ function buildEnvFile({ appPort, mysqlPort, s3Port, s3ConsolePort, saasCoreApiKe
   // (usam sempre os hostnames de rede "db"/"storage", nunca o valor daqui).
   const singleLineReplacements = {
     JWT_SECRET: randomSecret(32),
+    DATA_ENCRYPTION_KEY: randomSecret(32),
     BOOTSTRAP_ADMIN_USERNAME: adminUsername,
     BOOTSTRAP_ADMIN_PASSWORD: adminPassword,
     S3_ACCESS_KEY_ID: randomSecret(8),

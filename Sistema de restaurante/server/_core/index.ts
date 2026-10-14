@@ -108,7 +108,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  const secretCheck = checkSecrets({ cookieSecret: ENV.cookieSecret, supportSessionSecret: ENV.supportSessionSecret, saasCoreUrl: ENV.saasCoreUrl, isProduction: ENV.isProduction });
+  const secretCheck = checkSecrets({ cookieSecret: ENV.cookieSecret, supportSessionSecret: ENV.supportSessionSecret, dataEncryptionKey: ENV.dataEncryptionKey, saasCoreUrl: ENV.saasCoreUrl, isProduction: ENV.isProduction });
   for (const warning of secretCheck.warnings) console.warn(`[boot] ${warning}`);
   if (secretCheck.fatal.length) {
     console.error(

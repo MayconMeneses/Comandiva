@@ -323,6 +323,13 @@
       "when": 1791684331542,
       "tag": "0045_staff_sessions_valid_after",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "5",
+      "when": 1791940815271,
+      "tag": "0046_widen_gateway_keys",
+      "breakpoints": true
     }
   ]
 }

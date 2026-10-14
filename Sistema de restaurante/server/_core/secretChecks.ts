@@ -14,6 +14,8 @@ const PLACEHOLDER_PATTERN = /(gere-um|troque-por|troque-essa|change-?me|your-sec
 type SecretCheckInput = {
   cookieSecret: string;
   supportSessionSecret: string;
+  // Opcional: chave que criptografa segredos no banco (secretBox). Vazia = texto puro (aviso em produção).
+  dataEncryptionKey?: string;
   saasCoreUrl: string;
   isProduction: boolean;
 };
@@ -35,6 +37,12 @@ export function checkSecrets(input: SecretCheckInput): { fatal: string[]; warnin
   // Vazio = Modo Suporte desligado (falha fechada), mas se estiver preenchido precisa ser forte:
   // quem o conhece forja uma sessão de suporte com acesso quase total ao restaurante.
   checkSigningSecret("SUPPORT_SESSION_SECRET", input.supportSessionSecret, false, fatal);
+  // Vazia = chaves de gateway ficam em texto puro no banco (só aviso, pra não derrubar quem ainda não configurou).
+  // Preenchida e fraca = fatal: criptografar com chave curta dá falsa sensação de segurança.
+  checkSigningSecret("DATA_ENCRYPTION_KEY", input.dataEncryptionKey ?? "", false, fatal);
+  if (input.isProduction && !input.dataEncryptionKey) {
+    warnings.push("DATA_ENCRYPTION_KEY não configurada: as chaves dos gateways de pagamento ficam em texto puro no banco. Gere uma chave e rode scripts/encrypt-gateway-keys.ts.");
+  }
 
   if (input.isProduction && /^http:\/\//i.test(input.saasCoreUrl) && !/^http:\/\/(localhost|127\.0\.0\.1|[a-z0-9-]+(:\d+)?(\/|$))/i.test(input.saasCoreUrl)) {
     warnings.push("SAAS_CORE_URL usa http:// (sem criptografia): a chave de API do restaurante e os tokens do Modo Suporte trafegam em texto puro. Use https://.");

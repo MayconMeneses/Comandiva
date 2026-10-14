@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkSecrets } from "./secretChecks";
 
 const strong = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90";
-const base = { cookieSecret: strong, supportSessionSecret: strong, saasCoreUrl: "https://mmsystem.tech", isProduction: true };
+const base = { cookieSecret: strong, supportSessionSecret: strong, dataEncryptionKey: strong, saasCoreUrl: "https://mmsystem.tech", isProduction: true };
 
 describe("checkSecrets", () => {
   it("segredos fortes: sem problema", () => {
@@ -28,5 +28,13 @@ describe("checkSecrets", () => {
     expect(checkSecrets({ ...base, saasCoreUrl: "http://localhost:4000" }).warnings).toEqual([]);
     expect(checkSecrets({ ...base, saasCoreUrl: "http://saas-core:4000" }).warnings).toEqual([]);
     expect(checkSecrets({ ...base, saasCoreUrl: "http://203.0.113.10:8080", isProduction: false }).warnings).toEqual([]);
+  });
+
+  it("DATA_ENCRYPTION_KEY vazia em produção só avisa; preenchida e fraca impede o boot", () => {
+    const semChave = checkSecrets({ ...base, dataEncryptionKey: "" });
+    expect(semChave.fatal).toEqual([]);
+    expect(semChave.warnings[0]).toContain("DATA_ENCRYPTION_KEY");
+    expect(checkSecrets({ ...base, dataEncryptionKey: "", isProduction: false }).warnings).toEqual([]);
+    expect(checkSecrets({ ...base, dataEncryptionKey: "curta" }).fatal[0]).toContain("DATA_ENCRYPTION_KEY fraco");
   });
 });

@@ -686,8 +686,9 @@ export const paymentGateways = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     provider: mysqlEnum("provider", ["MERCADO_PAGO", "PAGSEGURO", "STRIPE", "CIELO", "REDE", "GETNET", "PAYPAL", "OUTRO"]).notNull(),
     label: varchar("label", { length: 120 }).notNull(),
-    apiKey: varchar("apiKey", { length: 500 }),
-    secretKey: varchar("secretKey", { length: 500 }),
+    // 2048: o valor guardado é cifrado (prefixo + IV + tag + base64), maior que o segredo original.
+    apiKey: varchar("apiKey", { length: 2048 }),
+    secretKey: varchar("secretKey", { length: 2048 }),
     extra: varchar("extra", { length: 1000 }),
     active: boolean("active").notNull().default(false),
     createdAt: bigint("createdAt", { mode: "number", unsigned: true }).notNull(),

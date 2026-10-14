@@ -6,6 +6,8 @@ function envBoolean(value: string | undefined, fallback: boolean): boolean {
 export const ENV = {
   appId: process.env.APP_ID ?? "pubx",
   cookieSecret: process.env.JWT_SECRET ?? "",
+  // Cifra as chaves de gateway guardadas no banco (server/_core/secretBox.ts).
+  dataEncryptionKey: process.env.DATA_ENCRYPTION_KEY ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:3000",
   backendUrl: process.env.BACKEND_URL ?? "http://localhost:3000",
