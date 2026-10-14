@@ -48,9 +48,8 @@ describe("computeComboDiscountCents", () => {
     expect(discount).toBe(1000); // combo B (melhor desconto) consome o produto 1; combo A fica sem produto 1 disponível
   });
 
-  it("promoção de produto único (sem combo) não é filtrada aqui — quem chama (priceOrder) que decide ignorá-la", () => {
-    // A função em si não sabe/não precisa saber que "combo de 1 produto" não deveria existir;
-    // esse filtro (productIds.length > 1) é responsabilidade de priceOrder, não daqui.
+  it("promoção de produto único desconta: o preço anunciado no card é o cobrado", () => {
+    // priceOrder passa a incluir as promoções de 1 produto (antes só destacavam).
     const single = combo({ promotionId: 1, promoPriceCents: 500, productIds: [1], productPriceCentsById: { 1: 1000 } });
     expect(computeComboDiscountCents({ 1: 5 }, [single])).toBe(5 * (1000 - 500));
   });

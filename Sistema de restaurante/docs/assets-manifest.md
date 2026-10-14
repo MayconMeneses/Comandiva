@@ -6,8 +6,6 @@ Os arquivos abaixo foram recuperados do armazenamento de trabalho do projeto e s
 
 | Arquivo | Uso/observação |
 |---|---|
-| `pub-x/pubx-logo-reference.png` | Logotipo de referência enviado para a marca Comandiva. |
-| `pubx/pubx-header-logo.jpg` | Logotipo de cabeçalho recuperado do armazenamento de assets do ambiente. |
 | `pub-x/hero-burger-pizza.jpeg` | Imagem de destaque da vitrine. |
 | `pub-x/burger-fries.jpeg` | Referência visual de hambúrguer e acompanhamento. |
 | `pub-x/burger-gourmet.jpg` | Referência visual de hambúrguer artesanal. |

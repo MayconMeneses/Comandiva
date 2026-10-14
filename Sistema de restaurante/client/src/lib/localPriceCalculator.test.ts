@@ -41,14 +41,15 @@ describe("calculateLocalPrice — Fase 1 do offline-first (checkout)", () => {
     expect(result).toEqual({ ok: true, subtotalCents: 2000, deliveryFeeCents: 0, totalCents: 2000, discountCents: 0 });
   });
 
-  it("promoção de 1 produto só (sem combo de verdade): não desconta, mesmo filtro do servidor", () => {
+  it("promoção de 1 produto só: cobra o preço promocional anunciado, igual ao servidor", () => {
     const result = calculateLocalPrice({
       items: [item(BURGER)],
       deliveryFeeCents: 0,
       minimumOrderCents: 0,
       promotions: [{ id: 1, promoPriceCents: 1500, products: [{ id: 1, priceCents: 2000 }] }],
     });
-    expect(result.ok && result.discountCents).toBe(0);
+    expect(result.ok && result.discountCents).toBe(500);
+    expect(result.ok && result.totalCents).toBe(1500);
   });
 
   it("abaixo do pedido mínimo: retorna erro, não um total", () => {

@@ -175,7 +175,9 @@ export async function priceOrder(input: { items: CheckoutInput["items"]; fulfill
     combo.productPriceCentsById[row.productId] = row.priceCents;
     combosById.set(row.promotionId, combo);
   }
-  const combos = [...combosById.values()].filter(combo => combo.productIds.length > 1); // combo = mais de um produto; promoção de 1 produto só destaca, não desconta
+  // Toda promoção ativa com preço promocional desconta — inclusive a de 1 produto só:
+  // o site anuncia esse preço no card, então o pedido tem que cobrar o preço anunciado.
+  const combos = [...combosById.values()].filter(combo => combo.productIds.length > 0);
   const cartQuantityByProductId: Record<number, number> = {};
   for (const item of input.items) cartQuantityByProductId[item.productId] = (cartQuantityByProductId[item.productId] ?? 0) + item.quantity;
   const discountCents = Math.min(computeComboDiscountCents(cartQuantityByProductId, combos), rawTotals.subtotalCents);

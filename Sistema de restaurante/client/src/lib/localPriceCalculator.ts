@@ -53,10 +53,10 @@ export type LocalPriceCalcResult =
 export function calculateLocalPrice(input: LocalPriceCalcInput): LocalPriceCalcResult {
   const rawTotals = calculateCartTotal(input.items, input.deliveryFeeCents);
 
-  // Combo = promoção com mais de um produto vinculado (mesmo filtro de
-  // `server/routers/order.ts:178` — promoção de 1 produto só destaca, não desconta).
+  // Toda promoção com preço promocional e ao menos um produto vinculado desconta
+  // (mesmo filtro de `server/routers/order.ts`): o preço anunciado é o cobrado.
   const combos: ComboDefinition[] = input.promotions
-    .filter((promotion): promotion is typeof promotion & { promoPriceCents: number } => promotion.promoPriceCents != null && promotion.products.length > 1)
+    .filter((promotion): promotion is typeof promotion & { promoPriceCents: number } => promotion.promoPriceCents != null && promotion.products.length > 0)
     .map(promotion => ({
       promotionId: promotion.id,
       promoPriceCents: promotion.promoPriceCents,
