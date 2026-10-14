@@ -11,3 +11,6 @@ Documentos/
 
 # Relatórios internos (auditoria de segurança etc.): nunca publicar no GitHub
 Sistema de restaurante/docs/auditoria-seguranca-*.md
+
+# Senhas e chaves: só no computador, nunca no GitHub
+Senhas/
