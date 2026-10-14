@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getActiveEvents, getActiveFaqItems, getActivePromotions, getCatalog, getDeliveryRoutes, getProductDetail, getStoreSettingsCached } from "../db";
 import { getLicenseSnapshot } from "../_core/license";
+import { withoutPixFields } from "../_core/publicSettings";
 import { publicProcedure, router } from "../_core/trpc";
 
 export const catalogRouter = router({
@@ -11,11 +12,8 @@ export const catalogRouter = router({
   // multi-tenant — mesmo raciocínio já usado em table.resolve pra "tables_qr".
   settings: publicProcedure.query(async () => {
     const [settings, license] = await Promise.all([getStoreSettingsCached(), getLicenseSnapshot()]);
-    // pixKey/pixQrCodeUrl ficam de fora: a chave Pix pode ser CPF/e-mail/celular
-    // pessoal do dono, nenhuma tela pública usa esses campos (o Pix do cliente é
-    // cobrança gerada no servidor) e só o admin os lê, via admin.getAccountSettings.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructuring só pra EXCLUIR essas 2 chaves do resto, não são "esquecidas"
-    const publicSettings = (({ pixKey: _pixKey, pixQrCodeUrl: _pixQrCodeUrl, ...rest }) => rest)(settings);
+    // pixKey/pixQrCodeUrl ficam de fora (ver server/_core/publicSettings.ts).
+    const publicSettings = withoutPixFields(settings);
     return { ...publicSettings, offlineResilienceEnabled: license.features.includes("offline_resilience") };
   }),
   deliveryRoutes: publicProcedure.query(async () => getDeliveryRoutes(true)),

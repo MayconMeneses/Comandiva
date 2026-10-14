@@ -21,6 +21,7 @@ import { CURRENT_TERMS_VERSION } from "../../shared/legal";
 import { getActiveOrdersByPhone, getDb, getOrderByTrackingCode, getStoreSettings, saveCustomerProfile, savePixChargeForOrder, type DbOrTx } from "../db";
 import { getActiveGatewayAndProvider, PaymentConfigError } from "../payments/paymentService";
 import { ENV } from "../_core/env";
+import { withoutPixFields } from "../_core/publicSettings";
 import { checkDistinctRateLimit, checkRateLimit } from "../_core/rateLimit";
 import { publicProcedure, router } from "../_core/trpc";
 import { addressSchema, phoneSchema, safeText } from "./customer";
@@ -313,6 +314,7 @@ export const orderRouter = router({
     const priced = await priceOrder(input);
     return {
       ...priced,
+      settings: withoutPixFields(priced.settings), // nunca entrega pixKey/pixQrCodeUrl a visitante sem login
       items: priced.items.map(item => ({
         productId: item.product.id,
         name: item.product.name,
