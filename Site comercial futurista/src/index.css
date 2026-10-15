@@ -1,0 +1,179 @@
+@import "tailwindcss";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+/* Fontes da marca, hospedadas localmente (Fontshare) */
+@font-face { font-family: "Clash Grotesk"; src: url("/fonts/clash-grotesk-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Clash Grotesk"; src: url("/fonts/clash-grotesk-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+/*
+ * Conceito "cozinha em tempo real": fundo noturno em degradê (Aurora),
+ * comandas em papel claro e UMA cor de destaque para ação (o azul da marca).
+ */
+:root {
+  /* Tema Aurora (escolha do dono, 2026-10-14): azul do logo → violeta → roxo claro
+     do logo MM System Creator. O degradê do fundo é pintado no html (abaixo);
+     superfícies elevadas são translúcidas para ele aparecer por trás. */
+  --bg: #060a1a;
+  --bg-raised: rgba(140, 170, 255, 0.055);
+  --line: rgba(150, 175, 255, 0.16);
+  --ink: #eef0f4;
+  --ink-soft: #a3acc6;
+  --accent: #1a86fd;
+  --accent-text: #62c4ff;
+  --accent-2: #6d3df0;
+  /* Fundo de botão com texto branco: contraste AA (#1a86fd sozinho não passa) */
+  --accent-strong: #0a63d8;
+  --ticket: #f4efe6;
+  --ticket-ink: #17140f;
+  --ticket-soft: #6b6255;
+  --ok: #15803d;
+  --warn: #b45309;
+  --late: #dc2626;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-2: var(--accent-2);
+  --color-accent-strong: var(--accent-strong);
+  --color-ticket: var(--ticket);
+  --color-ticket-ink: var(--ticket-ink);
+  --color-ticket-soft: var(--ticket-soft);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-late: var(--late);
+  --font-display: "Clash Grotesk", "Satoshi", sans-serif;
+  --font-sans: "Satoshi", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/*
+ * Fundo Aurora pintado no próprio html, ao longo da página inteira (rola junto):
+ * azul/ciano do logo no topo → violeta no meio → roxo claro do logo MM System
+ * Creator no fim. Sem camada fixa nem animação: o navegador pinta uma vez e a
+ * rolagem não paga nada por quadro (camada fixa de tela inteira travava a
+ * rolagem numa Intel UHD 620).
+ */
+html {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1100px 700px at 8% 0, rgba(0, 200, 240, 0.16), transparent 70%),
+    radial-gradient(1000px 800px at 95% 6%, rgba(84, 36, 240, 0.30), transparent 70%),
+    radial-gradient(1200px 1000px at 15% 45%, rgba(109, 61, 240, 0.16), transparent 70%),
+    radial-gradient(1300px 1100px at 90% 100%, rgba(169, 139, 255, 0.34), transparent 70%),
+    linear-gradient(180deg, #070c22 0%, #0a0a26 35%, #110c30 70%, #1d1545 100%);
+  background-repeat: no-repeat;
+  min-height: 100%;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  margin: 0;
+  background: transparent;
+  overflow-x: clip;
+}
+::selection { background: var(--accent); color: #fff; }
+
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Rolagem nativa; âncoras com rolagem suave (desligada para quem pede menos movimento) */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Borda serrilhada de comanda impressa */
+.ticket-edge {
+  --tooth: 6px;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(var(--tooth) * 2) var(--tooth) repeat-x,
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth)) no-repeat;
+}
+
+/* Grade técnica bem sutil do fundo do hero */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track { animation: marquee 40s linear infinite; }
+.marquee-track[data-reverse] { animation-direction: reverse; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+@keyframes live-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .25; }
+}
+.live-dot { animation: live-dot 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track, .live-dot { animation: none; }
+}
+
+/* Slider da calculadora: trilho preenchido até o valor (--pct) */
+.range-comanda {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--pct), var(--line) var(--pct));
+  cursor: pointer;
+}
+.range-comanda::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--ink);
+  border: 6px solid var(--accent-strong);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
+  transition: transform .2s cubic-bezier(.32,.72,0,1);
+}
+.range-comanda::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  border: 6px solid var(--accent-strong);
+}
+.range-comanda:active::-webkit-slider-thumb { transform: scale(1.12); }
+
+/* Assinatura manuscrita (Mrs Saint Delafield, OFL — subconjunto só com as letras de "Maycon Meneses") */
+@font-face { font-family: "Signature"; src: url("/fonts/signature.woff2") format("woff2"); font-display: swap; }
+
+/* Papel térmico: ruído bem leve por cima da cor */
+.paper-texture {
+  background-color: var(--ticket);
+  background-image: url("/paper-grain.png");
+}
+
+/* Tinta de carimbo: falhas irregulares (máscara de ruído) */
+.stamp-ink {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='120'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='4'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='1 1 1 1 1 0.35 1 1 0'/%3E%3C/feComponentTransfer%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='120'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='4'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='1 1 1 1 1 0.35 1 1 0'/%3E%3C/feComponentTransfer%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 220px 120px;
+  mask-size: 220px 120px;
+}
+
+@keyframes printer-led { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+.printer-led[data-busy] { animation: printer-led .5s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .printer-led[data-busy] { animation: none; } }
