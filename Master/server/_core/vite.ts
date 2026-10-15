@@ -4,43 +4,8 @@ import { type Server } from "http";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
-import { COMMERCIAL_PAGE_META } from "../../shared/commercialPageMeta";
+import { injectCommercialPageMeta } from "./commercialMeta";
 import { resolveSpaStatus } from "../../shared/commercialRoutes";
-
-const OG_IMAGE_URL = "https://mmsystem.tech/og-comercial.png";
-
-function escapeHtmlAttr(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-/**
- * Substitui título/descrição/OG/Twitter direto no HTML antes de responder,
- * pras rotas listadas em shared/commercialPageMeta.ts — sem isso, um
- * crawler que não executa JavaScript de verdade (o preview de link do
- * WhatsApp/Instagram/LinkedIn, por exemplo) sempre via o texto genérico do
- * Painel Master, mesmo pra um link do site comercial. `usePageMeta.ts`
- * (client) já corrige isso pra quem executa JS; isto aqui é o mesmo
- * conteúdo, aplicado no HTML cru.
- */
-function injectCommercialPageMeta(html: string, url: string): string {
-  const requestPath = url.split("?")[0]?.split("#")[0] ?? url;
-  const meta = COMMERCIAL_PAGE_META[requestPath];
-  if (!meta) return html;
-  const title = escapeHtmlAttr(meta.title);
-  const description = escapeHtmlAttr(meta.description);
-  const ogUrl = `https://mmsystem.tech${requestPath}`;
-  return html
-    .replace(/<title>.*?<\/title>/, `<title>${title}</title>`)
-    .replace(/(<meta name="description" content=")[^"]*(")/, `$1${description}$2`)
-    .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${title}$2`)
-    .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${description}$2`)
-    .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${ogUrl}$2`)
-    .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${OG_IMAGE_URL}$2`)
-    .replace(/(<meta name="twitter:image" content=")[^"]*(")/, `$1${OG_IMAGE_URL}$2`)
-    .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${title}$2`)
-    .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${description}$2`)
-    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${ogUrl}$2`);
-}
 
 /**
  * Preload do hero da Home (/comercial) — medido via trace de performance
@@ -100,7 +65,7 @@ export function serveStatic(app: Express) {
   app.use(express.static(distPath));
 
   // Não usa res.sendFile aqui de propósito — precisa ler o conteúdo pra
-  // poder injetar o meta por rota (ver injectCommercialPageMeta acima)
+  // poder injetar o meta por rota (ver injectCommercialPageMeta em commercialMeta.ts)
   // antes de responder. O HTML de entrada da SPA nunca deve ser cacheado
   // de qualquer forma (referencia os assets com hash do build atual).
   app.use("*", async (req, res, next) => {

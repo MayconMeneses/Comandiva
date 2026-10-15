@@ -11,6 +11,7 @@ import { registerMercadoPagoWebhookRoute } from "./mercadoPagoWebhookRoute";
 import { registerSiteTrackRoute } from "./siteTrack";
 import { registerBodyParsers } from "./bodyLimits";
 import { serveStatic, setupVite } from "./vite";
+import { registerCommercialFuturista } from "./commercialFuturista";
 import { ENV } from "./env";
 import { getDb } from "../db/client";
 import { readFileSync } from "fs";
@@ -154,6 +155,10 @@ async function startServer() {
   registerMercadoPagoSignupWebhook(app);
   registerSiteTrackRoute(app);
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
+
+  // Site comercial futurista em /comercial (só com COMMERCIAL_SITE=futurista).
+  // Antes do Vite/static: assim o legado nunca responde /comercial nesse modo.
+  if (ENV.commercialSite === "futurista") registerCommercialFuturista(app);
 
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

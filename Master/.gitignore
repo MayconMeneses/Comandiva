@@ -6,6 +6,9 @@
 # Cópia gerada do projeto "Site comercial" (pasta irmã) — scripts/sync-site-comercial.mjs
 client/src/site-comercial/
 
+# Build copiado do "Site comercial futurista" (pasta irmã) — scripts/sync-site-comercial.mjs
+client/comercial-futurista/
+
 node_modules/
 dist/
 *.tsbuildinfo
