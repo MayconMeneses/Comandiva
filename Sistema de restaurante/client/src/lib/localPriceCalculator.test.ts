@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateLocalPrice, computeComboDiscountCents, type ComboDefinition } from "./localPriceCalculator";
+import { calculateLocalPrice, computeCartDiscountCents, computeComboDiscountCents, type ComboDefinition } from "./localPriceCalculator";
 import { computeComboDiscountCents as serverComputeComboDiscountCents } from "../../../server/routers/order";
 
 const BURGER = { id: 1, quantity: 1, unitPriceCents: 2000 };
@@ -96,5 +96,24 @@ describe("paridade: computeComboDiscountCents (cliente) === computeComboDiscount
 
   it.each(CASES)("$name", ({ quantities, combos }) => {
     expect(computeComboDiscountCents(quantities, combos)).toBe(serverComputeComboDiscountCents(quantities, combos));
+  });
+});
+
+describe("computeCartDiscountCents (valor real mostrado na sacola e no botão Adicionar)", () => {
+  const promotions = [{ id: 10, promoPriceCents: 1500, products: [{ id: 1, priceCents: 2000 }] }];
+
+  it("promoção de 1 produto desconta a diferença por unidade", () => {
+    expect(computeCartDiscountCents([item(BURGER, 2)], promotions)).toBe(1000);
+  });
+
+  it("sem promoção aplicável, desconto é zero", () => {
+    expect(computeCartDiscountCents([item(FRIES)], promotions)).toBe(0);
+    expect(computeCartDiscountCents([item(BURGER)], [])).toBe(0);
+  });
+
+  it("nunca passa do subtotal e bate com calculateLocalPrice", () => {
+    const items = [item(BURGER), item(FRIES)];
+    const result = calculateLocalPrice({ items, deliveryFeeCents: 300, minimumOrderCents: 0, promotions });
+    expect(result.ok && result.discountCents).toBe(computeCartDiscountCents(items, promotions));
   });
 });
