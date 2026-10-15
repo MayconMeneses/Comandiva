@@ -48,7 +48,7 @@ vi.mock("./_core/remoteLicenseSync", () => ({ triggerRemoteLicenseSync: vi.fn() 
 import { masterPanelTeamRouter } from "./routers/masterPanel/team";
 import { masterPanelRestaurantsRouter } from "./routers/masterPanel/restaurants";
 import { createMenuUploadToken, fileMatchesDeclaredType, MENU_UPLOAD_TOKEN_TTL_MS, verifyMenuUploadToken } from "./_core/menuUpload";
-import { DEFAULT_BODY_LIMIT, isMenuUploadRequest, registerBodyParsers } from "./_core/bodyLimits";
+import { DEFAULT_BODY_LIMIT, MENU_UPLOAD_BODY_LIMIT, isMenuUploadRequest, registerBodyParsers } from "./_core/bodyLimits";
 
 function adminContext(admin: { id: number; email: string; role: "owner" | "member"; permissions: string[] }): TrpcContext {
   return { platformAdmin: { ...admin, active: true }, req: { ip: "203.0.113.9" }, res: {} } as unknown as TrpcContext;
@@ -172,6 +172,8 @@ describe("limite do corpo das requisições", () => {
 
   it("padrão é pequeno e só o envio de cardápio aceita corpo grande", { timeout: 30_000 }, async () => {
     expect(DEFAULT_BODY_LIMIT).toBe("1mb");
+    // 20MB de cardápio + ~33% do base64 (pedido do dono, 2026-10-15)
+    expect(MENU_UPLOAD_BODY_LIMIT).toBe("28mb");
     expect(isMenuUploadRequest("/api/trpc/public.uploadMenuReference")).toBe(true);
     expect(isMenuUploadRequest("/api/trpc/public.signup")).toBe(false);
     expect((await post("/api/trpc/public.signup", big)).status).toBe(413);
