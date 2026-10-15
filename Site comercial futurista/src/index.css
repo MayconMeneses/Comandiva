@@ -126,9 +126,6 @@ html { scroll-behavior: smooth; }
 }
 .live-dot { animation: live-dot 1.6s ease-in-out infinite; }
 
-@media (prefers-reduced-motion: reduce) {
-  .marquee-track, .live-dot { animation: none; }
-}
 
 /* Slider da calculadora: trilho preenchido até o valor (--pct) */
 .range-comanda {

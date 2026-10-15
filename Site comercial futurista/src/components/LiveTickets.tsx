@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, animate, motion, useInView, useReducedMotion } from "motion/react";
+import { AnimatePresence, animate, motion, useInView } from "motion/react";
 import { APP_FEE_RATE, DEMO_ORDERS } from "../content";
 import { formatBRL } from "../lib/format";
 
@@ -23,15 +23,10 @@ function clock(minutesAfterSix: number) {
 function Ticker({ value, className }: { value: number; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const prev = useRef(value);
-  const reduce = useReducedMotion();
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (reduce) {
-      node.textContent = formatBRL(value);
-      return;
-    }
     const controls = animate(prev.current, value, {
       duration: 0.8,
       ease: [0.22, 1, 0.36, 1],
@@ -39,7 +34,7 @@ function Ticker({ value, className }: { value: number; className?: string }) {
     });
     prev.current = value;
     return () => controls.stop();
-  }, [value, reduce]);
+  }, [value]);
 
   return (
     <span ref={ref} className={className}>
@@ -51,17 +46,16 @@ function Ticker({ value, className }: { value: number; className?: string }) {
 /**
  * Fila de comandas chegando "ao vivo" + medidor de comissão. É uma
  * simulação (avisada na tela) com os mesmos pedidos fictícios dos prints
- * reais do painel. Pausa fora da tela e fica parada com movimento reduzido.
+ * reais do painel. Pausa fora da tela. Roda mesmo com "reduzir movimento": é uma demo pequena e contida, sem deslocamento da página.
  */
 export function LiveTickets({ play }: { play: boolean }) {
-  const reduce = useReducedMotion();
   const root = useRef<HTMLDivElement>(null);
   // "some": roda assim que qualquer parte aparece. Em celular a lista é mais alta que o que
   // cabe abaixo dos botões, então exigir uma fração dela (amount) deixava a demo parada ao abrir.
   const inView = useInView(root, { amount: "some" });
   const [count, setCount] = useState(VISIBLE);
 
-  const running = play && inView && !reduce;
+  const running = play && inView;
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => setCount(c => c + 1), INTERVAL_MS);
@@ -93,7 +87,7 @@ export function LiveTickets({ play }: { play: boolean }) {
             return (
               <motion.li
                 key={t.id}
-                layout={!reduce}
+                layout
                 initial={{ clipPath: "inset(0 0 100% 0)", y: -16 }}
                 animate={{ clipPath: "inset(0 0 0% 0)", y: 0, opacity: 1 - position * 0.12 }}
                 exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.25 } }}
