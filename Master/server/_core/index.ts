@@ -140,7 +140,7 @@ async function startServer() {
     }
   });
   app.get("/version", (_req, res) => res.status(200).json({ version: APP_VERSION, commit: process.env.GIT_COMMIT ?? "unknown" }));
-  // Corpo pequeno por padrão; 12mb só no envio de cardápio — ver bodyLimits.ts.
+  // Corpo pequeno por padrão; 28mb só no envio de cardápio — ver bodyLimits.ts.
   registerBodyParsers(app);
   // Cobrança da mensalidade do SaaS (restaurante-cliente pagando a
   // plataforma) — rota HTTP simples, fora do tRPC, porque quem chama é o

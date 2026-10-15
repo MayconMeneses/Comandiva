@@ -5,12 +5,13 @@ import express, { type Express } from "express";
  *
  * Antes TODA rota aceitava 12 MB lidos em memória antes de qualquer
  * validação (o container tem 768 MB — muitas conexões simultâneas derrubavam
- * o serviço). Agora o padrão é pequeno e o limite de 12 MB vale só para o
+ * o serviço). Agora o padrão é pequeno e o limite grande vale só para o
  * único endpoint que recebe arquivo: o envio de cardápio do cadastro público
- * (até 8 MB de arquivo + ~33% do base64).
+ * (até 20 MB de arquivo + ~33% do base64 = 28 MB; era 8 MB/12 MB até
+ * 2026-10-15). Esse endpoint tem limite de tentativas por IP (rateLimit).
  */
 export const DEFAULT_BODY_LIMIT = "1mb";
-export const MENU_UPLOAD_BODY_LIMIT = "12mb";
+export const MENU_UPLOAD_BODY_LIMIT = "28mb";
 
 export function isMenuUploadRequest(path: string): boolean {
   if (!path.startsWith("/api/trpc/")) return false;

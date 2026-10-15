@@ -18,7 +18,11 @@ const ALLOWED_MENU_MIME_TYPES = new Set([
   "image/jpeg",
   "image/webp",
 ]);
-const MAX_MENU_FILE_BYTES = 8 * 1024 * 1024; // 8MB — cabe folgado num cardápio em PDF/foto, sem pesar o body limit do express
+// 20MB (era 8MB; pedido do dono em 2026-10-15: cardápio em PDF com fotos passava de 8MB).
+// Teto do Telegram para arquivo de bot é 50MB; ficamos em 20MB por causa da memória
+// do container (o arquivo inteiro passa pela RAM). O corpo do request é limitado em
+// bodyLimits.ts (MENU_UPLOAD_BODY_LIMIT = arquivo + ~33% do base64).
+const MAX_MENU_FILE_BYTES = 20 * 1024 * 1024;
 
 /**
  * Único namespace acessível sem token de operador, API key de restaurante ou
@@ -138,7 +142,7 @@ export const publicRouter = router({
       const fileBuffer = Buffer.from(input.fileBase64, "base64");
       if (fileBuffer.byteLength === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo vazio." });
       if (fileBuffer.byteLength > MAX_MENU_FILE_BYTES) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo maior que 8MB. Envie uma versão mais leve." });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo maior que 20MB. Envie uma versão mais leve." });
       }
 
       if (!fileMatchesDeclaredType(fileBuffer, input.mimeType)) {
