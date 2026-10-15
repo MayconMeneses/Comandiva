@@ -4,7 +4,7 @@ import type { TrpcContext } from "./_core/context";
 /**
  * Auditoria de segurança 2026-10-10: rotas PÚBLICAS devolvem o mínimo.
  *  - catalog.settings não entrega pixKey/pixQrCodeUrl (chave Pix pode ser CPF/celular do dono);
- *  - customer.lookupByPhone entrega só o primeiro nome (antes: nome completo + todos os endereços);
+ *  - customer.lookupByPhone entrega nome + último endereço (reaberto por decisão do dono em 2026-10-15; nunca o histórico completo);
  *  - customer.saveProfile público (devolvia o cadastro completo e não tinha uso) deixou de existir;
  *  - a versão completa existe só pra equipe logada (admin.lookupCustomerByPhone).
  */
@@ -51,12 +51,23 @@ describe("catalog.settings (pública) não expõe a chave Pix", () => {
 });
 
 describe("customer.lookupByPhone (pública) devolve o mínimo", () => {
-  it("só o primeiro nome — sem sobrenome, telefone, id nem endereço", async () => {
-    mocks.getCustomerByPhone.mockResolvedValue(fullCustomer);
+  // Decisão do dono (2026-10-15): o checkout preenche nome e último endereço
+  // pelo telefone, então a consulta voltou a devolvê-los — mas só isso.
+  it("devolve nome e o último endereço para preencher o checkout — sem id, telefone nem histórico", async () => {
+    mocks.getCustomerByPhone.mockResolvedValue({ ...fullCustomer, addresses: [...fullCustomer.addresses, { id: 2, street: "Rua Antiga", number: "5", neighborhood: "Baixio", city: "Croatá", state: "CE", postalCode: null, complement: null, reference: null }] });
     const result = await appRouter.createCaller(publicContext).customer.lookupByPhone({ phone: "85999991234" });
-    expect(result).toEqual({ firstName: "Maria" });
+    expect(result).toEqual({
+      firstName: "Maria",
+      name: "Maria Aparecida da Silva",
+      address: { postalCode: "62390000", street: "Rua das Flores", number: "100", complement: "", neighborhood: "Centro", city: "Croatá", state: "CE", reference: "Casa azul" },
+    });
     const serialized = JSON.stringify(result);
-    for (const leaked of ["Silva", "Rua das Flores", "62390000", "Casa azul", "85999991234"]) expect(serialized).not.toContain(leaked);
+    for (const leaked of ["Rua Antiga", "85999991234", "phoneVerifiedAt", "\"id\""]) expect(serialized).not.toContain(leaked);
+  });
+
+  it("cliente sem endereço salvo devolve só o nome", async () => {
+    mocks.getCustomerByPhone.mockResolvedValue({ ...fullCustomer, addresses: [] });
+    expect(await appRouter.createCaller(publicContext).customer.lookupByPhone({ phone: "85999991234" })).toEqual({ firstName: "Maria", name: "Maria Aparecida da Silva", address: undefined });
   });
 
   it("telefone sem cadastro continua devolvendo undefined", async () => {
