@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN npm install -g corepack@latest && corepack pnpm install
 COPY . .
+# Garante a pasta do site futurista mesmo se o deploy não a trouxer: o COPY do
+# runtime não quebra e o servidor volta para o site legado (avisa no log).
+RUN mkdir -p client/comercial-futurista
 RUN corepack pnpm run build
 
 FROM node:22-slim AS runtime
@@ -23,6 +26,8 @@ COPY --chown=node:node --from=build /app/drizzle.config.ts ./drizzle.config.ts
 COPY --chown=node:node --from=build /app/scripts ./scripts
 COPY --chown=node:node --from=build /app/server ./server
 COPY --chown=node:node --from=build /app/shared ./shared
+# Site comercial futurista já compilado (servido em /comercial com COMMERCIAL_SITE=futurista).
+COPY --chown=node:node --from=build /app/client/comercial-futurista ./client/comercial-futurista
 COPY --chown=node:node --from=build /app/tsconfig.json ./tsconfig.json
 COPY --chown=node:node infra/entrypoint.sh ./infra/entrypoint.sh
 RUN chmod +x ./infra/entrypoint.sh

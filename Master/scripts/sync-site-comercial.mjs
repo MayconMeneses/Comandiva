@@ -33,7 +33,35 @@ function sync() {
   return true;
 }
 
+/*
+ * Site comercial futurista (pasta irmã "Site comercial futurista"): copia o
+ * BUILD já pronto (dist/, gerado com `npm run build` lá) para
+ * client/comercial-futurista, servido em /comercial quando COMMERCIAL_SITE=futurista
+ * (ver server/_core/commercialFuturista.ts). Sem o build, mantém a cópia que
+ * já estiver aqui (caso do Docker/VPS, que recebe essa pasta pronta no deploy).
+ */
+const futuristaSource = process.env.SITE_FUTURISTA_DIST
+  ? resolve(process.env.SITE_FUTURISTA_DIST)
+  : resolve(masterDir, "..", "Site comercial futurista", "dist");
+const futuristaTarget = resolve(masterDir, "client", "comercial-futurista");
+
+function syncFuturista() {
+  if (!existsSync(resolve(futuristaSource, "index.html"))) {
+    if (existsSync(resolve(futuristaTarget, "index.html"))) {
+      console.log("[site-futurista] Build não encontrado; usando a cópia já presente em client/comercial-futurista.");
+    } else {
+      console.log("[site-futurista] Sem build do site futurista (rode `npm run build` em \"Site comercial futurista\"). Só importa com COMMERCIAL_SITE=futurista.");
+    }
+    return;
+  }
+  rmSync(futuristaTarget, { recursive: true, force: true });
+  mkdirSync(futuristaTarget, { recursive: true });
+  cpSync(futuristaSource, futuristaTarget, { recursive: true });
+  console.log("[site-futurista] Sincronizado: Site comercial futurista/dist -> client/comercial-futurista");
+}
+
 if (!sync()) process.exit(1);
+syncFuturista();
 
 if (process.argv.includes("--watch")) {
   let timer;

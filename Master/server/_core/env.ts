@@ -5,6 +5,10 @@ export const ENV = {
   operatorToken: process.env.OPERATOR_TOKEN ?? "",
   isProduction: process.env.NODE_ENV === "production",
   trustProxy: process.env.TRUST_PROXY === "true",
+  // Qual site comercial servir em /comercial: "futurista" (projeto `Site
+  // comercial futurista`, ver commercialFuturista.ts) ou "legado" (padrão,
+  // client/src/site-comercial). Trocar é editar o .env e reiniciar o app.
+  commercialSite: process.env.COMMERCIAL_SITE === "futurista" ? ("futurista" as const) : ("legado" as const),
   // Painel Master (Super Admin) — autenticação própria, nada a ver com
   // operatorToken (scripts/CLI) nem com a API key de restaurante.
   platformJwtSecret: process.env.PLATFORM_JWT_SECRET ?? "",
