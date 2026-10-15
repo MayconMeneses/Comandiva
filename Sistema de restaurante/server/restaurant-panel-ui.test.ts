@@ -63,9 +63,11 @@ describe("operações do restaurante", () => {
   });
 
   it("identifica visualmente o cliente já localizado pelo telefone no checkout", () => {
-    // O lookup público devolve só o primeiro nome (auditoria 2026-10-10) — o
-    // checkout avisa quem é, sem preencher nome/endereço sozinho.
-    expect(checkoutSource).toContain("Encontramos um cadastro de");
-    expect(checkoutSource).toContain("lookup.data.firstName");
+    // O lookup público devolve nome e último endereço (decisão do dono,
+    // 2026-10-15): o checkout cumprimenta, preenche o nome e pergunta se a
+    // entrega é no mesmo endereço.
+    expect(checkoutSource).toContain("Que bom te ver de novo");
+    expect(checkoutSource).toContain("Entregar no mesmo endereço de antes?");
+    expect(checkoutSource).toContain("lookup.data");
   });
 });

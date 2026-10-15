@@ -32,21 +32,28 @@ function firstNameOf(fullName: string) {
 }
 
 export const customerRouter = router({
-  // Consulta pública (sem login): qualquer pessoa pode chamar com um telefone
-  // arbitrário. Por isso devolve o MÍNIMO — só se existe cadastro e o primeiro
-  // nome (auditoria de segurança 2026-10-10). Antes devolvia nome completo +
-  // todos os endereços, o que permitia varrer telefones colhendo dados
-  // residenciais. A equipe logada (balcão) preenche endereço pelo procedure
-  // autenticado admin.lookupCustomerByPhone. O rate limit por IP continua: o
-  // propósito é anti-enumeração de quais telefones têm cadastro.
+  // Consulta pública (sem login): cliente que já pediu não redigita nome e
+  // endereço no checkout (decisão e autorização do dono, 2026-10-15; em
+  // 2026-10-10 a auditoria tinha reduzido isto ao primeiro nome). Devolve só o
+  // necessário pra preencher o formulário: nome e o ÚLTIMO endereço usado, sem
+  // id, telefone nem histórico. Contrapartida conhecida: quem digitar o
+  // telefone de outro cliente vê o nome e o endereço dele; o rate limit por IP
+  // abaixo limita a varredura de telefones. A equipe do balcão usa o procedure
+  // autenticado admin.lookupCustomerByPhone.
   lookupByPhone: publicProcedure.input(z.object({ phone: phoneSchema })).query(async ({ input, ctx }) => {
     // Continua mais apertado que os outros endpoints, só um pouco mais alto que
     // o padrão de força bruta pra não barrar clientes legítimos atrás do mesmo
     // IP em horário de pico.
-    const limit = checkRateLimit(`customer-lookup:${ctx.req.ip}`, { maxAttempts: 20 });
+    const limit = checkRateLimit(`customer-lookup:${ctx.req.ip}`, { maxAttempts: 10 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas consultas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     const customer = await getCustomerByPhone(input.phone);
-    return customer ? { firstName: firstNameOf(customer.name) } : undefined;
+    if (!customer) return undefined;
+    const last = customer.addresses[0];
+    return {
+      firstName: firstNameOf(customer.name),
+      name: customer.name,
+      address: last ? { postalCode: last.postalCode ?? "", street: last.street, number: last.number, complement: last.complement ?? "", neighborhood: last.neighborhood, city: last.city, state: last.state, reference: last.reference ?? "" } : undefined,
+    };
   }),
 });
 

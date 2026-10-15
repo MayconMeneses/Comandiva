@@ -9,9 +9,9 @@ function contextFromIp(ip: string): TrpcContext {
 describe("limite de tentativas em consultas públicas por telefone", () => {
   it("bloqueia customer.lookupByPhone após muitas tentativas do mesmo IP", async () => {
     const ip = "203.0.113.10";
-    // 20 é o limite real do endpoint (subiu do padrão de força bruta de 8
-    // na auditoria de escalabilidade 2026-09-19 — ver customer.ts).
-    for (let attempt = 0; attempt < 20; attempt += 1) {
+    // 10 é o limite real do endpoint (baixado de 20 em 2026-10-15, quando a
+    // consulta voltou a devolver nome e endereço — ver customer.ts).
+    for (let attempt = 0; attempt < 10; attempt += 1) {
       const caller = appRouter.createCaller(contextFromIp(ip));
       await caller.customer.lookupByPhone({ phone: "85999991234" }).catch(() => undefined);
     }
