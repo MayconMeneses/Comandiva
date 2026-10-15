@@ -20,7 +20,7 @@ const SPANS = ["lg:col-span-4", "lg:col-span-2", "lg:col-span-2", "lg:col-span-4
 function Card({ index }: { index: number }) {
   const item = DIFERENCIAIS[index];
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.4 });
+  const inView = useInView(ref, { amount: "some" });
   const reduce = useReducedMotion();
   const Demo = DEMOS[item.key];
 

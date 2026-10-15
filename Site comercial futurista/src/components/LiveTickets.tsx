@@ -56,7 +56,9 @@ function Ticker({ value, className }: { value: number; className?: string }) {
 export function LiveTickets({ play }: { play: boolean }) {
   const reduce = useReducedMotion();
   const root = useRef<HTMLDivElement>(null);
-  const inView = useInView(root, { amount: 0.3 });
+  // "some": roda assim que qualquer parte aparece. Em celular a lista é mais alta que o que
+  // cabe abaixo dos botões, então exigir uma fração dela (amount) deixava a demo parada ao abrir.
+  const inView = useInView(root, { amount: "some" });
   const [count, setCount] = useState(VISIBLE);
 
   const running = play && inView && !reduce;
