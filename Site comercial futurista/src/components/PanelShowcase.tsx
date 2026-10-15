@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
+import { asset } from "../lib/asset";
 
 /**
  * Print real do painel de pedidos que começa inclinado em 3D e se endireita
@@ -41,7 +42,7 @@ export function PanelShowcase() {
         >
           <div className="relative overflow-hidden rounded-[calc(2rem-0.375rem)]">
             <img
-              src="/assets/pedidos.webp"
+              src={asset("/assets/pedidos.webp")}
               width={1353}
               height={577}
               loading="lazy"

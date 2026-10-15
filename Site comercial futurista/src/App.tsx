@@ -10,6 +10,9 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Cadastro = lazy(() => import("./pages/Cadastro"));
 const Sucesso = lazy(() => import("./pages/Sucesso"));
 const Cardapio = lazy(() => import("./pages/Cardapio"));
+const Confirmando = lazy(() => import("./pages/Confirmando"));
+const Termos = lazy(() => import("./pages/Termos"));
+const Privacidade = lazy(() => import("./pages/Privacidade"));
 import { track } from "./lib/track";
 import { scrollToTarget } from "./lib/scroll";
 
@@ -47,9 +50,12 @@ export default function App() {
             <Home ready={ready} />
           </Route>
           <Route path="/planos" component={Planos} />
+          <Route path="/termos" component={Termos} />
+          <Route path="/privacidade" component={Privacidade} />
           {/* A ordem importa: rotas fixas antes de /cadastro/:planKey */}
           <Route path="/cadastro/sucesso" component={Sucesso} />
           <Route path="/cadastro/cardapio" component={Cardapio} />
+          <Route path="/cadastro/confirmando" component={Confirmando} />
           <Route path="/cadastro/:planKey" component={Cadastro} />
           <Route component={NotFound} />
         </Switch>

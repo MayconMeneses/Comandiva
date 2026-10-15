@@ -9,6 +9,15 @@ import { compressImage, formatMB } from "../lib/compressImage";
 // Mesmo limite do servidor (Master: MAX_MENU_FILE_BYTES = 20MB). Fotos são reduzidas antes.
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const ACCEPT = ".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp";
+/** Mesmos formatos aceitos pelo servidor (ALLOWED_MENU_MIME_TYPES no Master). */
+const ALLOWED_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -48,6 +57,12 @@ export default function Cardapio() {
     const original = input.files?.[0] ?? null;
     if (!original) {
       setFile(null);
+      return;
+    }
+    if (!ALLOWED_TYPES.has(original.type)) {
+      setError("Formato não aceito. Envie PDF, Word, PNG, JPG ou WEBP.");
+      setFile(null);
+      input.value = "";
       return;
     }
     setPreparing(true);

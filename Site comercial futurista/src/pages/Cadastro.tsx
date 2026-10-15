@@ -44,7 +44,14 @@ export default function Cadastro() {
     setSending(true);
     track("signup_submit");
     try {
-      const r = await signup({ ...form, planKey: plan!.key as PlanKey });
+      // Mesmos limites do servidor (public.signup no Master): espaços das pontas fora.
+      const r = await signup({
+        name: form.name.trim(),
+        contactName: form.contactName.trim(),
+        contactEmail: form.contactEmail.trim(),
+        contactPhone: form.contactPhone.trim(),
+        planKey: plan!.key as PlanKey,
+      });
       navigate(`/cadastro/sucesso?ref=${r.restaurantId}&t=${encodeURIComponent(r.uploadToken)}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível enviar agora. Tente de novo em instantes.");
@@ -83,14 +90,15 @@ export default function Cadastro() {
           </p>
 
           <div className="mt-6 space-y-4">
-            <Field id="name" label="Nome do restaurante" required autoComplete="organization" value={form.name} onChange={set("name")} />
-            <Field id="contactName" label="Seu nome" required autoComplete="name" value={form.contactName} onChange={set("contactName")} />
-            <Field id="contactEmail" label="E-mail" type="email" required autoComplete="email" value={form.contactEmail} onChange={set("contactEmail")} />
+            <Field id="name" label="Nome do restaurante" required minLength={2} maxLength={160} autoComplete="organization" value={form.name} onChange={set("name")} />
+            <Field id="contactName" label="Seu nome" required maxLength={160} autoComplete="name" value={form.contactName} onChange={set("contactName")} />
+            <Field id="contactEmail" label="E-mail" type="email" required maxLength={254} autoComplete="email" value={form.contactEmail} onChange={set("contactEmail")} />
             <Field
               id="contactPhone"
               label="WhatsApp"
               type="tel"
               required
+              maxLength={24}
               autoComplete="tel"
               inputMode="tel"
               placeholder="(85) 9 9999-9999"

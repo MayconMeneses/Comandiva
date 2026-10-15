@@ -3,6 +3,7 @@ import { animate, motion, useInView, useMotionValue, useMotionValueEvent, useRed
 import { COMPARISON } from "../data/home";
 import { SectionHeading } from "./ui/SectionHeading";
 import { reveal } from "../lib/motion";
+import { asset } from "../lib/asset";
 
 const NEIGHBORS = ["Pizzaria vizinha", "Hamburgueria ao lado", "Seu restaurante", "Japonês da esquina", "Lanchonete da rua"];
 
@@ -78,7 +79,7 @@ export function CompareSlider() {
             onPointerMove={e => e.buttons === 1 && fromPointer(e.clientX)}
           >
             <img
-              src="/assets/cardapio-pizzas.webp"
+              src={asset("/assets/cardapio-pizzas.webp")}
               width={1352}
               height={633}
               loading="lazy"
