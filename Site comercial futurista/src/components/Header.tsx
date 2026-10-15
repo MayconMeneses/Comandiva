@@ -1,8 +1,10 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { asset } from "../lib/asset";
+import { scrollToHashWhenReady } from "../lib/scroll";
 
 /** Menu em "ilha": pílula flutuante, destacada do topo (referência: Floating Navbar, 21st.dev). */
 export function Header() {
+  const [location] = useLocation();
   return (
     <header className="pointer-events-none sticky top-0 z-50 px-3 pt-3 sm:pt-4">
       <div className="pointer-events-auto mx-auto flex h-14 max-w-5xl items-center justify-between rounded-full border border-white/10 bg-[#0a0f26]/92 pl-4 pr-1.5 shadow-[0_10px_40px_-20px_rgba(0,0,0,.9)]">
@@ -11,7 +13,17 @@ export function Header() {
           <span className="font-display text-base font-semibold tracking-tight">Comandiva</span>
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-0.5 text-sm">
-          <Link href="/#por-dentro" className="hidden rounded-full px-3 py-2 text-ink-soft transition-colors hover:text-ink sm:inline-block">
+          <Link
+            href="/#por-dentro"
+            // Já na Home o roteador só troca o endereço (não rola); vindo de outra página, o App rola ao chegar.
+            onClick={e => {
+              if (location !== "/") return;
+              e.preventDefault();
+              history.pushState(null, "", asset("/#por-dentro"));
+              scrollToHashWhenReady("#por-dentro");
+            }}
+            className="hidden rounded-full px-3 py-2 text-ink-soft transition-colors hover:text-ink sm:inline-block"
+          >
             Por dentro
           </Link>
           <Link href="/planos" className="hidden rounded-full px-3 py-2 text-ink-soft transition-colors hover:text-ink sm:inline-block">

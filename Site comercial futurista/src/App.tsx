@@ -14,7 +14,7 @@ const Confirmando = lazy(() => import("./pages/Confirmando"));
 const Termos = lazy(() => import("./pages/Termos"));
 const Privacidade = lazy(() => import("./pages/Privacidade"));
 import { track } from "./lib/track";
-import { scrollToTarget } from "./lib/scroll";
+import { scrollToHashWhenReady, scrollToTarget } from "./lib/scroll";
 
 /** Ao trocar de página, volta ao topo (ou vai até a âncora, ex.: /#por-dentro). */
 function useScrollOnNavigate() {
@@ -22,7 +22,7 @@ function useScrollOnNavigate() {
   useEffect(() => {
     track("page_view", location);
     const hash = window.location.hash;
-    if (hash) requestAnimationFrame(() => scrollToTarget(hash));
+    if (hash) scrollToHashWhenReady(hash);
     else scrollToTarget(0, true);
   }, [location]);
 }
