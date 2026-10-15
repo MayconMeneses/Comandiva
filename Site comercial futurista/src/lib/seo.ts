@@ -31,6 +31,18 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
     title: "Envie seu cardápio — Comandiva",
     description: "Envie o cardápio do seu restaurante (PDF, Word ou foto) para adiantar a configuração do sistema.",
   },
+  "/termos": {
+    title: "Termos de Uso | Comandiva",
+    description: "Termos de uso do Comandiva: como funciona a assinatura mensal, o que está incluído e as condições de uso do sistema para restaurantes.",
+  },
+  "/privacidade": {
+    title: "Política de Privacidade e LGPD | Comandiva",
+    description: "Política de privacidade do Comandiva: quais dados coletamos, para que usamos, como protegemos e como exercer seus direitos pela LGPD.",
+  },
+  "/cadastro/confirmando": {
+    title: "Confirmando pagamento — Comandiva",
+    description: "Confirmando o pagamento do seu cadastro no Comandiva.",
+  },
   "/planos": {
     title: "Planos e Preços — Sistema para Restaurante | Comandiva",
     description:

@@ -4,6 +4,7 @@ import { MagneticLink } from "./MagneticLink";
 import { useInView } from "motion/react";
 import { useRef } from "react";
 import { track } from "../lib/track";
+import { asset } from "../lib/asset";
 
 /**
  * Fechamento: frase gigante revelada palavra a palavra e botão magnético
@@ -31,7 +32,7 @@ export function FinalCta() {
         <p className="mx-auto mt-6 max-w-xl text-ink-soft">7 dias grátis assim que seu sistema estiver pronto — sem cartão de crédito. Cancele quando quiser.</p>
         <div className="mt-10 flex justify-center">
           <MagneticLink
-            href="/planos"
+            href={asset("/planos")}
             onClick={e => {
               e.preventDefault();
               track("cta_click");

@@ -8,8 +8,8 @@ Testado no build de produção (`npm run build` + `vite preview`, porta 5181), C
 | 2 | Termos | OK | Link no rodapé → /comercial/termos (200) |
 | 3 | CTA limpa | OK | Uma ação principal por tela: "Ver planos e começar" (hero), "Ver planos" (menu), "Assinar <plano>" (Planos), CTA final |
 | 4 | FAQ | OK | 5 perguntas reais do site atual + JSON-LD FAQPage |
-| 5 | robots.txt | OK | `public/robots.txt` (200), libera tudo e aponta o sitemap |
-| 6 | sitemap.xml | Parcial | `public/sitemap.xml` (200) com as 2 URLs canônicas. **Envio ao Search Console não feito** (precisa da sua conta) |
+| 5 | robots.txt | OK | Servido pelo Master na raiz (mmsystem.tech/robots.txt, libera /comercial). O site futurista mora em /comercial e não tem robots próprio |
+| 6 | sitemap.xml | Parcial | Servido pelo Master na raiz (já lista /comercial, planos, termos e privacidade). **Envio ao Search Console não feito** (precisa da sua conta) |
 | 7 | 404 personalizado | Parcial | Página própria com volta ao início e aos planos, `noindex`. Status HTTP: 200 no preview isolado (fallback de SPA); no Master publicado, rota inexistente em /comercial já devolve **404** (conferido com curl) |
 | 8 | Texto alternativo | OK | Prints com `alt` descritivo; ícones decorativos com `alt=""`; Lighthouse Acessibilidade 100 |
 | 9 | Analytics | OK (desligado aqui) | Mesma medição própria do Master (page_view, cta_click, signup_start). Só envia com `VITE_TRACK_ENDPOINT` definido, para não gerar 404 rodando sozinho |
@@ -62,3 +62,11 @@ Medido num notebook com Intel UHD 620 (placa integrada): a rolagem travava.
 - Master: `MAX_MENU_FILE_BYTES` 8MB → 20MB (`server/routers/public.ts`) e `MENU_UPLOAD_BODY_LIMIT` 12mb → 28mb (`server/_core/bodyLimits.ts`, só no envio de cardápio). Teto do Telegram para bot é 50MB; 20MB por causa da memória do container. `pnpm run check` ok e `pnpm run test` 43 arquivos / 360 testes passando.
 - Site futurista: limite 20MB e fotos (JPG/PNG/WEBP) reduzidas no navegador (lado maior 2400 px, JPEG 85%). Testado sem envio: foto de 21,8MB → 2,5MB; PDF de 25MB bloqueado; PDF de 15MB aceito.
 - Pendente: publicar o Master. Até lá o servidor em produção continua recusando arquivos acima de 8MB.
+
+## Segurança igual à do site atual (2026-10-15)
+- A segurança do site atual é do servidor do Master (limite de tentativas por IP, token do cardápio com validade, checagem do conteúdo do arquivo, limite de corpo) e dos cabeçalhos HTTP que ele envia. O futurista usa as mesmas rotas, então herda a parte do servidor.
+- Mesmos cabeçalhos do Master aplicados no servidor do próprio futurista (`vite.config.ts`): CSP idêntica (`default-src 'self'`, `font-src 'self'`, `frame-ancestors 'none'`…), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (câmera/microfone/localização desligados). A CSP vale no build (preview), como no Master.
+- Problema encontrado e corrigido: a fonte JetBrains Mono trazia subconjuntos de outros alfabetos embutidos como `data:` no CSS, que a CSP do Master bloquearia (6 erros). Agora só o alfabeto latino e nenhuma fonte é embutida (`build.assetsInlineLimit`).
+- Formulários com os mesmos limites do servidor: nome do restaurante 2–160, nome 160, e-mail 254, WhatsApp 24, espaços das pontas removidos; cardápio só aceita os formatos que o servidor aceita.
+- `npm audit`: 0 vulnerabilidades. JSON-LD com `<` escapado (como no site atual). Nenhum link abre em nova aba sem proteção.
+- Teste sob a CSP (build de produção): Home, Planos (com API), Cadastro, Sucesso, 404 e Cardápio com compressão de foto (17,6MB → 2,4MB) — 0 violações, console sem erros.

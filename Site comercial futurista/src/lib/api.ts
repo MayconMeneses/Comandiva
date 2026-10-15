@@ -38,6 +38,14 @@ export async function trpcMutation<T>(path: string, input: unknown): Promise<T> 
   return (body?.result?.data?.json ?? body?.result?.data) as T;
 }
 
+/** Consulta (GET) numa rota pública do Master — mesmo formato tRPC sem transformer. */
+export async function trpcQuery<T>(path: string, input: unknown): Promise<T> {
+  const res = await fetch(`/api/trpc/${path}?input=${encodeURIComponent(JSON.stringify(input))}`);
+  const body = await res.json().catch(() => null);
+  if (!res.ok || body?.error) throw new ApiError(body?.error?.message ?? "Não foi possível consultar agora.");
+  return (body?.result?.data?.json ?? body?.result?.data) as T;
+}
+
 export type SignupInput = {
   name: string;
   planKey: "essencial" | "profissional" | "premium";

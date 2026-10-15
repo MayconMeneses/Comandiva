@@ -1,3 +1,5 @@
+import { asset } from "../lib/asset";
+
 /**
  * Textos das seções da Home, tirados de ../Site comercial/src/pages/Home.tsx
  * e SavingsCalculator.tsx. Nada novo prometido aqui.
@@ -56,7 +58,7 @@ export const DIFERENCIAIS: { key: DiferencialKey; title: string; description: st
 
 export const TELAS = [
   {
-    src: "/assets/cardapio-pizzas.webp",
+    src: asset("/assets/cardapio-pizzas.webp"),
     w: 1352,
     h: 633,
     alt: "Cardápio público com a categoria Pizza Tradicional, cada pizza com foto, descrição e preço",
@@ -64,7 +66,7 @@ export const TELAS = [
     caption: "O cliente navega por categorias, vê foto, descrição e preço de cada item e personaliza o pedido sozinho.",
   },
   {
-    src: "/assets/visao-geral.webp",
+    src: asset("/assets/visao-geral.webp"),
     w: 1356,
     h: 637,
     alt: "Visão geral do painel administrativo com pedidos do dia, faturamento e ticket médio",
@@ -72,7 +74,7 @@ export const TELAS = [
     caption: "Pedidos de hoje, faturamento e ticket médio assim que você abre o painel.",
   },
   {
-    src: "/assets/cozinha.webp",
+    src: asset("/assets/cozinha.webp"),
     w: 1353,
     h: 577,
     alt: "Tela da cozinha com a fila de pedidos em ordem de chegada",
@@ -80,7 +82,7 @@ export const TELAS = [
     caption: "Os pedidos aceitos aparecem em ordem de chegada, sem papel e sem gritaria.",
   },
   {
-    src: "/assets/comanda.webp",
+    src: asset("/assets/comanda.webp"),
     w: 685,
     h: 613,
     alt: "Comanda digital de uma mesa com rodadas pedidas, total, valor pago e saldo",
@@ -130,21 +132,21 @@ export const FAQ = [
 export const ROTINA = [
   {
     title: "Pense no crescimento, não na correria",
-    image: "/assets/rotina-crescimento.webp",
+    image: asset("/assets/rotina-crescimento.webp"),
     w: 800,
     h: 711,
     description: "Troque hora apagando incêndio por hora pensando em cardápio novo, horário de pico e como girar mais nos dias fracos.",
   },
   {
     title: "Menos trabalho repetitivo",
-    image: "/assets/rotina-menos-trabalho.webp",
+    image: asset("/assets/rotina-menos-trabalho.webp"),
     w: 800,
     h: 630,
     description: "O pedido entra sozinho, já com o valor certo. Ninguém mais precisa copiar comanda à mão nem discutir troco no balcão.",
   },
   {
     title: "Tudo numa tela só",
-    image: "/assets/rotina-tudo-tela.webp",
+    image: asset("/assets/rotina-tudo-tela.webp"),
     w: 800,
     h: 741,
     description: "Cardápio, mesa, entrega e relatório do mês reunidos no mesmo lugar — chega de abrir três sistemas diferentes pra fechar o caixa.",

@@ -5,6 +5,7 @@ import { track } from "../lib/track";
 import { CutReveal } from "./CutReveal";
 import { LiveTickets } from "./LiveTickets";
 import { MagneticLink } from "./MagneticLink";
+import { asset } from "../lib/asset";
 
 function IconCheck() {
   return (
@@ -50,7 +51,7 @@ export function Hero({ ready }: { ready: boolean }) {
 
           <motion.div {...fadeUp(0.8)} className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <MagneticLink
-              href="/planos"
+              href={asset("/planos")}
               onClick={e => {
                 e.preventDefault();
                 track("cta_click");

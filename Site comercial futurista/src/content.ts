@@ -1,15 +1,9 @@
 /**
- * Textos e links reais, tirados do site comercial atual
+ * Textos reais, tirados do site comercial atual
  * (../Site comercial/src/pages/Home.tsx). Nada de número, depoimento ou
- * promessa nova aqui.
- *
- * As páginas Planos/Cadastro continuam no site atual; os links apontam
- * para lá até esta versão ser portada para o Master.
+ * promessa nova aqui. Todas as páginas (planos, cadastro, termos,
+ * privacidade) existem dentro deste site.
  */
-export const SITE_URL = "https://mmsystem.tech/comercial";
-export const PLANOS_URL = `${SITE_URL}/planos`;
-export const TERMOS_URL = `${SITE_URL}/termos`;
-export const PRIVACIDADE_URL = `${SITE_URL}/privacidade`;
 
 export const HERO = {
   eyebrow: "Sistema para restaurantes",
