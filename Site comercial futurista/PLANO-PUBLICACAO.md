@@ -40,7 +40,7 @@ O site futurista vira um **app separado servido pelo Master dentro de `/comercia
 
 **Para a Fase 1, além do procedimento de sempre:** rodar `npm run build` no futurista e o sync (`pnpm run check` no Master) antes do `git archive`, e acrescentar `client/comercial-futurista` no `tar -r`.
 
-## Fase 1 — Publicar na VPS (só com o seu ok, mesmo procedimento de sempre)
+## Fase 1 — Publicar na VPS — ✅ concluída em 2026-10-15 (22:07–22:30 UTC)
 
 1. Backup do banco (`scripts/backup-db.mjs` dentro do container) e cópia da pasta atual.
 2. `git archive "HEAD:Master"` + `tar -r` de `client/src/site-comercial` **e** `client/public/comercial`; conferir CRLF (`grep -P '\r'`) antes de enviar.
@@ -51,6 +51,22 @@ O site futurista vira um **app separado servido pelo Master dentro de `/comercia
 **Não muda:** Caddy, domínio, certificado HTTPS, acesso SSH, banco, volumes, nome do projeto Docker (`saas-core`) e o comando de publicação.
 
 **Vai junto nessa publicação:** o envio de cardápio de até 20MB (commit `b316887`). O commit de segurança `3d68d66` é do **Sistema de restaurante** (outro container) e **não** vai junto.
+
+### Resultado da Fase 1 (só o Master; o app dos restaurantes não foi tocado)
+- **Acesso:** `ssh pubx-vps` (o alias traz a chave; `ssh root@IP` direto dá "Permission denied"). Compose do Master: `docker compose -f docker-compose.saas-core.yml ...`.
+- **Backups antes de mexer:** banco do Master `pre-deploy-20261015220741.tar.gz.enc` (dentro do container, em `backups/`, com cópia externa enviada) e código `/opt/saas-core-src-pre-deploy-20261015220741.tgz`. 14 migrations antes e depois (nenhuma nova).
+- **Pacote:** `git -c core.autocrlf=false archive HEAD:Master` + `client/src/site-comercial` + `client/comercial-futurista`; 310 arquivos, 0 CR em `infra/`, `scripts/` e `server/`.
+- **Troca de pasta:** `/opt/saas-core` (novo) e `/opt/saas-core-old-20261015220741` (anterior, para voltar atrás). `docker compose ... up -d --build app` em segundo plano; container saudável, migrations ok, sem `[fatal]`.
+- **Primeiro em modo legado** (sem `COMMERCIAL_SITE`): site atual idêntico ao de antes (mesmas URLs, 404 real, imagem `og-comercial.png`, preços do banco).
+- **Depois a chave:** `COMMERCIAL_SITE=futurista` acrescentada ao `.env` da VPS e `up -d app` (sem rebuild). Log: "Servindo o site comercial futurista em /comercial".
+- **Conferido no ar (https://mmsystem.tech):** `/comercial`, `/planos`, `/termos`, `/privacidade`, `/cadastro/:plano`, sucesso, cardápio e confirmando = 200; `/comercial/nao-existe` = 404; título/canonical/OG por rota com `og-comandiva.png`; CSP e demais cabeçalhos de segurança; planos vindos da API real; medição (`/api/track`) respondendo 204; 0 violações de CSP e 0 erros de console; sem rolagem horizontal em 1440 e 390 px. `comandiva.mmsystem.tech` e `pubx.mmsystem.tech` seguem 200.
+
+### Como voltar atrás agora
+1. **Rápido (segundos):** na VPS, em `/opt/saas-core/.env` trocar a linha para `COMMERCIAL_SITE=legado` e rodar `docker compose -f docker-compose.saas-core.yml up -d app` (não `restart`, que ignora o `.env`).
+2. **Completo:** parar o app, devolver `/opt/saas-core-old-20261015220741` para `/opt/saas-core` e subir com `up -d --build app`. O banco não foi alterado por esta publicação.
+
+### Armadilha nova descoberta nesta publicação
+`git archive HEAD:Master` no Windows com `core.autocrlf=true` exporta **CRLF** (o `.gitattributes` da raiz não vale para o pacote de uma subpasta), e `grep -P ''` **não detecta CR** neste computador (o teste de controle dá 0). Usar `git -c core.autocrlf=false archive` e conferir com `tr -cd '' < arquivo | wc -c` (tem que dar 0).
 
 ## Fase 2 — Conferir em produção
 

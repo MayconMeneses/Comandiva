@@ -6,6 +6,7 @@ import { CutReveal } from "./CutReveal";
 import { LiveTickets } from "./LiveTickets";
 import { MagneticLink } from "./MagneticLink";
 import { asset } from "../lib/asset";
+import { scrollToHashWhenReady } from "../lib/scroll";
 
 function IconCheck() {
   return (
@@ -64,6 +65,10 @@ export function Hero({ ready }: { ready: boolean }) {
             </MagneticLink>
             <a
               href="#por-dentro"
+              onClick={e => {
+                e.preventDefault();
+                scrollToHashWhenReady("#por-dentro");
+              }}
               className="inline-flex h-13 items-center justify-center rounded-xl border border-line px-7 text-base font-semibold text-ink transition-colors hover:bg-bg-raised"
             >
               {HERO.secondaryCta}

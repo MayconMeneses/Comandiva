@@ -70,3 +70,15 @@ Medido num notebook com Intel UHD 620 (placa integrada): a rolagem travava.
 - Formulários com os mesmos limites do servidor: nome do restaurante 2–160, nome 160, e-mail 254, WhatsApp 24, espaços das pontas removidos; cardápio só aceita os formatos que o servidor aceita.
 - `npm audit`: 0 vulnerabilidades. JSON-LD com `<` escapado (como no site atual). Nenhum link abre em nova aba sem proteção.
 - Teste sob a CSP (build de produção): Home, Planos (com API), Cadastro, Sucesso, 404 e Cardápio com compressão de foto (17,6MB → 2,4MB) — 0 violações, console sem erros.
+
+## Fase 2 — teste real em produção (2026-10-15)
+- Site no ar (https://mmsystem.tech/comercial, `COMMERCIAL_SITE=futurista`): cadastro "TESTE Claude - apagar (Fase 2)" (plano Entrada, e-mail `teste.claude@example.com`) criou o **restaurante nº 8** (`public.signup` 200, página "Cadastro recebido!").
+- Cardápio de teste em PDF de 12,0 MB (acima dos 8 MB antigos; corpo da requisição de 16 MB, acima dos 12 MB antigos) aceito: `public.uploadMenuReference` 200, página "Cardápio recebido!". Log do Master sem erros no período.
+- Pendente: confirmação do dono de que as 2 mensagens chegaram ao Telegram. **Restaurantes de teste a apagar no Painel Master: nº 7 e nº 8.**
+
+## Interações no site no ar — diagnóstico e correção (2026-10-15)
+Relato do dono: "as interações não estão funcionando". Testado no site publicado (https://mmsystem.tech/comercial) com Chromium como visitante novo (preloader ligado) e com iPhone emulado (toque):
+- **Funcionam:** botão do hero, "Ver planos" do menu, logo, "descubra seu plano", "Assinar", botão voltar do navegador, rodapé, calculadora (valores e impressão dos extratos), FAQ, comparador arrastável (50% → 20% no arraste, 80% no clique), passos do painel (rolam e ativam o passo), botão magnético, brilho do bento, inclinação dos ingressos, carimbo do plano indicado. 0 erros de console, 0 violações de CSP, sem rolagem lateral (1440 e 390 px).
+- **Defeito real encontrado e corrigido (ainda não publicado):** o link **"Por dentro" do menu não rolava** — na Home só trocava o endereço (o roteador faz pushState e o `useEffect` só reage a mudança de rota), e vindo de outra página tentava rolar antes de a seção (carregada sob demanda) existir. Correção: `scrollToHashWhenReady()` em `src/lib/scroll.ts` (espera o alvo existir, até 6 s), usada no menu, no botão "Ver por dentro" do hero e no carregamento de links com `#` (ex.: `/comercial/#por-dentro`). Testado em build local: menu na Home, menu vindo de Planos, link direto e botão do hero chegam à seção em ~1,2 s; botão voltar ok.
+- Falsos alarmes (eram do teste, não do site): o Playwright rola a página para clicar e atrapalha a rolagem suave; e medir o botão magnético durante a animação de entrada deixa o mouse fora dele.
+- Em aberto: o que exatamente falhou no navegador do dono (qual interação, qual navegador/aparelho, se o Windows/Chrome está com animações reduzidas ou modo de economia de energia — nesse caso o site fica propositalmente mais estático).
