@@ -50,12 +50,17 @@ export type LocalPriceCalcResult =
   | { ok: true; subtotalCents: number; deliveryFeeCents: number; totalCents: number; discountCents: number }
   | { ok: false; message: string };
 
-export function calculateLocalPrice(input: LocalPriceCalcInput): LocalPriceCalcResult {
-  const rawTotals = calculateCartTotal(input.items, input.deliveryFeeCents);
+type PromotionForDiscount = LocalPriceCalcInput["promotions"][number];
 
+/**
+ * Desconto de combo/promoção sobre os itens do carrinho — a mesma conta do
+ * servidor (`priceOrder`). Usada pela sacola e pelo botão "Adicionar" pra
+ * mostrar sempre o valor que o cliente de fato vai pagar.
+ */
+export function computeCartDiscountCents(items: Array<{ productId: number; quantity: number; unitPriceCents: number }>, promotions: PromotionForDiscount[]): number {
   // Toda promoção com preço promocional e ao menos um produto vinculado desconta
   // (mesmo filtro de `server/routers/order.ts`): o preço anunciado é o cobrado.
-  const combos: ComboDefinition[] = input.promotions
+  const combos: ComboDefinition[] = promotions
     .filter((promotion): promotion is typeof promotion & { promoPriceCents: number } => promotion.promoPriceCents != null && promotion.products.length > 0)
     .map(promotion => ({
       promotionId: promotion.id,
@@ -65,9 +70,17 @@ export function calculateLocalPrice(input: LocalPriceCalcInput): LocalPriceCalcR
     }));
 
   const cartQuantityByProductId: Record<number, number> = {};
-  for (const item of input.items) cartQuantityByProductId[item.productId] = (cartQuantityByProductId[item.productId] ?? 0) + item.quantity;
+  let subtotalCents = 0;
+  for (const item of items) {
+    cartQuantityByProductId[item.productId] = (cartQuantityByProductId[item.productId] ?? 0) + item.quantity;
+    subtotalCents += item.unitPriceCents * item.quantity;
+  }
+  return Math.min(computeComboDiscountCents(cartQuantityByProductId, combos), subtotalCents);
+}
 
-  const discountCents = Math.min(computeComboDiscountCents(cartQuantityByProductId, combos), rawTotals.subtotalCents);
+export function calculateLocalPrice(input: LocalPriceCalcInput): LocalPriceCalcResult {
+  const rawTotals = calculateCartTotal(input.items, input.deliveryFeeCents);
+  const discountCents = computeCartDiscountCents(input.items, input.promotions);
   const subtotalCents = rawTotals.subtotalCents - discountCents;
   const totalCents = rawTotals.totalCents - discountCents;
 
