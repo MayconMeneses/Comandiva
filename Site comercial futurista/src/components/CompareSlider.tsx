@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { animate, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion, useTransform } from "motion/react";
+import { animate, motion, useInView, useMotionValue, useMotionValueEvent, useTransform } from "motion/react";
 import { COMPARISON } from "../data/home";
 import { SectionHeading } from "./ui/SectionHeading";
 import { reveal } from "../lib/motion";
@@ -38,7 +38,6 @@ function MarketplaceMock() {
  */
 export function CompareSlider() {
   const frame = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
   const inView = useInView(frame, { once: true, amount: 0.5 });
   const pos = useMotionValue(50);
   const [value, setValue] = useState(50);
@@ -47,10 +46,10 @@ export function CompareSlider() {
   useMotionValueEvent(pos, "change", v => setValue(Math.round(v)));
 
   useEffect(() => {
-    if (!inView || reduce) return;
+    if (!inView) return;
     const c = animate(pos, [50, 22, 78, 50], { duration: 2.4, ease: "easeInOut", delay: 0.3 });
     return () => c.stop();
-  }, [inView, reduce, pos]);
+  }, [inView, pos]);
 
   function fromPointer(clientX: number) {
     const r = frame.current?.getBoundingClientRect();

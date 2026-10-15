@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { animate, motion, useReducedMotion } from "motion/react";
+import { animate, motion } from "motion/react";
 import { SAVINGS } from "../data/home";
 import { SectionHeading } from "./ui/SectionHeading";
 import { ReceiptPrinter } from "./ui/ReceiptPrinter";
@@ -13,18 +13,13 @@ const brl2 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL"
 function Rolling({ cents, fmt = brl0 }: { cents: number; fmt?: Intl.NumberFormat }) {
   const ref = useRef<HTMLSpanElement>(null);
   const prev = useRef(cents);
-  const reduce = useReducedMotion();
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (reduce) {
-      node.textContent = fmt.format(cents / 100);
-      return;
-    }
     const c = animate(prev.current, cents, { duration: 0.6, ease: EASE, onUpdate: v => (node.textContent = fmt.format(v / 100)) });
     prev.current = cents;
     return () => c.stop();
-  }, [cents, reduce, fmt]);
+  }, [cents, fmt]);
   return (
     <span ref={ref} className="tabular-nums">
       {fmt.format(cents / 100)}
