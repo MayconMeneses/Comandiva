@@ -12,8 +12,8 @@ const testRouter = router({
   seguranca: platformSecurityProcedure.query(() => "ok"),
 });
 
-function ctx(totpEnabled: boolean): TrpcContext {
-  return { req: {}, res: {}, restaurant: null, platformAdmin: { id: 1, active: true, role: "owner", permissions: ["planos"], totpEnabled } } as unknown as TrpcContext;
+function ctx(securityEnabled: boolean): TrpcContext {
+  return { req: {}, res: {}, restaurant: null, platformAdmin: { id: 1, active: true, role: "owner", permissions: ["planos"], securityEnabled } } as unknown as TrpcContext;
 }
 
 beforeEach(() => {
@@ -21,13 +21,13 @@ beforeEach(() => {
 });
 
 describe("PLATFORM_REQUIRE_2FA", () => {
-  it("desligado (padrão): conta sem 2FA usa o painel normalmente", async () => {
+  it("desligado (padrão): conta sem a verificação usa o painel normalmente", async () => {
     const caller = testRouter.createCaller(ctx(false));
     await expect(caller.painel()).resolves.toBe("ok");
     await expect(caller.area()).resolves.toBe("ok");
   });
 
-  it("ligado: conta SEM 2FA é barrada no servidor em todo o painel, mas passa na tela Segurança", async () => {
+  it("ligado: conta SEM a verificação é barrada no servidor em todo o painel, mas passa na tela Segurança", async () => {
     env.ENV.requirePlatform2fa = true;
     const caller = testRouter.createCaller(ctx(false));
     await expect(caller.painel()).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -35,7 +35,7 @@ describe("PLATFORM_REQUIRE_2FA", () => {
     await expect(caller.seguranca()).resolves.toBe("ok");
   });
 
-  it("ligado: conta COM 2FA usa tudo normalmente", async () => {
+  it("ligado: conta COM a verificação usa tudo normalmente", async () => {
     env.ENV.requirePlatform2fa = true;
     const caller = testRouter.createCaller(ctx(true));
     await expect(caller.painel()).resolves.toBe("ok");

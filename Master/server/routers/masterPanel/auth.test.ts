@@ -2,10 +2,10 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { TrpcContext } from "../../_core/context";
 
 /**
- * Login do Painel Master, passo 1 (e-mail + senha) de contas SEM 2FA, mais os
- * limites, o audit log e os alertas. O fluxo completo COM 2FA (ativar,
- * pedir código, replay, código de recuperação, limite do 2º fator) está em
- * twoFactorFlow.test.ts.
+ * Login do Painel Master, passo 1 (e-mail + senha) de contas SEM a verificação de
+ * segurança, mais os limites, o audit log e os alertas. O fluxo completo COM a
+ * verificação (cadastrar, pergunta + código, erros, limite de tentativas) está em
+ * securityFlow.test.ts.
  */
 const mocks = vi.hoisted(() => ({
   authenticatePlatformAdmin: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock("../../db/platformAdmins", () => ({
   authenticatePlatformAdmin: mocks.authenticatePlatformAdmin,
   markPlatformAdminSignedIn: mocks.markPlatformAdminSignedIn,
 }));
-vi.mock("../../db/platformAdminSecurity", () => ({ getPlatformAdminSecurityRecord: vi.fn(), countUnusedRecoveryCodes: vi.fn() }));
+vi.mock("../../db/platformAdminSecurity", () => ({ getPlatformAdminSecurityRecord: vi.fn() }));
 vi.mock("../../db/auditLog", () => ({ recordPlatformAuditLog: mocks.recordPlatformAuditLog }));
 vi.mock("../../_core/telegramService", async importOriginal => {
   const actual = await importOriginal<typeof import("../../_core/telegramService")>();
@@ -39,7 +39,7 @@ function makeCtx(opts: { ip?: string; userAgent?: string; admin?: unknown }): Tr
   } as never;
 }
 
-const ADMIN = { id: 42, name: "Dono", email: "dono@mmsystemcreator.com.br", totpEnabled: false };
+const ADMIN = { id: 42, name: "Dono", email: "dono@mmsystemcreator.com.br", securityEnabled: false };
 const OK = { ok: true as const, admin: { ...ADMIN } };
 const FAIL_UNKNOWN = { ok: false as const, knownAdmin: null };
 const FAIL_KNOWN = { ok: false as const, knownAdmin: { id: 42, email: ADMIN.email } };
@@ -50,13 +50,13 @@ beforeEach(() => {
   mocks.markPlatformAdminSignedIn.mockResolvedValue(undefined);
 });
 
-describe("login — conta sem 2FA", () => {
+describe("login — conta sem a verificação", () => {
   it("senha certa: abre sessão direto, grava auditoria com IP e avisa no Telegram", async () => {
     mocks.authenticatePlatformAdmin.mockResolvedValue(OK);
     const ctx = makeCtx({ ip: "203.0.113.1" });
     const result = await masterPanelAuthRouter.createCaller(ctx).login({ email: ADMIN.email, password: "senha-certa" });
 
-    expect(result).toMatchObject({ requiresTotp: false, name: ADMIN.name, email: ADMIN.email });
+    expect(result).toMatchObject({ requiresSecurity: false, name: ADMIN.name, email: ADMIN.email });
     expect(ctx.res.cookie).toHaveBeenCalledWith("platform_session", expect.any(String), expect.objectContaining({ httpOnly: true }));
     expect(mocks.recordPlatformAuditLog).toHaveBeenCalledWith(expect.objectContaining({ action: "admin.login_success", ip: "203.0.113.1" }));
     expect(mocks.sendTelegramMessageAsync).toHaveBeenCalledTimes(1);
@@ -124,7 +124,7 @@ describe("login — conta sem 2FA", () => {
     await expect(masterPanelAuthRouter.createCaller(makeCtx({ ip: "198.51.100.7" })).login({ email: ADMIN.email, password: "chute" })).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
 
     mocks.authenticatePlatformAdmin.mockResolvedValue(OK);
-    await expect(masterPanelAuthRouter.createCaller(makeCtx({ ip: "203.0.113.77" })).login({ email: ADMIN.email, password: "senha-certa" })).resolves.toMatchObject({ requiresTotp: false });
+    await expect(masterPanelAuthRouter.createCaller(makeCtx({ ip: "203.0.113.77" })).login({ email: ADMIN.email, password: "senha-certa" })).resolves.toMatchObject({ requiresSecurity: false });
   });
 
   it("login com sucesso zera o contador IP+e-mail e não gasta o limite por IP", async () => {
@@ -155,25 +155,27 @@ describe("login — conta sem 2FA", () => {
     expect(alerts[0]).toContain(email);
   });
 
-  it("conta com 2FA: senha certa NÃO abre sessão, devolve só o token pendente", async () => {
-    mocks.authenticatePlatformAdmin.mockResolvedValue({ ok: true, admin: { ...ADMIN, totpEnabled: true } });
+  it("conta com a verificação: senha certa NÃO abre sessão, devolve só o token pendente", async () => {
+    mocks.authenticatePlatformAdmin.mockResolvedValue({ ok: true, admin: { ...ADMIN, securityEnabled: true } });
     const ctx = makeCtx({ ip: "203.0.113.9" });
     const result = await masterPanelAuthRouter.createCaller(ctx).login({ email: ADMIN.email, password: "senha-certa" });
-    expect(result).toMatchObject({ requiresTotp: true, pendingToken: expect.any(String) });
+    expect(result).toMatchObject({ requiresSecurity: true, pendingToken: expect.any(String) });
     expect(ctx.res.cookie).not.toHaveBeenCalled();
     expect(mocks.sendTelegramMessageAsync).not.toHaveBeenCalled();
   });
 });
 
 describe("me", () => {
-  it("não expõe segredos nem o marco interno de sessão, e informa mustSetupTotp", async () => {
-    const admin = { id: 1, email: "a@b.com", name: "A", role: "owner", permissions: [], active: true, totpEnabled: false, sessionsValidAfter: 123, lastSignedInAt: null };
+  it("não expõe segredos nem o marco interno de sessão, e informa mustSetupSecurity", async () => {
+    const admin = { id: 1, email: "a@b.com", name: "A", role: "owner", permissions: [], active: true, securityEnabled: false, sessionsValidAfter: 123, lastSignedInAt: null, securityFriendHash: "x", securityPinHash: "y" };
     const me = await masterPanelAuthRouter.createCaller(makeCtx({ ip: "203.0.113.10", admin })).me();
-    expect(me).toMatchObject({ id: 1, totpEnabled: false, mustSetupTotp: false });
+    expect(me).toMatchObject({ id: 1, securityEnabled: false, mustSetupSecurity: false });
     expect(me).not.toHaveProperty("sessionsValidAfter");
     expect(me).not.toHaveProperty("passwordHash");
     expect(me).not.toHaveProperty("totpSecret");
     expect(me).not.toHaveProperty("totpLastStep");
+    expect(me).not.toHaveProperty("securityFriendHash");
+    expect(me).not.toHaveProperty("securityPinHash");
   });
 
   it("sem sessão devolve null", async () => {

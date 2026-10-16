@@ -1,18 +1,18 @@
 import "dotenv/config";
 import { recordPlatformAuditLog } from "../server/db/auditLog";
 import { getPlatformAdminByEmail } from "../server/db/platformAdmins";
-import { disablePlatformAdminTotp } from "../server/db/platformAdminSecurity";
-import { buildTotpResetCliMessage, sendTelegramMessage } from "../server/_core/telegramService";
+import { clearPlatformAdminSecurityAnswers } from "../server/db/platformAdminSecurity";
+import { buildSecurityResetCliMessage, sendTelegramMessage } from "../server/_core/telegramService";
 
 /**
- * Saída de emergência do 2FA do Painel Master (celular perdido E códigos de
- * recuperação perdidos): desliga o 2FA da conta, apaga segredo e códigos e
+ * Saída de emergência da verificação de segurança do Painel Master (esqueceu a
+ * resposta da pergunta ou o código de 4 dígitos): apaga as respostas da conta e
  * derruba todas as sessões. Só roda com acesso ao servidor (nenhuma rota HTTP
  * chama isto) e fica registrado no log de auditoria como "cli:reset-2fa".
  *
  * Uso (na VPS, de dentro da pasta saas-core):
  *   docker compose -f docker-compose.saas-core.yml exec app node_modules/.bin/tsx scripts/reset-platform-admin-2fa.ts email@do-admin.com
- * Depois a pessoa entra só com e-mail+senha e ativa o 2FA de novo em Segurança.
+ * Depois a pessoa entra só com e-mail+senha e cadastra a pergunta e o código de novo em Segurança.
  */
 async function main() {
   const email = process.argv[2]?.trim().toLowerCase();
@@ -27,19 +27,19 @@ async function main() {
     process.exit(1);
   }
 
-  await disablePlatformAdminTotp(admin.id);
+  await clearPlatformAdminSecurityAnswers(admin.id);
   await recordPlatformAuditLog({
     actorAdminId: null,
     actorLabel: "cli:reset-2fa",
-    action: "admin.totp_reset_cli",
+    action: "admin.security_reset_cli",
     entityType: "platform_admin",
     entityId: admin.id,
     after: { email: admin.email },
     ip: "cli",
   });
   // Aguardado (o processo encerra logo depois): ação de alto risco, sempre avisa o dono.
-  await sendTelegramMessage(buildTotpResetCliMessage({ email: admin.email }));
-  console.log(`2FA desligado para ${admin.email}. Todas as sessões dessa conta foram encerradas.`);
+  await sendTelegramMessage(buildSecurityResetCliMessage({ email: admin.email }));
+  console.log(`Verificação de segurança apagada para ${admin.email}. Todas as sessões dessa conta foram encerradas.`);
 }
 
 main()

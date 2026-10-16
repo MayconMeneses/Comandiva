@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./env", () => ({ ENV: { platformJwtSecret: "test-only-platform-secret-32-chars-min" } }));
 
-import { createPlatformSessionToken, isSessionRevoked, signPendingTotpToken, verifyPendingTotpToken, verifyPlatformSessionToken } from "./platformSession";
+import { createPlatformSessionToken, isSessionRevoked, signPendingSecurityToken, verifyPendingSecurityToken, verifyPlatformSessionToken } from "./platformSession";
 
 const SECRET = new TextEncoder().encode("test-only-platform-secret-32-chars-min");
 
@@ -21,7 +21,7 @@ describe("sessão de 12 horas com iat", () => {
 
 describe("token pendente de 2FA x token de sessão", () => {
   it("token pendente NÃO vale como sessão (tem o claim purpose)", async () => {
-    await expect(verifyPlatformSessionToken(await signPendingTotpToken(1, "a@b.com"))).resolves.toBeNull();
+    await expect(verifyPlatformSessionToken(await signPendingSecurityToken(1, "a@b.com"))).resolves.toBeNull();
   });
 
   it("qualquer JWT com o mesmo segredo mas com purpose é recusado como sessão", async () => {
@@ -30,19 +30,19 @@ describe("token pendente de 2FA x token de sessão", () => {
   });
 
   it("token de sessão NÃO vale como token pendente", async () => {
-    await expect(verifyPendingTotpToken(await createPlatformSessionToken(1, "a@b.com"))).resolves.toBeNull();
+    await expect(verifyPendingSecurityToken(await createPlatformSessionToken(1, "a@b.com"))).resolves.toBeNull();
   });
 
   it("token pendente válido é aceito e expira em 5 minutos", async () => {
-    const pending = await signPendingTotpToken(7, "a@b.com");
-    await expect(verifyPendingTotpToken(pending)).resolves.toMatchObject({ purpose: "totp-verify", adminId: 7, email: "a@b.com" });
+    const pending = await signPendingSecurityToken(7, "a@b.com");
+    await expect(verifyPendingSecurityToken(pending)).resolves.toMatchObject({ purpose: "security-verify", adminId: 7, email: "a@b.com" });
     const payload = decodePayload(pending);
     expect(payload.exp - payload.iat).toBe(300);
   });
 
   it("token pendente com outro purpose é recusado", async () => {
     const token = await new SignJWT({ adminId: 1, email: "a@b.com", purpose: "totp-setup" }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("5m").sign(SECRET);
-    await expect(verifyPendingTotpToken(token)).resolves.toBeNull();
+    await expect(verifyPendingSecurityToken(token)).resolves.toBeNull();
   });
 });
 

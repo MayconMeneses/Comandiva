@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { label: "Equipe", path: "/equipe", area: "equipe" },
   { label: "Manutenção", path: "/manutencao", area: "manutencao" },
   { label: "Aparência", path: "/aparencia", area: "aparencia" },
-  // Sem área de permissão: todo admin logado cuida da própria segurança (2FA, sessões).
+  // Sem área de permissão: todo admin logado cuida da própria segurança (verificação de segurança, sessões).
   { label: "Segurança", path: "/seguranca", area: null },
 ] as const;
 
@@ -30,15 +30,15 @@ export function PanelLayout({ children }: { children: React.ReactNode }) {
     if (!loading && !admin) setLocation(location === "/" ? "/comercial" : "/login");
   }, [loading, admin, location, setLocation]);
 
-  // PLATFORM_REQUIRE_2FA=true e conta sem 2FA: só a tela Segurança funciona (o servidor também barra o resto).
+  // PLATFORM_REQUIRE_2FA=true e conta sem a verificação de segurança: só a tela Segurança funciona (o servidor também barra o resto).
   useEffect(() => {
-    if (!loading && admin?.mustSetupTotp && location !== "/seguranca") setLocation("/seguranca");
+    if (!loading && admin?.mustSetupSecurity && location !== "/seguranca") setLocation("/seguranca");
   }, [loading, admin, location, setLocation]);
 
   // Único ponto de montagem pra todas as páginas do Painel Master — aplica a
   // aparência salva assim que carrega (sem chamada nenhuma se não estiver
   // logado, `enabled: Boolean(admin)` evita um 401 desnecessário).
-  const appearance = trpc.masterPanel.settings.getAppearance.useQuery(undefined, { enabled: Boolean(admin) && !admin?.mustSetupTotp });
+  const appearance = trpc.masterPanel.settings.getAppearance.useQuery(undefined, { enabled: Boolean(admin) && !admin?.mustSetupSecurity });
   useEffect(() => { if (admin) applyPanelTheme(appearance.data?.backgroundColor); }, [admin, appearance.data?.backgroundColor]);
 
   if (loading) return <div className="grid min-h-screen place-items-center text-ink-soft">Carregando…</div>;

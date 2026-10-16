@@ -7,13 +7,13 @@ import { platformAdmins, type PlatformAdminRole } from "../../drizzle/schema";
 
 /**
  * Pra qualquer retorno que possa chegar ao cliente (contexto de sessão,
- * listagem de equipe) — nunca deixa vazar passwordHash, totpSecret (já
- * criptografado, mas mesmo assim) nem totpLastStep. `totpEnabled` (booleano)
- * continua passando: a tela de equipe mostra "2FA ativo".
+ * listagem de equipe) — nunca deixa vazar passwordHash, os hashes das respostas de
+ * segurança nem o que sobrou do TOTP antigo. `securityEnabled` (booleano) continua
+ * passando: a tela de equipe mostra "Verificação ativa".
  */
-function stripAllSecrets<T extends { passwordHash: string; totpSecret: string | null; totpLastStep: number | null }>(admin: T): Omit<T, "passwordHash" | "totpSecret" | "totpLastStep"> {
-  const { passwordHash, totpSecret, totpLastStep, ...rest } = admin;
-  void [passwordHash, totpSecret, totpLastStep];
+function stripAllSecrets<T extends { passwordHash: string; totpSecret: string | null; totpLastStep: number | null; securityFriendHash: string | null; securityPinHash: string | null }>(admin: T): Omit<T, "passwordHash" | "totpSecret" | "totpLastStep" | "securityFriendHash" | "securityPinHash"> {
+  const { passwordHash, totpSecret, totpLastStep, securityFriendHash, securityPinHash, ...rest } = admin;
+  void [passwordHash, totpSecret, totpLastStep, securityFriendHash, securityPinHash];
   return rest;
 }
 
@@ -105,7 +105,7 @@ export async function countPlatformAdmins(): Promise<number> {
  * interna — nunca vai pro cliente). Quando o e-mail não existe ou a conta está pausada,
  * roda mesmo assim um scrypt "dummy" — o tempo de resposta fica igual ao de
  * "senha errada" e não dá pra descobrir e-mails válidos medindo a demora.
- * NÃO marca o login como concluído (com 2FA ainda falta o código):
+ * NÃO marca o login como concluído (com verificação ativa ainda faltam as respostas):
  * quem fecha o login chama markPlatformAdminSignedIn.
  */
 export async function authenticatePlatformAdmin(emailInput: string, password: string) {
@@ -117,7 +117,7 @@ export async function authenticatePlatformAdmin(emailInput: string, password: st
   if (!(await verifyPlatformPassword(password, admin.passwordHash))) {
     return { ok: false as const, knownAdmin: { id: admin.id, email: admin.email } };
   }
-  return { ok: true as const, admin: { id: admin.id, name: admin.name, email: admin.email, totpEnabled: admin.totpEnabled } };
+  return { ok: true as const, admin: { id: admin.id, name: admin.name, email: admin.email, securityEnabled: admin.securityEnabled } };
 }
 
 export async function markPlatformAdminSignedIn(id: number) {

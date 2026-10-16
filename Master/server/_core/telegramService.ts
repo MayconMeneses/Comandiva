@@ -295,22 +295,14 @@ function safeUserAgent(userAgent: string | undefined): string {
   return escapeHtml((userAgent ?? "desconhecido").slice(0, 120));
 }
 
-/**
- * Alerta a CADA login bem-sucedido no Painel Master. Login com código de
- * recuperação é sinalizado mais forte: é o caminho usado quando o celular com
- * o autenticador foi perdido — ou quando alguém roubou a lista de códigos.
- */
-export function buildMasterLoginMessage(params: { email: string; ip: string; userAgent?: string; used2fa: boolean; usedRecoveryCode?: boolean }): string {
-  const header = params.usedRecoveryCode
-    ? "🚨 <b>Login no Painel Master com CÓDIGO DE RECUPERAÇÃO</b>"
-    : "🔐 <b>Login no Painel Master</b>";
+/** Alerta a CADA login bem-sucedido no Painel Master — mostra se a conta passou pela pergunta de segurança + código. */
+export function buildMasterLoginMessage(params: { email: string; ip: string; userAgent?: string; usedSecurityQuestions: boolean }): string {
   return [
-    header,
+    "🔐 <b>Login no Painel Master</b>",
     `Conta: ${escapeHtml(params.email)}`,
     `IP: ${escapeHtml(params.ip)}`,
     `Dispositivo: ${safeUserAgent(params.userAgent)}`,
-    `Verificação em 2 etapas: ${params.used2fa ? "sim" : "não (conta sem 2FA)"}`,
-    ...(params.usedRecoveryCode ? ["⚠️ Um código de uso único foi gasto. Se não foi você: Segurança → Sair de todos os dispositivos e troque a senha."] : []),
+    `Pergunta de segurança + código: ${params.usedSecurityQuestions ? "sim" : "não (conta sem verificação cadastrada)"}`,
     `Horário: ${escapeHtml(formatAlertTime())}`,
   ].join("\n");
 }
@@ -337,7 +329,7 @@ export function buildLoginFailuresMessage(params: { email: string; failures: num
   ].join("\n");
 }
 
-/** O 2FA de uma conta foi desligado pelo script de CLI (acesso ao servidor) — sempre vale um aviso. */
-export function buildTotpResetCliMessage(params: { email: string }): string {
-  return ["🔧 <b>2FA resetado por script no servidor</b>", `Conta: ${escapeHtml(params.email)}`, `Horário: ${escapeHtml(formatAlertTime())}`].join("\n");
+/** A verificação de segurança de uma conta foi apagada pelo script de CLI (acesso ao servidor) — sempre vale um aviso. */
+export function buildSecurityResetCliMessage(params: { email: string }): string {
+  return ["🔧 <b>Verificação de segurança resetada por script no servidor</b>", `Conta: ${escapeHtml(params.email)}`, `Horário: ${escapeHtml(formatAlertTime())}`].join("\n");
 }

@@ -74,13 +74,14 @@ export const restaurantProcedure = t.procedure.use(
 );
 
 /**
- * Com PLATFORM_REQUIRE_2FA=true, conta SEM 2FA ativo entra (pra poder ativar)
- * mas não usa mais nada do painel até ativar: barrado aqui no servidor, não
- * só escondendo botão. Só `platformSecurityProcedure` (tela Segurança) passa.
+ * Com PLATFORM_REQUIRE_2FA=true, conta SEM a verificação (pergunta + código de 4
+ * dígitos) entra (pra poder cadastrar) mas não usa mais nada do painel até
+ * cadastrar: barrado aqui no servidor, não só escondendo botão. Só
+ * `platformSecurityProcedure` (tela Segurança) passa.
  */
-function assertTotpRequirementMet(admin: { totpEnabled: boolean }) {
-  if (ENV.requirePlatform2fa && !admin.totpEnabled) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Ative a verificação em duas etapas (menu Segurança) para continuar usando o painel." });
+function assertSecurityRequirementMet(admin: { securityEnabled: boolean }) {
+  if (ENV.requirePlatform2fa && !admin.securityEnabled) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Cadastre a verificação de segurança (menu Segurança) para continuar usando o painel." });
   }
 }
 
@@ -96,12 +97,12 @@ export const platformAdminProcedure = t.procedure.use(
     if (!ctx.platformAdmin || !ctx.platformAdmin.active) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão de administrador inválida ou expirada." });
     }
-    assertTotpRequirementMet(ctx.platformAdmin);
+    assertSecurityRequirementMet(ctx.platformAdmin);
     return next({ ctx: { ...ctx, platformAdmin: ctx.platformAdmin } });
   }),
 );
 
-/** Sessão válida e nada além disso (sem exigir 2FA nem área) — só pra tela Segurança, que precisa funcionar justamente pra quem ainda não ativou o 2FA. */
+/** Sessão válida e nada além disso (sem exigir a verificação nem área) — só pra tela Segurança, que precisa funcionar justamente pra quem ainda não cadastrou a verificação. */
 export const platformSecurityProcedure = t.procedure.use(
   t.middleware(async ({ ctx, next }) => {
     if (!ctx.platformAdmin || !ctx.platformAdmin.active) {
@@ -124,7 +125,7 @@ export function platformAdminProcedureFor(area: MasterPermissionArea) {
       if (!ctx.platformAdmin || !ctx.platformAdmin.active) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão de administrador inválida ou expirada." });
       }
-      assertTotpRequirementMet(ctx.platformAdmin);
+      assertSecurityRequirementMet(ctx.platformAdmin);
       if (!ctx.platformAdmin.permissions.includes(area)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Sua conta não tem acesso a esta área do Painel Master." });
       }

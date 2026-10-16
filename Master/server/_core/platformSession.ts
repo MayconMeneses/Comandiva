@@ -55,18 +55,18 @@ export function isSessionRevoked(sessionIssuedAt: number, sessionsValidAfter: nu
   return sessionsValidAfter != null && sessionIssuedAt < sessionsValidAfter;
 }
 
-export type PendingTotpPayload = { purpose: "totp-verify"; adminId: number; email: string; iat: number };
+export type PendingSecurityPayload = { purpose: "security-verify"; adminId: number; email: string; iat: number };
 
 /** Token de 5 minutos, usado só entre "senha correta" e "código de 2FA correto" — não vale como sessão (tem `purpose`). */
-export async function signPendingTotpToken(adminId: number, email: string): Promise<string> {
-  return new SignJWT({ purpose: "totp-verify", adminId, email }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setIssuedAt().setExpirationTime("5m").sign(getSecret());
+export async function signPendingSecurityToken(adminId: number, email: string): Promise<string> {
+  return new SignJWT({ purpose: "security-verify", adminId, email }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setIssuedAt().setExpirationTime("5m").sign(getSecret());
 }
 
-export async function verifyPendingTotpToken(token: string): Promise<PendingTotpPayload | null> {
+export async function verifyPendingSecurityToken(token: string): Promise<PendingSecurityPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret(), { algorithms: ["HS256"] });
     const { purpose, adminId, email, iat } = payload as Record<string, unknown>;
-    if (purpose !== "totp-verify" || typeof adminId !== "number" || typeof email !== "string" || typeof iat !== "number") return null;
+    if (purpose !== "security-verify" || typeof adminId !== "number" || typeof email !== "string" || typeof iat !== "number") return null;
     return { purpose, adminId, email, iat };
   } catch {
     return null;
