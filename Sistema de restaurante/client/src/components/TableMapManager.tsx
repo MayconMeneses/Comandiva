@@ -1,3 +1,4 @@
+import { tablesAwaitingBill } from "@/lib/billRequests";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CartProvider, useCart } from "@/contexts/CartContext";
@@ -46,7 +47,7 @@ function elapsedLabel(sinceMs: number, nowMs: number) {
   return hours > 0 ? `${hours}h${String(minutes % 60).padStart(2, "0")}` : `${minutes}min`;
 }
 
-function ServiceRequestsPanel() {
+function ServiceRequestsPanel({ onOpenSession }: { onOpenSession: (session: { id: number; label: string }) => void }) {
   const utils = trpc.useUtils();
   // Mesma consulta que TableMapManager/RestaurantOrders.tsx pedem (mesmo
   // input `undefined`, mesmo refetchInterval) — o React Query compartilha a
@@ -63,11 +64,20 @@ function ServiceRequestsPanel() {
   const offlineResilienceEnabled = Boolean(settings.data?.offlineResilienceEnabled);
   const resolve = trpc.admin.resolveServiceRequest.useMutation({ ...offlineResilienceMutationOptions(offlineResilienceEnabled), onSuccess: () => void utils.admin.operationalSnapshot.invalidate(), onError: error => toast.error(error.message) });
   if (snapshot.error) return <section className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Não foi possível carregar os chamados de garçom agora. {snapshot.error.message}</section>;
-  if (!requests?.length) return null;
-  return <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+  // "Pedir a conta" não cria um chamado: marca a comanda como AWAITING_PAYMENT. Aparece aqui,
+  // no topo, pra equipe ver mesmo com o setor da mesa recolhido no mapa.
+  const billTables = tablesAwaitingBill(snapshot.data?.tables);
+  if (!requests?.length && !billTables.length) return null;
+  return <div className="space-y-3">
+  {billTables.length > 0 && <section className="rounded-2xl border border-rose-300 bg-rose-50 p-4">
+    <h3 className="flex items-center gap-2 text-sm font-bold text-rose-900"><ReceiptText className="h-4 w-4" />Contas solicitadas ({billTables.length})</h3>
+    <div className="mt-3 space-y-2">{billTables.map(row => <div key={row.table.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/70 p-2.5"><span className="text-sm font-medium">{row.table.label} · {money(row.totalCents)}</span><Button size="sm" onClick={() => row.session && onOpenSession({ id: row.session.id, label: row.table.label })} className="h-8 rounded-lg bg-rose-800 text-xs hover:bg-rose-900"><ReceiptText className="mr-1.5 h-3.5 w-3.5" />Fechar conta</Button></div>)}</div>
+  </section>}
+  {requests?.length ? <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
     <h3 className="flex items-center gap-2 text-sm font-bold text-amber-900"><BellRing className="h-4 w-4" />Chamados de garçom ({requests.length})</h3>
     <div className="mt-3 space-y-2">{requests.map(request => <div key={request.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/70 p-2.5"><span className="text-sm font-medium">{request.tableLabel}</span><Button size="sm" disabled={resolve.isPending} onClick={() => resolve.mutate({ id: request.id, status: "DONE" })} className="h-8 rounded-lg bg-amber-800 text-xs hover:bg-amber-900"><CheckCheck className="mr-1.5 h-3.5 w-3.5" />Atendido</Button></div>)}</div>
-  </section>;
+  </section> : null}
+  </div>;
 }
 
 function AddRoundForm({ tableId, sessionId, tableLabel, onDone }: { tableId: number; sessionId: number; tableLabel: string; onDone: () => void }) {
@@ -261,7 +271,7 @@ export default function TableMapManager() {
   const now = Date.now();
   return <div className="space-y-6">
     {snapshot.isOffline && <OfflineSnapshotBanner cachedAt={snapshot.cachedAt} />}
-    <ServiceRequestsPanel />
+    <ServiceRequestsPanel onOpenSession={setOpenSessionId} />
     {bySector.map(([sector, rows]) => {
       const isOpen = openSectors.has(sector);
       const occupiedCount = rows.filter(row => row.session).length;
@@ -285,6 +295,7 @@ export default function TableMapManager() {
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {late && <span className="flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white"><AlertTriangle className="h-3 w-3" />Atrasado</span>}
                   {row.hasPendingOrder && <span className="flex items-center gap-1 rounded-full bg-sky-600 px-2 py-0.5 text-[10px] font-bold text-white"><ShoppingBag className="h-3 w-3" />Novo pedido</span>}
+                  {row.session?.status === "AWAITING_PAYMENT" && <span className="flex items-center gap-1 rounded-full bg-rose-700 px-2 py-0.5 text-[10px] font-bold text-white"><ReceiptText className="h-3 w-3" />Conta</span>}
                   {row.waiterRequested && <span className="flex items-center gap-1 rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-bold text-white"><BellRing className="h-3 w-3" />Garçom</span>}
                 </div>
               </button>;

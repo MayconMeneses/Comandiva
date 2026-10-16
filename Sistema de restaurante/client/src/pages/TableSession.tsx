@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { CartProvider, useCart } from "@/contexts/CartContext";
-import { CategoryProductSections, CategoryTabBar, useCategoryScrollSpy } from "@/components/CategoryScrollMenu";
+import CategoryRail from "@/components/CategoryRail";
+import PromotionStrip from "@/components/PromotionStrip";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/contexts/ThemeContext";
 import EmptyMenu from "@/components/EmptyMenu";
 import ProductDialog from "@/components/ProductDialog";
-import ProductSearch from "@/components/ProductSearch";
 import { trpc } from "@/lib/trpc";
 import { applyColorTheme } from "@/lib/applyColorTheme";
 import { generateClientId } from "@/lib/randomId";
@@ -75,7 +78,8 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   const marca = isMarcaBackground(settings.data?.customBackgroundColor);
   useEffect(() => { applyColorTheme(settings.data?.colorTheme, settings.data?.customBackgroundColor); }, [settings.data?.colorTheme, settings.data?.customBackgroundColor]);
   const categories = (catalog.data ?? []) as MenuCategory[];
-  const scrollSpy = useCategoryScrollSpy(categories);
+  const { theme } = useTheme();
+  const hasCustomBg = Boolean(settings.data?.customBackgroundColor);
   const { items, subtotalCents, updateQuantity, removeItem, clearCart } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<MenuProduct | null>(null);
   const [showCart, setShowCart] = useState(false);
@@ -139,22 +143,20 @@ function TableSessionContent({ token, onBack }: { token: string; onBack: () => v
   };
   const roundLabel = isRetryingOffline(addRound) ? "Sem conexão, tentando de novo…" : addRound.isPending ? "Enviando…" : "Enviar pedido";
 
-  return <div className="min-h-screen bg-background pb-28" style={marca ? { background: MARCA_GRADIENT } : undefined}>
-    <header className="border-b border-[#3e3025] bg-[#17120e] text-[#fffaf3]"><div className="page-shell flex min-h-16 items-center justify-between py-3"><div className="flex items-center gap-3"><button type="button" onClick={onBack} aria-label="Voltar" className="rounded-lg p-1.5 hover:bg-white/10"><ArrowLeft className="h-4 w-4" /></button><div className="flex items-center gap-2 font-display text-xl font-bold"><UtensilsCrossed className="h-5 w-5 text-[#e9c98f]" />{table.label}</div></div><span className="text-xs text-[#d6c5af]">{table.sector || "Salão"}</span></div></header>
-    <main className="page-shell max-w-2xl py-7">
-      <p className="text-xs font-bold uppercase tracking-[.18em] text-primary">Peça direto da mesa</p>
-      <h1 className="mt-2 font-display text-3xl font-bold">O que vamos pedir?</h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">Busque um item, adicione ao pedido e envie. Você pode fazer quantas rodadas quiser — a conta fecha tudo junto no final.</p>
-      {categories.length ? <div className="mt-4"><CategoryTabBar categories={categories} spy={scrollSpy} marca={marca} /></div> : null}
-      <div className="mt-4"><ProductSearch onSelect={setSelectedProduct} /></div>
-      <Button type="button" variant="outline" disabled={waiterRequested || callWaiter.isPending} onClick={() => callWaiter.mutate({ token })} className="mt-3 h-10 w-full rounded-xl border-[#d9c9b4] bg-white text-[#231d18] sm:w-auto"><BellRing className="mr-2 h-4 w-4" />{waiterRequested ? "Garçom já chamado" : callWaiter.isPending ? "Chamando…" : "Chamar garçom"}</Button>
-
-      <div className="mt-6">{categories.length ? <CategoryProductSections categories={categories} spy={scrollSpy} onSelect={setSelectedProduct} /> : !catalog.isLoading ? <EmptyMenu openingHours={undefined} /> : null}</div>
+  return <div className={`mm-storefront min-h-screen overflow-x-hidden pb-28 ${theme === "dark" ? "theme-dark" : "theme-light"}`} style={marca ? { background: MARCA_GRADIENT } : undefined}>
+    <header className={`sticky top-0 z-40 border-b border-white/15 backdrop-blur ${marca ? "text-[#fffaf3]" : hasCustomBg ? "border-foreground/15 text-foreground" : "bg-[#15120f]/95 text-[#fffaf3]"}`} style={marca ? { background: MARCA_GRADIENT } : hasCustomBg ? { background: "color-mix(in srgb, var(--primary) 16%, var(--background))", borderBottom: "3px solid var(--primary)" } : undefined}><div className={`page-shell flex min-h-14 items-center justify-between gap-3 py-2 sm:min-h-16 ${marca ? "sm:py-5" : "sm:py-3"}`}><div className="flex min-w-0 flex-col items-start gap-1 sm:gap-2"><div className="flex items-center gap-1.5 sm:gap-2"><button type="button" onClick={onBack} aria-label="Voltar" className="rounded-lg p-1 hover:bg-white/10"><ArrowLeft className="h-4 w-4" /></button><img src={settings.data?.logoUrl || "/comandiva-icon.png"} alt="Logotipo do restaurante" className="h-7 w-7 shrink-0 object-contain sm:h-10 sm:w-10" /><span className="font-display text-base font-bold tracking-tight sm:text-xl">Comandiva</span><span className="ml-1 rounded-full border border-white/25 px-2 py-0.5 text-[11px] font-semibold">{table.label}</span></div><ThemeSwitcher onTintedChrome={hasCustomBg && !marca} /></div><div className="flex items-center gap-2 sm:gap-3"><button type="button" disabled={waiterRequested || callWaiter.isPending} onClick={() => callWaiter.mutate({ token })} className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-medium transition disabled:opacity-60 ${marca || !hasCustomBg ? "border-white/15 text-[#e6d9c8] hover:bg-white/10 hover:text-white" : "border-foreground/25 text-foreground hover:bg-foreground/10"}`}><BellRing className="h-4 w-4" /><span className="hidden sm:inline">{waiterRequested ? "Garçom já chamado" : callWaiter.isPending ? "Chamando…" : "Chamar garçom"}</span></button><button type="button" onClick={() => setShowCart(true)} className="relative rounded-xl bg-primary p-2.5 transition hover:bg-primary-hover-light" style={marca ? { background: MARCA_GRADIENT } : undefined} aria-label="Abrir sacola"><ShoppingBag className="h-5 w-5" />{items.length > 0 && <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-[#e9c98f] px-1 text-[11px] font-bold text-[#261a0f]">{items.reduce((sum, item) => sum + item.quantity, 0)}</span>}</button></div></div></header>
+    {settings.data && !settings.data.isAcceptingOrders && <div className="bg-amber-100 px-4 py-2.5 text-center text-sm font-semibold text-amber-900">No momento não estamos recebendo novos pedidos.</div>}
+    <main>
+      <section className="relative isolate min-h-[140px] overflow-hidden bg-[#15120f] text-[#fffaf3] sm:min-h-[260px]"><div className="absolute inset-0 opacity-70"><img src="/assets/pubx/hero-brand-burger-v2.webp" alt="" aria-hidden="true" className="h-full w-full object-cover object-[92%_center] sm:object-[78%_22%]" /></div><div className="absolute inset-0 bg-gradient-to-r from-[#15120f] via-[#15120f]/85 to-[#15120f]/25" /><div className="page-shell relative flex min-h-[140px] flex-col justify-center py-4 sm:min-h-[260px] sm:py-10"><Badge className="w-fit rounded-full border border-[#e9c98f]/40 bg-[#e9c98f]/10 px-2.5 py-0.5 text-[10px] font-medium text-[#f1d7aa] sm:px-3 sm:py-1 sm:text-xs">{table.sector || "Salão"} · {table.label}</Badge><h1 className="mt-2 max-w-xl font-display text-lg font-bold leading-[1.15] tracking-tight sm:mt-4 sm:text-4xl">Peça direto <span className="text-[#e9c98f]">da sua mesa</span>.</h1><p className="mt-1.5 max-w-md text-[11px] leading-5 text-[#d9ccba] sm:mt-3 sm:text-base">Escolha, adicione e envie para a cozinha. Você pode fazer quantas rodadas quiser — a conta fecha tudo junto no final.</p></div></section>
+      <PromotionStrip categories={categories} onSelectProduct={setSelectedProduct} />
+      {categories.length ? <CategoryRail categories={categories} onSelect={setSelectedProduct} /> : !catalog.isLoading ? <EmptyMenu openingHours={settings.data?.openingHours} /> : null}
+    </main>
+    <div className="page-shell max-w-2xl py-2">
 
       {(orders.length > 0 || pendingRound) && <section className="mt-8"><h2 className="font-display text-xl font-bold">Sua comanda</h2><div className="mt-3 space-y-3">{pendingRound && <PendingRoundCard pending={pendingRound} />}{orders.map(order => <div key={order.id} className="rounded-2xl border border-[#e3d6c6] bg-[#fffdf8] p-4 text-[#231d18]"><div className="flex items-center justify-between gap-3"><span className="text-xs font-bold uppercase tracking-[.1em] text-primary">{STATUS_LABEL[order.status] ?? order.status}</span><strong className="text-sm">{money(order.totalCents)}</strong></div><p className="mt-2 text-xs leading-5 text-[#695b50]">{order.items.map(item => `${item.quantity}× ${item.productName}`).join(" · ")}</p></div>)}</div></section>}
 
       <div className="mt-8 rounded-2xl bg-[#17120e] p-5 text-[#fffaf3]"><div className="flex justify-between text-sm text-[#d2c4b0]"><span>Total da comanda</span><span>{money(totalCents)}</span></div>{balanceDueCents !== totalCents && <div className="mt-1 flex justify-between text-xs text-[#a7c9ab]"><span>Já pago</span><span>{money(totalCents - balanceDueCents)}</span></div>}<div className="mt-3 flex items-center justify-between border-t border-[#4a3d30] pt-3"><Button type="button" variant="outline" disabled={billRequested || requestBill.isPending} onClick={() => requestBill.mutate({ token })} className="h-10 rounded-xl border-[#5c4b3a] bg-transparent text-xs text-[#fffaf3] hover:bg-[#2c241a]"><ReceiptText className="mr-2 h-3.5 w-3.5" />{billRequested ? "Conta já solicitada" : requestBill.isPending ? "Chamando…" : "Pedir a conta"}</Button></div></div>
-    </main>
+    </div>
 
     {items.length > 0 && <div className="fixed inset-x-0 bottom-0 border-t border-[#3e3025] bg-[#17120e] p-4 text-[#fffaf3]"><div className="page-shell flex items-center justify-between gap-3"><button type="button" onClick={() => setShowCart(true)} className="flex items-center gap-2 text-sm font-semibold"><ShoppingBag className="h-4 w-4 text-[#e9c98f]" />{items.reduce((sum, item) => sum + item.quantity, 0)} item(ns) · {money(subtotalCents)}</button><Button disabled={addRound.isPending} onClick={submitRound} className="h-10 rounded-xl bg-primary hover:bg-primary-hover">{roundLabel}</Button></div></div>}
 
