@@ -47,7 +47,17 @@ export async function listPlansWithFeaturesAndLimits() {
 export const listPlansWithFeaturesAndLimitsCached = cached(PLANS_CACHE_TTL_MS, listPlansWithFeaturesAndLimits);
 
 /** id informado = UPDATE (key não é alterada); sem id = INSERT (key obrigatório, validado no router). */
-export async function savePlan(input: { id?: number; key?: string; name: string; priceCents: number; currency?: string; position: number; active: boolean }) {
+export async function savePlan(input: {
+  id?: number;
+  key?: string;
+  name: string;
+  priceCents: number;
+  currency?: string;
+  position: number;
+  active: boolean;
+  /** undefined = não mexe; null = manutenção inclusa no plano. */
+  maintenanceCents?: number | null;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const now = Date.now();
@@ -57,6 +67,7 @@ export async function savePlan(input: { id?: number; key?: string; name: string;
     currency: input.currency?.trim() || "BRL",
     position: input.position,
     active: input.active,
+    ...(input.maintenanceCents !== undefined ? { maintenanceCents: input.maintenanceCents } : {}),
     updatedAt: now,
   };
   if (input.id) {

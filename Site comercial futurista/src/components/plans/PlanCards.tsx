@@ -1,4 +1,4 @@
-import { FEATURE_GROUPS, LAUNCH_DISCOUNT, SIGNUP_URL, addedIn, type Plan, type PlanKey } from "../../data/plans";
+import { FEATURE_GROUPS, LAUNCH_DISCOUNT, SIGNUP_URL, addedIn, maintenanceText, type Plan, type PlanKey } from "../../data/plans";
 import { formatBRL } from "../../lib/format";
 import { track } from "../../lib/track";
 import { Ticket } from "../ui/Ticket";
@@ -72,7 +72,7 @@ export function PlanCards({ plans, groups = FEATURE_GROUPS, recommended }: { pla
                     ))}
                     <li className="flex gap-2">
                       <Check muted={plan.key === "essencial"} />
-                      Manutenção: {plan.maintenance.charAt(0).toLowerCase() + plan.maintenance.slice(1)}
+                      Manutenção: {maintenanceText(plan).replace(/^./, c => c.toLowerCase())}
                     </li>
                   </ul>
                   <Link

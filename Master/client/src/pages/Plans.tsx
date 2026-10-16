@@ -27,6 +27,7 @@ export default function Plans() {
   // (preço/posição, botão "Salvar") ou sai do campo (limites, onBlur).
   const [priceDrafts, setPriceDrafts] = useState<Record<number, string>>({});
   const [positionDrafts, setPositionDrafts] = useState<Record<number, string>>({});
+  const [maintenanceDrafts, setMaintenanceDrafts] = useState<Record<number, string>>({});
   const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
 
   const invalidate = () => utils.masterPanel.plans.list.invalidate();
@@ -39,6 +40,9 @@ export default function Plans() {
 
   const priceValue = (plan: PlanRow) => priceDrafts[plan.id] ?? centsToReaisInput(plan.priceCents);
   const positionValue = (plan: PlanRow) => positionDrafts[plan.id] ?? String(plan.position);
+  // Vazio = manutenção inclusa no plano.
+  const maintenanceValue = (plan: PlanRow) =>
+    maintenanceDrafts[plan.id] ?? (plan.maintenanceCents === null || plan.maintenanceCents === undefined ? "" : centsToReaisInput(plan.maintenanceCents));
   const limitKey = (planId: number, resourceKey: string) => `${planId}:${resourceKey}`;
   const limitValue = (plan: PlanRow, resourceKey: "users" | "tables") => {
     const key = limitKey(plan.id, resourceKey);
@@ -51,12 +55,16 @@ export default function Plans() {
     const cents = reaisInputToCents(priceValue(plan));
     const position = Number(positionValue(plan));
     if (cents === null || cents < 0 || !Number.isFinite(position) || position <= 0) return;
+    const maintenanceRaw = maintenanceValue(plan).trim();
+    const maintenanceCents = maintenanceRaw === "" ? null : reaisInputToCents(maintenanceRaw);
+    if (maintenanceCents !== null && maintenanceCents < 0) return;
     savePlanMutation.mutate(
-      { id: plan.id, name: plan.name, priceCents: cents, currency: plan.currency, position, active: plan.active },
+      { id: plan.id, name: plan.name, priceCents: cents, currency: plan.currency, position, active: plan.active, maintenanceCents },
       {
         onSuccess: () => {
           setPriceDrafts(prev => { const next = { ...prev }; delete next[plan.id]; return next; });
           setPositionDrafts(prev => { const next = { ...prev }; delete next[plan.id]; return next; });
+          setMaintenanceDrafts(prev => { const next = { ...prev }; delete next[plan.id]; return next; });
         },
       },
     );
@@ -108,6 +116,17 @@ export default function Plans() {
                         className="h-7 w-14 px-2 text-xs"
                         inputMode="numeric"
                         aria-label={`Posição de ${plan.name}`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] text-ink-soft" title="Valor cobrado por acionamento de manutenção. Vazio = inclusa no plano.">Manutenção R$</span>
+                      <Input
+                        value={maintenanceValue(plan)}
+                        onChange={event => setMaintenanceDrafts(prev => ({ ...prev, [plan.id]: event.target.value }))}
+                        placeholder="inclusa"
+                        className="h-7 w-20 px-2 text-xs"
+                        inputMode="decimal"
+                        aria-label={`Manutenção por acionamento — ${plan.name} (vazio = inclusa)`}
                       />
                     </div>
                     <Button

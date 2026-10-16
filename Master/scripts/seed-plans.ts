@@ -4,17 +4,23 @@ import { getDb } from "../server/db/client";
 import { features, planFeatures, planLimits, plans, type PlanKey } from "../drizzle/schema";
 
 /**
- * Seed idempotente dos planos/features/limites reais do SaaS — seguro
- * rodar de novo a qualquer momento (upsert por chave natural), mesmo padrão
- * de scripts/seed-cardapio-mm.ts no app principal. Roda em todo boot do
- * container (ver infra/entrypoint.sh).
+ * Seed idempotente dos planos/features/limites do SaaS — seguro rodar de novo
+ * a qualquer momento. Roda em todo boot do container (infra/entrypoint.sh).
+ *
+ * IMPORTANTE: este script só CRIA o que ainda não existe (valores iniciais).
+ * Depois de criado, a fonte da verdade é o Painel Master: preço, posição,
+ * manutenção, limites e recursos de cada plano editados lá NÃO são
+ * sobrescritos por este seed (antes eram, e cada deploy desfazia a edição).
+ * Um recurso novo do catálogo entra nos planos conforme o `minPlan` só na
+ * primeira vez em que ele é criado.
  */
 
-// Preços reduzidos a pedido do dono em 2026-09-29 (eram 9999/19999/24999).
-const PLANS: { key: PlanKey; name: string; priceCents: number; position: number }[] = [
-  { key: "essencial", name: "Entrada", priceCents: 9990, position: 1 },
-  { key: "profissional", name: "Profissional", priceCents: 14990, position: 2 },
-  { key: "premium", name: "Premium", priceCents: 19990, position: 3 },
+// Valores iniciais. Preços reduzidos a pedido do dono em 2026-09-29 (eram 9999/19999/24999).
+// maintenanceCents: manutenção avulsa por acionamento; nulo = inclusa (Entrada: R$ 50 desde 2026-10-16).
+const PLANS: { key: PlanKey; name: string; priceCents: number; position: number; maintenanceCents: number | null }[] = [
+  { key: "essencial", name: "Entrada", priceCents: 9990, position: 1, maintenanceCents: 5000 },
+  { key: "profissional", name: "Profissional", priceCents: 14990, position: 2, maintenanceCents: null },
+  { key: "premium", name: "Premium", priceCents: 19990, position: 3, maintenanceCents: null },
 ];
 
 // Reestruturação 2026-09-11 (pedido do dono): a diferenciação comercial é
@@ -62,26 +68,27 @@ async function seedPlans() {
   if (!db) throw new Error("Banco de dados indisponível");
   const now = Date.now();
 
+  // Só cria o que falta: nunca atualiza linha existente (a edição do Painel Master vale).
+  const existingPlanKeys = new Set((await db.select({ key: plans.key }).from(plans)).map(row => row.key));
   for (const plan of PLANS) {
-    await db
-      .insert(plans)
-      .values({ ...plan, currency: "BRL", active: true, createdAt: now, updatedAt: now })
-      .onDuplicateKeyUpdate({ set: { name: plan.name, priceCents: plan.priceCents, position: plan.position, updatedAt: now } });
-  }
-  for (const feature of FEATURES) {
-    await db
-      .insert(features)
-      .values({ featureId: feature.featureId, name: feature.name, category: feature.category, createdAt: now, updatedAt: now })
-      .onDuplicateKeyUpdate({ set: { name: feature.name, category: feature.category, updatedAt: now } });
+    if (existingPlanKeys.has(plan.key)) continue;
+    await db.insert(plans).values({ ...plan, currency: "BRL", active: true, createdAt: now, updatedAt: now });
   }
 
-  // Resolve os ids reais (upsert não garante que insertId seja o existente
-  // em todo driver/versão — buscar de novo é sempre correto).
+  const existingFeatureIds = new Set((await db.select({ featureId: features.featureId }).from(features)).map(row => row.featureId));
+  const newFeatures = FEATURES.filter(feature => !existingFeatureIds.has(feature.featureId));
+  for (const feature of newFeatures) {
+    await db.insert(features).values({ featureId: feature.featureId, name: feature.name, category: feature.category, createdAt: now, updatedAt: now });
+  }
+
+  // Resolve os ids reais (buscar de novo é sempre correto, qualquer driver/versão).
   const savedPlans = await db.select().from(plans);
   const plansByKey = new Map(savedPlans.map(plan => [plan.key, plan]));
 
   for (const plan of savedPlans) {
-    for (const feature of FEATURES) {
+    // Recurso recém-criado entra nos planos a partir do minPlan; recurso que já existia
+    // não é tocado (a marcação feita no Painel Master é mantida).
+    for (const feature of newFeatures) {
       const minPlan = plansByKey.get(feature.minPlan);
       if (!minPlan || plan.position < minPlan.position) continue;
       await db
@@ -89,24 +96,13 @@ async function seedPlans() {
         .values({ planId: plan.id, featureId: feature.featureId, createdAt: now })
         .onDuplicateKeyUpdate({ set: { createdAt: now } });
     }
-    const limits = LIMITS[plan.key];
-    for (const [resourceKey, limitValue] of Object.entries(limits)) {
-      await db
-        .insert(planLimits)
-        .values({ planId: plan.id, resourceKey, limitValue, createdAt: now, updatedAt: now })
-        .onDuplicateKeyUpdate({ set: { limitValue, updatedAt: now } });
-    }
-    // Remove vínculos de feature que não deveriam mais existir pro plano
-    // (ex.: uma feature que mudou de minPlan num seed futuro).
-    const allowedFeatureIds = FEATURES.filter(feature => {
-      const minPlan = plansByKey.get(feature.minPlan);
-      return minPlan && plan.position >= minPlan.position;
-    }).map(feature => feature.featureId);
-    const existing = await db.select().from(planFeatures).where(eq(planFeatures.planId, plan.id));
-    for (const row of existing) {
-      if (!allowedFeatureIds.includes(row.featureId)) {
-        await db.delete(planFeatures).where(eq(planFeatures.id, row.id));
-      }
+    // Limite inicial só se ainda não houver linha para o plano+recurso.
+    const existingLimits = new Set(
+      (await db.select({ resourceKey: planLimits.resourceKey }).from(planLimits).where(eq(planLimits.planId, plan.id))).map(row => row.resourceKey),
+    );
+    for (const [resourceKey, limitValue] of Object.entries(LIMITS[plan.key])) {
+      if (existingLimits.has(resourceKey)) continue;
+      await db.insert(planLimits).values({ planId: plan.id, resourceKey, limitValue, createdAt: now, updatedAt: now });
     }
   }
 

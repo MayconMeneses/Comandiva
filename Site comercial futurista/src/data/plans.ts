@@ -16,7 +16,8 @@ export type Plan = {
   tagline: string;
   users: number | null;
   tables: number | null;
-  maintenance: string;
+  /** Manutenção avulsa por acionamento, em centavos. Nulo = inclusa no plano. Vem do Painel Master. */
+  maintenanceCents: number | null;
   /** Recursos liberados (ids), quando vierem da API. Sem isso, vale o `minPlan` do catálogo. */
   features?: string[];
 };
@@ -29,7 +30,7 @@ export const PLANS: Plan[] = [
     tagline: "Quero receber pedidos e ter meu próprio canal de vendas.",
     users: 3,
     tables: 4,
-    maintenance: "Sob consulta (R$ 50 por acionamento)",
+    maintenanceCents: 5000,
   },
   {
     key: "profissional",
@@ -38,7 +39,7 @@ export const PLANS: Plan[] = [
     tagline: "Quero organizar meu restaurante, cozinha e salão.",
     users: 8,
     tables: 12,
-    maintenance: "Inclusa",
+    maintenanceCents: null,
   },
   {
     key: "premium",
@@ -47,9 +48,18 @@ export const PLANS: Plan[] = [
     tagline: "Quero tudo do Comandiva, sem limitações e com gestão avançada.",
     users: null,
     tables: null,
-    maintenance: "Inclusa",
+    maintenanceCents: null,
   },
 ];
+
+const reais = (cents: number) => `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: cents % 100 ? 2 : 0 })}`;
+
+/** Texto longo da manutenção (cartão do plano). */
+export const maintenanceText = (plan: Plan) =>
+  plan.maintenanceCents === null ? "Inclusa" : `Sob consulta (${reais(plan.maintenanceCents)} por acionamento)`;
+
+/** Texto curto da manutenção (tabela de comparação). */
+export const maintenanceShort = (plan: Plan) => (plan.maintenanceCents === null ? "Inclusa" : `${reais(plan.maintenanceCents)}/vez`);
 
 /** Lançamento: 20% de desconto na mensalidade nos 2 primeiros meses (texto da página atual). */
 export const LAUNCH_DISCOUNT = 0.2;
