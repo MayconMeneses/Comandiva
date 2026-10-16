@@ -3,6 +3,8 @@ import { FEATURE_GROUPS, PLANS, type Feature, type Plan, type PlanKey } from "..
 
 type ApiPlan = {
   key: PlanKey;
+  /** Centavos por acionamento; nulo = inclusa. Ausente em respostas antigas (vale a reserva). */
+  maintenanceCents?: number | null;
   name: string;
   priceCents: number;
   active: boolean;
@@ -44,6 +46,7 @@ export function usePlans(): PlansState {
             users: api.limits?.users ?? null,
             tables: api.limits?.tables ?? null,
             features: api.features,
+            maintenanceCents: api.maintenanceCents === undefined ? local.maintenanceCents : api.maintenanceCents,
           };
         });
         if (!plans.length) throw new Error("nenhum plano ativo conhecido");

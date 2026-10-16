@@ -19,6 +19,7 @@ export const masterPanelPlansRouter = router({
         currency: z.string().trim().length(3).optional(),
         position: z.number().int().positive(),
         active: z.boolean(),
+        maintenanceCents: z.number().int().nonnegative().nullable().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {

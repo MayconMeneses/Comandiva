@@ -11,6 +11,9 @@ export const plans = mysqlTable(
     name: varchar("name", { length: 80 }).notNull(),
     priceCents: int("priceCents").notNull(),
     currency: varchar("currency", { length: 3 }).notNull().default("BRL"),
+    // Manutenção/consultoria avulsa cobrada por acionamento (centavos). Nulo =
+    // inclusa no plano. Editável no Painel Master e exibida no site comercial.
+    maintenanceCents: int("maintenanceCents"),
     // Ordem de comparação (1 = mais barato) — usada pra achar o plano mais
     // barato que libera uma feature bloqueada no plano atual.
     position: int("position").notNull(),
