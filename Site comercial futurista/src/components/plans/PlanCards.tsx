@@ -72,7 +72,7 @@ export function PlanCards({ plans, groups = FEATURE_GROUPS, recommended }: { pla
                     ))}
                     <li className="flex gap-2">
                       <Check muted={plan.key === "essencial"} />
-                      Manutenção: {plan.maintenance.toLowerCase()}
+                      Manutenção: {plan.maintenance.charAt(0).toLowerCase() + plan.maintenance.slice(1)}
                     </li>
                   </ul>
                   <Link

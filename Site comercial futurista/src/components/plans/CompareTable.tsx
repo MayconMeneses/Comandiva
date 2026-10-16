@@ -78,7 +78,7 @@ export function CompareTable({ plans, groups = FEATURE_GROUPS, recommended }: { 
             {[
               { label: "Usuários", value: (p: Plan) => (p.users === null ? "Sem limite" : `Até ${p.users}`) },
               { label: "Mesas", value: (p: Plan) => (p.tables === null ? "Sem limite" : p.tables === 0 ? "—" : `Até ${p.tables}`) },
-              { label: "Manutenção", value: (p: Plan) => (p.key === "essencial" ? "R$ 100/vez" : "Inclusa") },
+              { label: "Manutenção", value: (p: Plan) => (p.key === "essencial" ? "R$ 50/vez" : "Inclusa") },
             ].map(row => (
               <tr key={row.label} className="border-b border-line/60 last:border-0">
                 <th scope="row" className="p-3 text-left font-normal text-ink sm:p-4">
