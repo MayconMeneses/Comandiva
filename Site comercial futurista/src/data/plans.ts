@@ -28,8 +28,8 @@ export const PLANS: Plan[] = [
     priceCents: 9990,
     tagline: "Quero receber pedidos e ter meu próprio canal de vendas.",
     users: 3,
-    tables: 0,
-    maintenance: "Sob consulta (R$ 100 por acionamento)",
+    tables: 4,
+    maintenance: "Sob consulta (R$ 50 por acionamento)",
   },
   {
     key: "profissional",
@@ -82,7 +82,7 @@ export const FEATURE_GROUPS: { title: string; features: Feature[] }[] = [
   {
     title: "Salão e mesas",
     features: [
-      { id: "tables_qr", name: "Mesas / QR Code", description: "Cliente pede pela própria mesa escaneando um QR Code.", minPlan: "profissional" },
+      { id: "tables_qr", name: "Mesas / QR Code", description: "Cliente pede pela própria mesa escaneando um QR Code.", minPlan: "essencial" },
       { id: "call_waiter", name: "Chamar garçom", description: "Botão de chamar a equipe direto da mesa.", minPlan: "profissional" },
       { id: "request_bill", name: "Solicitar conta", description: "Cliente pede a conta pela própria mesa.", minPlan: "profissional" },
       { id: "extra_rounds", name: "Rodadas extras", description: "Lançar novos pedidos numa comanda de mesa já aberta.", minPlan: "profissional" },
