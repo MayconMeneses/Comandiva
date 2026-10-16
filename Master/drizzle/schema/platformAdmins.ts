@@ -33,6 +33,11 @@ export const platformAdmins = mysqlTable(
     totpEnabled: boolean("totpEnabled").notNull().default(false),
     // Último "passo" de 30s do TOTP já aceito — impede reusar o mesmo código.
     totpLastStep: bigint("totpLastStep", { mode: "number", unsigned: true }),
+    // Pergunta de segurança + código de 4 dígitos (segundo passo do login, no lugar do
+    // TOTP acima, que ficou sem uso). Só HASH: "v1:sal:scrypt" — ver server/_core/securityAnswers.ts.
+    securityEnabled: boolean("securityEnabled").notNull().default(false),
+    securityFriendHash: varchar("securityFriendHash", { length: 255 }),
+    securityPinHash: varchar("securityPinHash", { length: 255 }),
     // Sessões (JWT) emitidas ANTES deste instante (segundos unix) são
     // recusadas — é assim que se derruba sessão no servidor (troca de senha,
     // conta pausada, 2FA ligado/desligado, "sair de todos os dispositivos").

@@ -14,19 +14,20 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Passo 2 (só contas com verificação em duas etapas): o servidor devolve um
-  // token temporário depois da senha, e o código é conferido separadamente.
+  // Passo 2 (só contas com a verificação cadastrada): o servidor devolve um token
+  // temporário depois da senha, e a pergunta de segurança + o código de 4 números
+  // são conferidos separadamente.
   const [pendingToken, setPendingToken] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [friendAnswer, setFriendAnswer] = useState("");
+  const [pin, setPin] = useState("");
 
   useEffect(() => {
-    if (!loading && admin) setLocation(admin.mustSetupTotp ? "/seguranca" : "/");
+    if (!loading && admin) setLocation(admin.mustSetupSecurity ? "/seguranca" : "/");
   }, [loading, admin, setLocation]);
 
   const login = trpc.masterPanel.auth.login.useMutation({
     onSuccess: async result => {
-      if (result.requiresTotp) {
+      if (result.requiresSecurity) {
         setPendingToken(result.pendingToken);
         return;
       }
@@ -35,11 +36,10 @@ export default function Login() {
     },
   });
 
-  const verifyTotp = trpc.masterPanel.auth.verifyTotp.useMutation({
-    onSuccess: async result => {
+  const verifySecurity = trpc.masterPanel.auth.verifySecurity.useMutation({
+    onSuccess: async () => {
       await utils.masterPanel.auth.me.invalidate();
-      // Poucos códigos de recuperação sobrando: leva direto pra tela Segurança, onde o aviso aparece.
-      setLocation(result.recoveryCodesRemaining !== null ? "/seguranca" : "/");
+      setLocation("/");
     },
   });
 
@@ -48,17 +48,17 @@ export default function Login() {
     login.mutate({ email, password });
   }
 
-  function submitCode(event: FormEvent) {
+  function submitAnswers(event: FormEvent) {
     event.preventDefault();
-    if (pendingToken) verifyTotp.mutate({ pendingToken, code });
+    if (pendingToken) verifySecurity.mutate({ pendingToken, friendAnswer, pin });
   }
 
   function backToCredentials() {
     setPendingToken(null);
-    setCode("");
-    setUseRecoveryCode(false);
+    setFriendAnswer("");
+    setPin("");
     setPassword("");
-    verifyTotp.reset();
+    verifySecurity.reset();
     login.reset();
   }
 
@@ -69,37 +69,21 @@ export default function Login() {
         <h1 className="mt-2 text-2xl font-bold text-ink">Painel Master</h1>
 
         {pendingToken ? (
-          <form onSubmit={submitCode}>
-            <p className="mt-1 text-sm text-ink-soft">
-              {useRecoveryCode
-                ? "Digite um dos códigos de recuperação que você guardou. Cada código só funciona uma vez."
-                : "Abra o app autenticador no celular e digite o código de 6 números que aparece para o Painel Master."}
-            </p>
-            <div className="mt-5">
-              <label htmlFor="code" className="text-sm font-medium text-ink">{useRecoveryCode ? "Código de recuperação" : "Código de 6 números"}</label>
-              <Input
-                id="code"
-                required
-                autoFocus
-                autoComplete="one-time-code"
-                inputMode={useRecoveryCode ? "text" : "numeric"}
-                maxLength={useRecoveryCode ? 16 : 6}
-                placeholder={useRecoveryCode ? "XXXXX-XXXXX" : "000000"}
-                value={code}
-                onChange={event => setCode(event.target.value)}
-                className="mt-1.5 tracking-widest"
-              />
+          <form onSubmit={submitAnswers}>
+            <p className="mt-1 text-sm text-ink-soft">Mais uma confirmação: responda a pergunta de segurança e digite o seu código de 4 números.</p>
+            <div className="mt-5 space-y-3">
+              <div>
+                <label htmlFor="friend" className="text-sm font-medium text-ink">Quem é o seu melhor amigo de infância?</label>
+                <Input id="friend" required autoFocus autoComplete="off" maxLength={80} value={friendAnswer} onChange={event => setFriendAnswer(event.target.value)} className="mt-1.5" />
+              </div>
+              <div>
+                <label htmlFor="pin" className="text-sm font-medium text-ink">Código de 4 números</label>
+                <Input id="pin" type="password" required autoComplete="off" inputMode="numeric" maxLength={4} placeholder="0000" value={pin} onChange={event => setPin(event.target.value.replace(/\D/g, ""))} className="mt-1.5 w-32 tracking-widest" />
+              </div>
             </div>
-            {verifyTotp.error ? <p className="mt-3 rounded-lg bg-red-50 p-2.5 text-sm text-red-700">{verifyTotp.error.message}</p> : null}
-            <Button type="submit" disabled={verifyTotp.isPending} className="mt-5 w-full">{verifyTotp.isPending ? "Conferindo…" : "Entrar"}</Button>
-            <button
-              type="button"
-              onClick={() => { setUseRecoveryCode(value => !value); setCode(""); verifyTotp.reset(); }}
-              className="mt-3 w-full text-center text-sm font-medium text-accent hover:underline"
-            >
-              {useRecoveryCode ? "Usar o código do app autenticador" : "Perdi o celular — usar código de recuperação"}
-            </button>
-            <button type="button" onClick={backToCredentials} className="mt-2 w-full text-center text-sm text-ink-soft hover:underline">Voltar</button>
+            {verifySecurity.error ? <p className="mt-3 rounded-lg bg-red-50 p-2.5 text-sm text-red-700">{verifySecurity.error.message}</p> : null}
+            <Button type="submit" disabled={verifySecurity.isPending} className="mt-5 w-full">{verifySecurity.isPending ? "Conferindo…" : "Entrar"}</Button>
+            <button type="button" onClick={backToCredentials} className="mt-3 w-full text-center text-sm text-ink-soft hover:underline">Voltar</button>
           </form>
         ) : (
           <form onSubmit={submitCredentials}>

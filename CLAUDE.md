@@ -28,7 +28,7 @@ Produção (VPS Hostinger, `ssh pubx-vps`): app em `/opt/pubx` (`https://comandi
 - **Preço anunciado = preço cobrado** (promoção de 1 produto também desconta).
 - **Nenhuma marca "PUB X"** em imagens, telas ou textos. Identificadores técnicos `pubx` (banco, volumes, bucket, cookie, `/assets/pubx/`, `/opt/pubx`, alias SSH) **não** se renomeiam sem janela de manutenção (`Sistema de restaurante/docs/identificadores-pubx.md`).
 - **Site comercial**: só mexer quando o pedido citar o site comercial de forma explícita.
-- **Nota fiscal (NFC-e) foi removida** em 2026-10-07; não propor de volta. Sem MFA obrigatório no Master (2FA é opcional).
+- **Nota fiscal (NFC-e) foi removida** em 2026-10-07; não propor de volta. Sem MFA obrigatório no Master: a verificação (pergunta de segurança + código de 4 dígitos, só hash) é opcional; o TOTP foi removido em 2026-10-16.
 - Migrations sempre aditivas (`drizzle-kit generate`); nunca destrutivas.
 - O app de teste local usa o **Telegram real** do dono: testes que causem erro interno disparam alerta de verdade; avisar antes.
 - Não sugerir funcionalidades novas sem ser pedido (o dono já recusou iFood, fidelidade, avaliações).

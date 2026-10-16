@@ -46,8 +46,11 @@ const baseRow = {
   permissions: null,
   active: true,
   totpSecret: "v1:iv:tag:cifra",
-  totpEnabled: true,
+  totpEnabled: false,
   totpLastStep: 12345,
+  securityEnabled: true,
+  securityFriendHash: "v1:sal:hash-amigo",
+  securityPinHash: "v1:sal:hash-pin",
   sessionsValidAfter: 1700000000,
   lastSignedInAt: null,
   createdAt: 0,
@@ -61,17 +64,17 @@ beforeEach(() => {
 });
 
 describe("segredos nunca saem nas respostas de equipe", () => {
-  it("listPlatformAdmins remove hash de senha, segredo do 2FA, passo e marco de sessão — mantém só o booleano totpEnabled", async () => {
+  it("listPlatformAdmins remove hash de senha, hashes das respostas de segurança, segredo do TOTP antigo e marco de sessão — mantém só o booleano securityEnabled", async () => {
     const [admin] = await listPlatformAdmins();
-    expect(admin).toMatchObject({ id: 1, totpEnabled: true });
-    for (const key of ["passwordHash", "totpSecret", "totpLastStep", "sessionsValidAfter"]) expect(admin).not.toHaveProperty(key);
+    expect(admin).toMatchObject({ id: 1, securityEnabled: true });
+    for (const key of ["passwordHash", "totpSecret", "totpLastStep", "securityFriendHash", "securityPinHash", "sessionsValidAfter"]) expect(admin).not.toHaveProperty(key);
     expect(JSON.stringify(admin)).not.toContain("segredo-do-hash");
     expect(JSON.stringify(admin)).not.toContain("cifra");
   });
 
   it("getPlatformAdminById (contexto de sessão) remove os segredos mas mantém sessionsValidAfter pro context.ts", async () => {
     const admin = await getPlatformAdminById(1);
-    for (const key of ["passwordHash", "totpSecret", "totpLastStep"]) expect(admin).not.toHaveProperty(key);
+    for (const key of ["passwordHash", "totpSecret", "totpLastStep", "securityFriendHash", "securityPinHash"]) expect(admin).not.toHaveProperty(key);
     expect(admin).toHaveProperty("sessionsValidAfter", 1700000000);
   });
 });
@@ -120,7 +123,7 @@ describe("authenticatePlatformAdmin — mesmo trabalho (scrypt) em qualquer falh
   it("senha certa de conta ativa: ok, sem dummy, e sem vazar hash/segredo", async () => {
     h.rows = [{ ...baseRow, passwordHash: await hashPlatformPassword("senha-certa") }];
     const result = await authenticatePlatformAdmin("dono@exemplo.com", "senha-certa");
-    expect(result).toEqual({ ok: true, admin: { id: 1, name: "Dono", email: "dono@exemplo.com", totpEnabled: true } });
+    expect(result).toEqual({ ok: true, admin: { id: 1, name: "Dono", email: "dono@exemplo.com", securityEnabled: true } });
     expect(h.dummySpy).not.toHaveBeenCalled();
   });
 

@@ -6,7 +6,7 @@ aprendendo Docker/infra — explicar passo a passo.
 ## O que é
 
 Serviço central (ex-`saas-core`) do SaaS: planos, assinaturas, cobrança (Mercado Pago), cadastro dos restaurantes-clientes,
-Painel Master (Super Admin) com 2FA, Modo Suporte e o **site comercial** (mmsystem.tech/comercial). **Nunca** guarda dado
+Painel Master (Super Admin) com verificação opcional (pergunta + código de 4 dígitos), Modo Suporte e o **site comercial** (mmsystem.tech/comercial). **Nunca** guarda dado
 operacional de restaurante (pedidos, cardápio, clientes). Stack: Express + tRPC + Drizzle + MySQL + React/Vite/Tailwind.
 
 ## Estrutura (3 projetos irmãos, cada um com seu git)
@@ -41,8 +41,9 @@ backend por `featureProcedure`/`requireFeature` (nunca só escondendo botão no 
   de `platform_admins`, sem relação com login de admin de restaurante nem com o `OPERATOR_TOKEN` dos
   scripts de CLI. Primeira conta é criada automaticamente no boot a partir de
   `BOOTSTRAP_SUPERADMIN_{NAME,EMAIL,PASSWORD}` em `saas-core/.env` (hoje: Maycon,
-  mayconprogramacao1@gmail.com — senha é a que estiver salva nessa variável nesse arquivo). Sem MFA
-  (recusado de propósito, ver memória). Páginas: `Dashboard`, `Restaurantes` (lista + detalhe: plano,
+  mayconprogramacao1@gmail.com — senha é a que estiver salva nessa variável nesse arquivo). Segundo passo
+  opcional por conta (tela Segurança): pergunta "Quem é o seu melhor amigo de infância?" + código de 4 dígitos, guardados só como hash
+  (`server/_core/securityAnswers.ts`); substituiu o TOTP em 2026-10-16. Reset por CLI: `scripts/reset-platform-admin-2fa.ts`. Páginas: `Dashboard`, `Restaurantes` (lista + detalhe: plano,
   status, `deploymentUrl`, botão "Entrar em modo suporte"), `Planos`, `Auditoria`.
 - **Modo Suporte** — a partir do detalhe de um restaurante no Painel Master, abre uma sessão com
   acesso completo de leitura E escrita (dashboard, pedidos, cardápio, mesas etc.) direto no

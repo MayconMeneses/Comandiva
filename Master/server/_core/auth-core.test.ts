@@ -4,9 +4,9 @@ import { SignJWT } from "jose";
 /**
  * Cobertura de regressão pro núcleo de autenticação do Painel Master
  * (verifyPlatformSessionToken, operatorProcedure, restaurantProcedure e
- * hashApiKey). O 2FA (TOTP) em si — geração/validação de código, fluxo de
+ * hashApiKey). A verificação de segurança em si — hash das respostas, fluxo de
  * setup, dispositivo confiável — tem cobertura própria em
- * server/routers/masterPanel/auth.test.ts e server/_core/totp.test.ts.
+ * server/routers/masterPanel/securityFlow.test.ts e server/_core/securityAnswers.test.ts.
  * Tudo com mocks simples, sem subir servidor HTTP real: os middlewares tRPC
  * são exercitados criando um router mínimo e chamando `.createCaller(ctx)`
  * com um `TrpcContext` montado à mão, mesmo padrão já usado em

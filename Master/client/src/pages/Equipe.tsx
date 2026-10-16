@@ -9,7 +9,7 @@ import { GRANTABLE_MASTER_AREAS, MASTER_AREA_LABELS, type MasterPermissionArea }
 import { FormEvent, useState } from "react";
 
 type Role = "owner" | "member";
-type Admin = { id: number; name: string; email: string; role: Role; permissions: MasterPermissionArea[]; active: boolean; totpEnabled: boolean; lastSignedInAt: number | null };
+type Admin = { id: number; name: string; email: string; role: Role; permissions: MasterPermissionArea[]; active: boolean; securityEnabled: boolean; lastSignedInAt: number | null };
 
 const ROLE_LABEL: Record<Role, string> = { owner: "Owner — acesso completo", member: "Membro — só as áreas marcadas" };
 
@@ -114,7 +114,7 @@ export default function Equipe() {
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Papel</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">2FA</th>
+              <th className="px-4 py-3">Verificação</th>
               <th className="px-4 py-3">Último acesso</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -128,7 +128,7 @@ export default function Equipe() {
                 </td>
                 <td className="px-4 py-3"><Badge status={a.role === "owner" ? "active" : "trial"}>{ROLE_LABEL[a.role]}</Badge></td>
                 <td className="px-4 py-3"><Badge status={a.active ? "active" : "cancelled"}>{a.active ? "Ativo" : "Pausado"}</Badge></td>
-                <td className="px-4 py-3"><Badge status={a.totpEnabled ? "active" : "payment_pending"}>{a.totpEnabled ? "2FA ativo" : "Sem 2FA"}</Badge></td>
+                <td className="px-4 py-3"><Badge status={a.securityEnabled ? "active" : "payment_pending"}>{a.securityEnabled ? "Verificação ativa" : "Sem verificação"}</Badge></td>
                 <td className="px-4 py-3 text-ink-soft">{a.lastSignedInAt ? new Date(a.lastSignedInAt).toLocaleString("pt-BR") : "ainda não acessou"}</td>
                 <td className="px-4 py-3 text-right">
                   <Button variant="ghost" onClick={() => beginEdit(a)}>Editar</Button>

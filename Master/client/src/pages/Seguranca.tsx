@@ -1,5 +1,4 @@
 import { PanelLayout } from "@/components/PanelLayout";
-import { RecoveryCodesPanel } from "@/components/RecoveryCodesPanel";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -8,44 +7,38 @@ import { trpc } from "@/lib/trpc";
 import { FormEvent, useState } from "react";
 import { useLocation } from "wouter";
 
-const LOW_CODES = 2;
+type Mode = "setup" | "change" | "disable" | null;
 
-/** Cada admin cuida do próprio 2FA e das próprias sessões — sem área de permissão, todo mundo logado vê esta tela. */
+/** Cada admin cuida da própria verificação (pergunta de segurança + código de 4 números) e das próprias sessões — sem área de permissão, todo mundo logado vê esta tela. */
 export default function Seguranca() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
   const status = trpc.masterPanel.security.status.useQuery();
 
+  const [mode, setMode] = useState<Mode>(null);
   const [password, setPassword] = useState("");
-  const [setup, setSetup] = useState<{ qrCodeDataUrl: string; manualKey: string } | null>(null);
-  const [confirmCode, setConfirmCode] = useState("");
-  // Códigos mostrados uma única vez (depois de ativar ou de gerar uma lista nova).
-  const [shownCodes, setShownCodes] = useState<string[] | null>(null);
-  const [manage, setManage] = useState<"regenerate" | "disable" | null>(null);
-  const [managePassword, setManagePassword] = useState("");
-  const [manageCode, setManageCode] = useState("");
+  const [friendAnswer, setFriendAnswer] = useState("");
+  const [pin, setPin] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [currentFriend, setCurrentFriend] = useState("");
+  const [currentPin, setCurrentPin] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
   const [confirmingRevoke, setConfirmingRevoke] = useState(false);
 
   const refresh = async () => {
     await Promise.all([utils.masterPanel.security.status.invalidate(), utils.masterPanel.auth.me.invalidate()]);
   };
+  function close() {
+    setMode(null); setPassword(""); setFriendAnswer(""); setPin(""); setPinConfirm(""); setCurrentFriend(""); setCurrentPin(""); setLocalError(null);
+    setAnswers.reset(); disable.reset();
+  }
 
-  const startSetup = trpc.masterPanel.security.startTotpSetup.useMutation({
-    onSuccess: result => { setSetup(result); setPassword(""); },
+  const setAnswers = trpc.masterPanel.security.setAnswers.useMutation({
+    onSuccess: async () => { const wasChange = mode === "change"; close(); setSaved(wasChange ? "Pergunta e código trocados." : "Verificação ativada. No próximo login, depois da senha, o painel vai pedir a resposta e o código."); await refresh(); },
   });
-  const confirmSetup = trpc.masterPanel.security.confirmTotpSetup.useMutation({
-    onSuccess: async result => {
-      setSetup(null);
-      setConfirmCode("");
-      setShownCodes(result.recoveryCodes);
-      await refresh();
-    },
-  });
-  const disable = trpc.masterPanel.security.disableTotp.useMutation({
-    onSuccess: async () => { closeManage(); await refresh(); },
-  });
-  const regenerate = trpc.masterPanel.security.regenerateRecoveryCodes.useMutation({
-    onSuccess: async result => { closeManage(); setShownCodes(result.recoveryCodes); await refresh(); },
+  const disable = trpc.masterPanel.security.disable.useMutation({
+    onSuccess: async () => { close(); setSaved("Verificação desativada."); await refresh(); },
   });
   const revokeAll = trpc.masterPanel.security.revokeAllSessions.useMutation({
     onSuccess: () => {
@@ -55,114 +48,106 @@ export default function Seguranca() {
     },
   });
 
-  function closeManage() {
-    setManage(null); setManagePassword(""); setManageCode("");
-    disable.reset(); regenerate.reset();
-  }
-
-  function submitStart(event: FormEvent) {
-    event.preventDefault();
-    startSetup.mutate({ password });
-  }
-  function submitConfirm(event: FormEvent) {
-    event.preventDefault();
-    confirmSetup.mutate({ code: confirmCode });
-  }
-  function submitManage(event: FormEvent) {
-    event.preventDefault();
-    if (manage === "disable") disable.mutate({ password: managePassword, code: manageCode });
-    else regenerate.mutate({ password: managePassword, code: manageCode });
-  }
-
   const data = status.data;
-  const manageError = disable.error ?? regenerate.error;
-  const managePending = disable.isPending || regenerate.isPending;
+  const enabled = Boolean(data?.securityEnabled);
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    setLocalError(null);
+    setSaved(null);
+    if (mode === "disable") {
+      disable.mutate({ password, current: { friendAnswer: currentFriend, pin: currentPin } });
+      return;
+    }
+    if (pin !== pinConfirm) { setLocalError("Os dois códigos de 4 números não são iguais."); return; }
+    setAnswers.mutate({ password, friendAnswer, pin, current: mode === "change" ? { friendAnswer: currentFriend, pin: currentPin } : undefined });
+  }
+
+  const error = localError ?? setAnswers.error?.message ?? disable.error?.message ?? null;
+  const pending = setAnswers.isPending || disable.isPending;
+  const askCurrent = mode === "change" || mode === "disable";
+  const askNew = mode === "setup" || mode === "change";
 
   return (
     <PanelLayout>
       <h1 className="text-xl font-bold text-ink">Segurança</h1>
-      <p className="mt-1 text-sm text-ink-soft">Proteja o seu acesso ao Painel Master com a verificação em duas etapas e controle onde a sua conta está conectada.</p>
+      <p className="mt-1 text-sm text-ink-soft">Proteja o seu acesso ao Painel Master com uma pergunta de segurança e um código de 4 números, e controle onde a sua conta está conectada.</p>
 
       <section className="mt-5 max-w-xl rounded-xl border border-border bg-paper-raised p-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-semibold text-ink">Verificação em duas etapas</h2>
-          {data ? <Badge status={data.totpEnabled ? "active" : "payment_pending"}>{data.totpEnabled ? "Ativa" : "Desativada"}</Badge> : null}
+          <h2 className="font-semibold text-ink">Pergunta de segurança + código</h2>
+          {data ? <Badge status={enabled ? "active" : "payment_pending"}>{enabled ? "Ativa" : "Desativada"}</Badge> : null}
         </div>
 
-        {data?.totpRequired && !data.totpEnabled ? (
-          <p className="mt-3 rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">Este painel exige a verificação em duas etapas. Ative abaixo para voltar a usar as outras telas.</p>
+        {data?.securityRequired && !enabled ? (
+          <p className="mt-3 rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">Este painel exige a verificação. Cadastre abaixo para voltar a usar as outras telas.</p>
         ) : null}
+        {saved ? <p className="mt-3 rounded-lg bg-green-50 p-2.5 text-sm text-green-800">{saved}</p> : null}
 
-        {shownCodes ? (
-          <div className="mt-3"><RecoveryCodesPanel codes={shownCodes} onDone={() => setShownCodes(null)} /></div>
-        ) : null}
-
-        {data && !data.totpEnabled && !setup ? (
-          <form onSubmit={submitStart} className="mt-3">
+        {!mode ? (
+          <div className="mt-3">
             <p className="text-sm text-ink-soft">
-              Além da senha, você passa a digitar um código de 6 números gerado por um app no celular (Google Authenticator, Microsoft Authenticator, Authy…). Mesmo que descubram a sua senha, não conseguem entrar sem o seu celular.
+              {enabled
+                ? "Depois da senha, o login pede a resposta da pergunta e o seu código de 4 números. As respostas ficam guardadas só como hash (nem o servidor consegue ler)."
+                : "Depois de cadastrar, o login passa a pedir, além da senha, a resposta da pergunta e um código de 4 números. As respostas ficam guardadas só como hash (nem o servidor consegue ler)."}
             </p>
-            <label htmlFor="start-password" className="mt-3 block text-sm font-medium text-ink">Confirme a sua senha atual para começar</label>
-            <Input id="start-password" type="password" required autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-1.5" />
-            {startSetup.error ? <p className="mt-2 text-sm text-red-600">{startSetup.error.message}</p> : null}
-            <Button type="submit" disabled={startSetup.isPending} className="mt-3">{startSetup.isPending ? "Preparando…" : "Ativar verificação em duas etapas"}</Button>
-          </form>
-        ) : null}
-
-        {setup ? (
-          <form onSubmit={submitConfirm} className="mt-3">
-            <ol className="list-decimal space-y-1 pl-5 text-sm text-ink-soft">
-              <li>No celular, abra o app autenticador e escolha "adicionar conta" / "ler QR code".</li>
-              <li>Aponte a câmera para o QR code abaixo.</li>
-              <li>Digite aqui o código de 6 números que o app mostrar.</li>
-            </ol>
-            <img src={setup.qrCodeDataUrl} alt="QR code para o app autenticador" className="mt-3 h-48 w-48 rounded-lg border border-border bg-white" />
-            <p className="mt-2 text-xs text-ink-soft">Sem câmera? Digite esta chave no app (tipo "baseada em tempo"):</p>
-            <p className="mt-1 select-all break-all rounded-lg bg-paper p-2 font-mono text-sm tracking-wider text-ink">{setup.manualKey}</p>
-            <label htmlFor="confirm-code" className="mt-3 block text-sm font-medium text-ink">Código de 6 números</label>
-            <Input id="confirm-code" required autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" value={confirmCode} onChange={event => setConfirmCode(event.target.value)} className="mt-1.5 w-40 tracking-widest" />
-            {confirmSetup.error ? <p className="mt-2 text-sm text-red-600">{confirmSetup.error.message}</p> : null}
-            <div className="mt-3 flex gap-2">
-              <Button type="submit" disabled={confirmSetup.isPending}>{confirmSetup.isPending ? "Conferindo…" : "Confirmar e ativar"}</Button>
-              <Button type="button" variant="ghost" onClick={() => { setSetup(null); setConfirmCode(""); confirmSetup.reset(); }}>Cancelar</Button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {enabled ? (
+                <>
+                  <Button variant="outline" onClick={() => { setSaved(null); setMode("change"); }}>Trocar resposta e código</Button>
+                  {!data?.securityRequired ? <Button variant="outline" onClick={() => { setSaved(null); setMode("disable"); }}>Desativar</Button> : null}
+                </>
+              ) : (
+                <Button onClick={() => { setSaved(null); setMode("setup"); }}>Cadastrar pergunta e código</Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="mt-3 space-y-3">
+            <p className="text-sm font-medium text-ink">{mode === "setup" ? "Cadastrar pergunta e código" : mode === "change" ? "Trocar resposta e código" : "Desativar a verificação"}</p>
+            <div>
+              <label htmlFor="sec-password" className="text-xs font-medium text-ink-soft">Senha atual</label>
+              <Input id="sec-password" type="password" required autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-1" />
+            </div>
+            {askCurrent ? (
+              <div className="space-y-3 rounded-lg border border-border bg-paper p-3">
+                <p className="text-xs text-ink-soft">Confirme com a resposta e o código que valem hoje.</p>
+                <div>
+                  <label htmlFor="sec-cur-friend" className="text-xs font-medium text-ink-soft">{data?.question ?? "Quem é o seu melhor amigo de infância?"}</label>
+                  <Input id="sec-cur-friend" required autoComplete="off" maxLength={80} value={currentFriend} onChange={event => setCurrentFriend(event.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <label htmlFor="sec-cur-pin" className="text-xs font-medium text-ink-soft">Código de 4 números atual</label>
+                  <Input id="sec-cur-pin" type="password" required autoComplete="off" inputMode="numeric" maxLength={4} value={currentPin} onChange={event => setCurrentPin(event.target.value.replace(/\D/g, ""))} className="mt-1 w-32 tracking-widest" />
+                </div>
+              </div>
+            ) : null}
+            {askNew ? (
+              <div className="space-y-3 rounded-lg border border-border bg-paper p-3">
+                <div>
+                  <label htmlFor="sec-friend" className="text-xs font-medium text-ink-soft">{data?.question ?? "Quem é o seu melhor amigo de infância?"}{mode === "change" ? " (nova resposta)" : ""}</label>
+                  <Input id="sec-friend" required autoComplete="off" minLength={2} maxLength={80} value={friendAnswer} onChange={event => setFriendAnswer(event.target.value)} className="mt-1" />
+                  <p className="mt-1 text-xs text-ink-soft">Maiúsculas, acentos e espaços a mais não fazem diferença na hora de entrar.</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <div>
+                    <label htmlFor="sec-pin" className="text-xs font-medium text-ink-soft">Código de 4 números{mode === "change" ? " (novo)" : ""}</label>
+                    <Input id="sec-pin" type="password" required autoComplete="off" inputMode="numeric" maxLength={4} minLength={4} value={pin} onChange={event => setPin(event.target.value.replace(/\D/g, ""))} className="mt-1 w-32 tracking-widest" />
+                  </div>
+                  <div>
+                    <label htmlFor="sec-pin2" className="text-xs font-medium text-ink-soft">Repita o código</label>
+                    <Input id="sec-pin2" type="password" required autoComplete="off" inputMode="numeric" maxLength={4} minLength={4} value={pinConfirm} onChange={event => setPinConfirm(event.target.value.replace(/\D/g, ""))} className="mt-1 w-32 tracking-widest" />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            <div className="flex gap-2">
+              <Button type="submit" variant={mode === "disable" ? "danger" : "primary"} disabled={pending}>{pending ? "Aplicando…" : mode === "disable" ? "Desativar" : "Salvar"}</Button>
+              <Button type="button" variant="ghost" onClick={close}>Cancelar</Button>
             </div>
           </form>
-        ) : null}
-
-        {data?.totpEnabled && !shownCodes ? (
-          <div className="mt-3">
-            <p className="text-sm text-ink-soft">Códigos de recuperação restantes: <strong className="text-ink">{data.recoveryCodesRemaining}</strong></p>
-            {data.recoveryCodesRemaining <= LOW_CODES ? (
-              <p className="mt-2 rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">
-                {data.recoveryCodesRemaining === 0 ? "Você não tem mais códigos de recuperação." : `Restam só ${data.recoveryCodesRemaining} código(s) de recuperação.`} Gere uma lista nova antes de precisar.
-              </p>
-            ) : null}
-            {manage ? (
-              <form onSubmit={submitManage} className="mt-3 space-y-3 rounded-lg border border-border bg-paper p-3">
-                <p className="text-sm font-medium text-ink">{manage === "disable" ? "Desativar a verificação em duas etapas" : "Gerar uma nova lista de códigos de recuperação"}</p>
-                <p className="text-xs text-ink-soft">Confirme com a sua senha e com um código do app (ou um código de recuperação).{manage === "regenerate" ? " Os códigos antigos deixam de funcionar." : ""}</p>
-                <div>
-                  <label htmlFor="manage-password" className="text-xs font-medium text-ink-soft">Senha atual</label>
-                  <Input id="manage-password" type="password" required autoComplete="current-password" value={managePassword} onChange={event => setManagePassword(event.target.value)} className="mt-1" />
-                </div>
-                <div>
-                  <label htmlFor="manage-code" className="text-xs font-medium text-ink-soft">Código do app ou de recuperação</label>
-                  <Input id="manage-code" required autoComplete="one-time-code" maxLength={16} value={manageCode} onChange={event => setManageCode(event.target.value)} className="mt-1 tracking-widest" />
-                </div>
-                {manageError ? <p className="text-sm text-red-600">{manageError.message}</p> : null}
-                <div className="flex gap-2">
-                  <Button type="submit" variant={manage === "disable" ? "danger" : "primary"} disabled={managePending}>{managePending ? "Aplicando…" : manage === "disable" ? "Desativar" : "Gerar novos códigos"}</Button>
-                  <Button type="button" variant="ghost" onClick={closeManage}>Cancelar</Button>
-                </div>
-              </form>
-            ) : (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setManage("regenerate")}>Gerar novos códigos de recuperação</Button>
-                {!data.totpRequired ? <Button variant="outline" onClick={() => setManage("disable")}>Desativar</Button> : null}
-              </div>
-            )}
-          </div>
-        ) : null}
+        )}
       </section>
 
       <section className="mt-5 max-w-xl rounded-xl border border-border bg-paper-raised p-4">
