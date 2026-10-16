@@ -309,6 +309,31 @@ export async function insertPricedOrder(params: {
   return { orderId, code, isDuplicate: false };
 }
 
+/** Chave Pix cadastrada pelo restaurante em Admin → Conta (Pix manual, sem gateway). */
+async function getStaticPix(): Promise<{ key: string; qrCodeUrl: string | null } | null> {
+  const settings = await getStoreSettings();
+  const key = settings?.pixKey?.trim();
+  return key ? { key, qrCodeUrl: settings?.pixQrCodeUrl?.trim() || null } : null;
+}
+async function hasStaticPixKey() {
+  return Boolean(await getStaticPix());
+}
+
+/**
+ * Pix vale com cobrança automática do gateway OU com a chave cadastrada pelo
+ * restaurante; cartão online só com gateway conectado. Barra o pedido aqui pra
+ * não nascer um pedido que o cliente não tem como pagar.
+ */
+async function assertPaymentMethodAvailable(method: "PIX" | "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE") {
+  if (method !== "PIX" && method !== "CARD_ONLINE") return;
+  let capabilities = { pix: false, card: false };
+  try {
+    capabilities = (await getActiveGatewayAndProvider()).provider.getCapabilities();
+  } catch { /* sem gateway ativo: só a chave Pix (se houver) vale */ }
+  if (method === "CARD_ONLINE" && !capabilities.card) throw new TRPCError({ code: "BAD_REQUEST", message: "O pagamento online com cartão ainda não está disponível. Escolha outra forma de pagamento." });
+  if (method === "PIX" && !capabilities.pix && !(await hasStaticPixKey())) throw new TRPCError({ code: "BAD_REQUEST", message: "O Pix ainda não está disponível. Escolha outra forma de pagamento." });
+}
+
 export const orderRouter = router({
   preview: publicProcedure.input(z.object({ items: z.array(itemSchema).min(1), fulfillmentType: z.enum(["DELIVERY", "PICKUP"]), deliveryRouteId: z.number().int().positive().optional() })).query(async ({ input }) => {
     const priced = await priceOrder(input);
@@ -333,6 +358,7 @@ export const orderRouter = router({
     // esse endpoint especificamente (auditoria de escalabilidade 2026-09-19).
     const limit = checkRateLimit(`order-create:${ctx.req.ip}`, { maxAttempts: 40 });
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitos pedidos em pouco tempo. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
+    await assertPaymentMethodAvailable(input.paymentMethod);
     const priced = await priceOrder(input);
     if (input.paymentMethod === "CASH" && input.changeForCents !== undefined && input.changeForCents < priced.totalCents) {
       throw new TRPCError({ code: "BAD_REQUEST", message: `O valor para troco precisa ser igual ou maior que o total do pedido (${formatCurrency(priced.totalCents)}).` });
@@ -398,6 +424,7 @@ export const orderRouter = router({
     if (!limit.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Muitas consultas. Tente novamente em ${Math.ceil((limit.retryAfterSeconds ?? 60) / 60)} minuto(s).` });
     const orders = await getActiveOrdersByPhone(input.phone);
     if (!orders.length) throw new TRPCError({ code: "NOT_FOUND", message: "Não encontramos pedido em andamento para este telefone." });
+    const staticPix = orders.some(order => order.paymentMethod === "PIX" && order.payment?.status === "PENDING") ? await getStaticPix() : null;
     return orders.map(order => {
       // Só entrega o Pix pra tela enquanto ele ainda faz sentido pro cliente
       // pagar — pagamento já resolvido (de um jeito ou de outro) ou cobrança
@@ -409,6 +436,10 @@ export const orderRouter = router({
           if (saved.pixCopyPaste && saved.pixExpiresAt && saved.pixExpiresAt > Date.now()) pixCharge = { pixCopyPaste: saved.pixCopyPaste, expiresAt: saved.pixExpiresAt };
         } catch { /* metadata sem Pix (ex.: {changeForCents} de outro método) — sem problema, só não mostra */ }
       }
+      // Pix pela chave cadastrada pelo restaurante (sem cobrança automática): enquanto o
+      // pagamento estiver pendente, o cliente vê a chave aqui — é a única tela em que ela
+      // aparece, sempre ligada a um pedido em Pix do próprio telefone.
+      const pixManual = order.paymentMethod === "PIX" && order.payment?.status === "PENDING" && !pixCharge && staticPix ? staticPix : null;
       return {
       id: order.id,
       status: order.status,
@@ -416,6 +447,7 @@ export const orderRouter = router({
       paymentMethod: order.paymentMethod,
       paymentStatus: order.payment?.status ?? null,
       pixCharge,
+      pixManual,
       totalCents: order.totalCents,
       createdAt: order.createdAt,
       items: order.items.map(item => ({
@@ -437,11 +469,14 @@ export const orderRouter = router({
   // processar. `onlineCardAvailable` continua existindo só pra não quebrar
   // nenhum outro lugar que ainda leia especificamente essa query (FAQ.tsx).
   paymentCapabilities: publicProcedure.query(async () => {
+    // `pixKey`: só um sim/não — a chave em si nunca vai a visitante sem pedido
+    // (ela só aparece no acompanhamento de quem escolheu Pix, ver `track`).
+    const pixKey = await hasStaticPixKey();
     try {
       const { provider } = await getActiveGatewayAndProvider();
-      return provider.getCapabilities();
+      return { ...provider.getCapabilities(), pixKey };
     } catch {
-      return { pix: false, card: false, installments: false };
+      return { pix: false, card: false, installments: false, pixKey };
     }
   }),
   onlineCardAvailable: publicProcedure.query(async () => {
