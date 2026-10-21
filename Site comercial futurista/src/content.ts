@@ -36,5 +36,5 @@ export const MARQUEE_ITEMS = [
   "Fila da cozinha sem papel",
   "Aguenta internet ruim",
   "7 dias grátis, sem cartão",
-  "WhatsApp direto com quem fez o sistema",
+  "Cliente fala direto com quem fez o sistema",
 ];

@@ -101,7 +101,7 @@ export const STEPS = [
 ];
 
 export const SUPORTE = [
-  { title: "WhatsApp direto comigo", description: "Resposta rápida, sem robô e sem fila de espera." },
+  { title: "WhatsApp direto comigo", description: "Depois que você vira cliente, eu respondo direto, sem robô e sem fila de espera." },
   { title: "Acesso remoto", description: "Se travar, eu entro no seu painel pra resolver junto com você — sem pedir sua senha." },
   { title: "Treinamento ao vivo", description: "Chamada de vídeo ensinando a usar o sistema, junto com a entrega do seu restaurante." },
 ];
@@ -110,7 +110,7 @@ export const FAQ = [
   {
     question: "Preciso saber mexer em sistema?",
     answer:
-      "Não. Nossa equipe organiza seu cardápio e sua configuração inicial, e você ainda tem WhatsApp direto com quem construiu o sistema, acesso remoto pra resolver travas (sem pedir sua senha) e treinamento ao vivo por chamada de vídeo.",
+      "Não. Nossa equipe organiza seu cardápio e sua configuração inicial, e, depois que vira cliente, você tem WhatsApp direto com quem construiu o sistema, acesso remoto pra resolver travas (sem pedir sua senha) e treinamento ao vivo por chamada de vídeo.",
   },
   {
     question: "Como funciona o teste grátis de 7 dias?",
