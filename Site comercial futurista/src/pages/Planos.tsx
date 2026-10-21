@@ -8,10 +8,14 @@ import { PLANS, type Plan } from "../data/plans";
 import { usePlans } from "../lib/usePlans";
 import { publicUrl, usePageMeta } from "../lib/seo";
 
-const productLd = (plans: Plan[]) => ({
+// SoftwareApplication, não Product: o Comandiva é uma assinatura de software, e o tipo Product faz o Google
+// validar a página como "listagem do comerciante" (exige imagem, frete e devolução) e marcar um item inválido.
+const planosLd = (plans: Plan[]) => ({
   "@context": "https://schema.org",
-  "@type": "Product",
+  "@type": "SoftwareApplication",
   name: "Comandiva",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
   description: "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido.",
   offers: plans.map(plan => ({
     "@type": "Offer",
@@ -35,7 +39,7 @@ export default function Planos() {
   const recommended = recommend(answers);
   const { plans, groups } = usePlans();
   const recName = (plans.find(p => p.key === recommended) ?? PLANS.find(p => p.key === recommended)!).name;
-  usePageMeta("/planos", { jsonLd: productLd(plans) });
+  usePageMeta("/planos", { jsonLd: planosLd(plans) });
 
 
   return (
