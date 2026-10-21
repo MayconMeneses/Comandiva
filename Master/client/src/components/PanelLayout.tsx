@@ -27,7 +27,13 @@ export function PanelLayout({ children }: { children: React.ReactNode }) {
     // pro site comercial, não pro formulário de login do Painel Master (que
     // é uma ferramenta interna, não a porta de entrada pro público). Em
     // qualquer outra rota do Painel Master, mantém o comportamento normal.
-    if (!loading && !admin) setLocation(location === "/" ? "/comercial" : "/login");
+    // Navegação COMPLETA (não setLocation): o roteador deste app só conhece o
+    // site comercial antigo; com COMMERCIAL_SITE=futurista quem responde
+    // /comercial é o servidor, então é ele que precisa ser consultado.
+    if (!loading && !admin) {
+      if (location === "/") window.location.replace("/comercial");
+      else setLocation("/login");
+    }
   }, [loading, admin, location, setLocation]);
 
   // PLATFORM_REQUIRE_2FA=true e conta sem a verificação de segurança: só a tela Segurança funciona (o servidor também barra o resto).
