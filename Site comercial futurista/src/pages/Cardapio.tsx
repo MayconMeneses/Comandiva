@@ -104,7 +104,7 @@ export default function Cardapio() {
         <div className="rounded-[calc(2rem-0.375rem)] bg-bg-raised p-6 sm:p-8">
           {!validLink ? (
             <p role="alert" className="text-sm text-[#ff9a9a]">
-              Link inválido — não encontramos a referência do seu cadastro. Fale com a nossa equipe pelo WhatsApp para enviar o cardápio.
+              Link inválido — não encontramos a referência do seu cadastro. Abra de novo o link que você recebeu ao se cadastrar ou fale com a nossa equipe para enviar o cardápio.
             </p>
           ) : sent ? (
             <div className="py-6 text-center" role="status">
@@ -164,6 +164,14 @@ export default function Cardapio() {
               >
                 {sending ? "Enviando…" : "Enviar cardápio"}
               </button>
+              <p className="mt-3 text-center text-xs leading-relaxed text-ink-soft">
+                Envie só o cardápio, sem documentos pessoais. O arquivo chega à nossa equipe e é usado apenas para montar o seu sistema, como
+                explica a{" "}
+                <Link href="/privacidade" className="text-accent-text underline underline-offset-2">
+                  Política de privacidade
+                </Link>
+                .
+              </p>
             </form>
           )}
         </div>

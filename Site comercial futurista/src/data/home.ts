@@ -42,7 +42,7 @@ export const DIFERENCIAIS: { key: DiferencialKey; title: string; description: st
   {
     key: "pagamento",
     title: "Pagamento pronto pra usar",
-    description: "Pix e cartão via Mercado Pago, caindo direto na sua conta — sem integração manual, sem taxa escondida.",
+    description: "Pix e cartão via Mercado Pago, caindo direto na sua conta, sem integração manual. As taxas do Mercado Pago são informadas por ele.",
   },
   {
     key: "testado",
