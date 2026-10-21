@@ -82,3 +82,26 @@ Relato do dono: "as interações não estão funcionando". Testado no site publi
 - **Defeito real encontrado e corrigido (ainda não publicado):** o link **"Por dentro" do menu não rolava** — na Home só trocava o endereço (o roteador faz pushState e o `useEffect` só reage a mudança de rota), e vindo de outra página tentava rolar antes de a seção (carregada sob demanda) existir. Correção: `scrollToHashWhenReady()` em `src/lib/scroll.ts` (espera o alvo existir, até 6 s), usada no menu, no botão "Ver por dentro" do hero e no carregamento de links com `#` (ex.: `/comercial/#por-dentro`). Testado em build local: menu na Home, menu vindo de Planos, link direto e botão do hero chegam à seção em ~1,2 s; botão voltar ok.
 - Falsos alarmes (eram do teste, não do site): o Playwright rola a página para clicar e atrapalha a rolagem suave; e medir o botão magnético durante a animação de entrada deixa o mouse fora dele.
 - Em aberto: o que exatamente falhou no navegador do dono (qual interação, qual navegador/aparelho, se o Windows/Chrome está com animações reduzidas ou modo de economia de energia — nesse caso o site fica propositalmente mais estático).
+
+## Os 17 pontos jurídicos e de qualidade (2026-10-21)
+Lista de um vídeo sobre sites feitos com IA, conferida contra o código e o site. Estados: PASS, PARCIAL (faltava algo), PENDENTE DO DONO (depende de dado ou decisão que não pode ser inventada).
+
+| # | Ponto | Estado | O que existe / o que foi feito |
+|---|---|---|---|
+| 1 | Política de privacidade | PASS | Página no rodapé. Ampliada em 21/10: finalidade e base legal, cardápio enviado, fornecedores (Telegram, Mercado Pago, hospedagem), retenção, cookies/armazenamento |
+| 2 | Termos de serviço | PARCIAL | Existem; em 21/10 ganharam Cancelamento (igual ao FAQ), Uso do serviço e Alterações. Faltam reembolso e contato (item 4 e 15, dependem do dono) |
+| 3 | Aviso de cookies | PASS (não se aplica) | Nenhum cookie. Só `sessionStorage` da animação de abertura, dito na política. Banner seria falso aviso |
+| 4 | Política de reembolso | PENDENTE DO DONO | Não existe. Depende da regra de reembolso do dono |
+| 5 | Formulários na LGPD | PASS | Cadastro ganhou caixa obrigatória "Li e concordo com Termos e Privacidade" + finalidade. Testado: sem marcar, nada é enviado (0 chamadas à API) |
+| 6 | Só dados necessários | PASS | 4 campos (restaurante, nome, e-mail, WhatsApp); cardápio é opcional. Texto "dados só com a equipe" trocado por texto fiel (Telegram etc.) |
+| 7 | Scripts de tracking | PASS | Sem Google/Meta/terceiros. Medição própria, sem cookie, respeita Do Not Track |
+| 8 | Acessibilidade | PASS | Lighthouse 100 em Cadastro e Privacidade (celular); campos com rótulo; foco |
+| 9 | Alt nas imagens | PASS | Prints com alt descritivo; fotos decorativas com `alt=""` |
+| 10 | Contraste | PASS | Lighthouse sem falha de contraste |
+| 11 | Navegação por teclado | PASS | Tab chega à caixa de aceite, Espaço marca; foco visível |
+| 12 | Sem avaliações falsas | PASS | Não há depoimentos, estrelas nem contagem de clientes (conferido por busca no código) |
+| 13 | Sem promessas falsas | PARCIAL | Comparativo "Quase nenhuma" trocado por "Definida pelo aplicativo". Afirmações absolutas que só o dono pode confirmar estão na lista de pendências |
+| 14 | Copyright das imagens | PENDENTE DO DONO | Prints do painel são do próprio sistema. As 3 fotos de "Sua rotina" parecem geradas por IA, sem origem registrada: marcadas "Imagens ilustrativas". Fontes: licenças em `public/fonts/LICENSES.txt` |
+| 15 | Dados da empresa | PENDENTE DO DONO | O site não mostra razão social/nome, CNPJ/CPF, endereço nem contato |
+| 16 | Conformidade LGPD | PARCIAL | Controlador, direitos, finalidade, base, fornecedores e retenção estão. Falta canal real para o titular pedir seus direitos (e-mail/WhatsApp) |
+| 17 | Riscos jurídicos | PARCIAL | Ver itens 4, 13, 14, 15. Sem nome de concorrente e sem logotipo de terceiros |

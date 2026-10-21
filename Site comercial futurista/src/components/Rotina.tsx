@@ -43,6 +43,8 @@ export function Rotina() {
         ))}
       </div>
 
+      <p className="mx-auto mt-4 max-w-6xl text-center text-xs text-ink-soft">Imagens ilustrativas.</p>
+
       <div className="mx-auto mt-24 max-w-6xl">
         <motion.h2 {...reveal()} id="resumo-title" className="text-center font-display text-[clamp(1.8rem,3.5vw,2.75rem)] font-semibold tracking-[-0.02em]">
           Por que escolher o Comandiva?

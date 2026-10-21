@@ -107,6 +107,27 @@ export default function Cadastro() {
             />
           </div>
 
+          <div className="mt-5 flex items-start gap-3">
+            <input
+              id="consent"
+              name="consent"
+              type="checkbox"
+              required
+              className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-[#0a84ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-text"
+            />
+            <label htmlFor="consent" className="text-sm leading-relaxed text-ink-soft">
+              Li e concordo com os{" "}
+              <Link href="/termos" className="text-accent-text underline underline-offset-2">
+                Termos de uso
+              </Link>{" "}
+              e a{" "}
+              <Link href="/privacidade" className="text-accent-text underline underline-offset-2">
+                Política de privacidade
+              </Link>
+              , e autorizo o uso do meu nome, e-mail e WhatsApp para configurar meu sistema e falar comigo.
+            </label>
+          </div>
+
           {error && (
             <p role="alert" className="mt-4 rounded-xl border border-[#ff7a7a]/30 bg-[#ff7a7a]/10 p-3 text-sm text-[#ff9a9a]">
               {error}
@@ -120,7 +141,7 @@ export default function Cadastro() {
           >
             {sending ? "Enviando…" : "Enviar informações"}
           </button>
-          <p className="mt-3 text-center text-xs text-ink-soft">Sem cartão de crédito. Seus dados ficam só com a nossa equipe.</p>
+          <p className="mt-3 text-center text-xs text-ink-soft">Sem cartão de crédito. Pedimos só o necessário e explicamos o uso na Política de privacidade.</p>
         </div>
       </form>
     </section>

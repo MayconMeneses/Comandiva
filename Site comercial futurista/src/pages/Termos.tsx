@@ -4,7 +4,7 @@ import { usePageMeta } from "../lib/seo";
 // Data fixa: muda só quando o texto mudar (o site antigo mostrava a data de hoje,
 // o que fazia os termos parecerem atualizados todo dia — mesma correção já feita
 // na Privacidade de lá). Texto igual ao de ../Site comercial/src/pages/Termos.tsx.
-const LAST_UPDATED = "13/10/2026";
+const LAST_UPDATED = "21/10/2026";
 
 export default function Termos() {
   usePageMeta("/termos");
@@ -22,6 +22,17 @@ export default function Termos() {
         </p>
       </section>
       <section>
+        <h2>Cancelamento</h2>
+        <p className="mt-2">Você cancela direto no seu painel, sem multa e sem fidelidade. O teste grátis de 7 dias não exige cartão de crédito.</p>
+      </section>
+      <section>
+        <h2>Uso do serviço</h2>
+        <p className="mt-2">
+          Use o sistema só para a operação lícita do seu restaurante. Você responde pelo cardápio, preços e informações que publica, e pelas
+          imagens e textos que enviar, que precisam ser seus ou ter autorização de uso.
+        </p>
+      </section>
+      <section>
         <h2>Seus dados</h2>
         <p className="mt-2">
           Os dados do seu restaurante (cardápio, pedidos, clientes) ficam no deployment isolado do seu próprio restaurante — nunca
@@ -31,6 +42,10 @@ export default function Termos() {
       <section>
         <h2>Propriedade e direitos</h2>
         <p className="mt-2">O sistema, o código, a marca e o conteúdo deste site são de propriedade de Maycon Meneses. Todos os direitos reservados.</p>
+      </section>
+      <section>
+        <h2>Alterações destes termos</h2>
+        <p className="mt-2">Se estes termos mudarem, a data de atualização no topo da página muda junto.</p>
       </section>
     </LegalPage>
   );

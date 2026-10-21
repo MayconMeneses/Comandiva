@@ -3,7 +3,7 @@ import { usePageMeta } from "../lib/seo";
 
 // Mesmo texto e mesma data de ../Site comercial/src/pages/Privacidade.tsx.
 // Data fixa de propósito: mudar só quando o texto da política mudar de verdade.
-const LAST_UPDATED = "13/10/2026";
+const LAST_UPDATED = "21/10/2026";
 
 export default function Privacidade() {
   usePageMeta("/privacidade");
@@ -16,6 +16,45 @@ export default function Privacidade() {
           Nome do restaurante, nome e e-mail do responsável e WhatsApp de contato — só o necessário pra configurar seu sistema e falar com
           você. Nunca pedimos dados de cartão diretamente: o pagamento é processado pelo Mercado Pago, que tem seus próprios padrões de
           segurança (PCI-DSS).
+        </p>
+      </section>
+      <section>
+        <h2>Para que usamos e em que base</h2>
+        <p className="mt-2">
+          Usamos esses dados para criar e configurar o seu sistema, falar com você sobre o cadastro e o suporte e cumprir obrigações legais. A
+          base é a execução do serviço que você pediu (e os passos anteriores ao contrato, a seu pedido) e o consentimento que você dá ao marcar
+          a caixa do cadastro. Não vendemos nem alugamos seus dados.
+        </p>
+      </section>
+      <section>
+        <h2>Cardápio enviado</h2>
+        <p className="mt-2">
+          O arquivo do cardápio (PDF, Word ou foto) é usado só para montar o seu sistema. Envie apenas o cardápio: evite documentos com dados
+          pessoais seus ou de terceiros.
+        </p>
+      </section>
+      <section>
+        <h2>Com quem os dados passam</h2>
+        <p className="mt-2">Para o serviço funcionar, alguns fornecedores tratam dados em nosso nome:</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            <strong>Telegram</strong>: recebe o aviso interno de novo cadastro e de cardápio enviado, com os dados do formulário e o arquivo,
+            para a nossa equipe;
+          </li>
+          <li>
+            <strong>Mercado Pago</strong>: processa o pagamento da assinatura;
+          </li>
+          <li>
+            <strong>Hospedagem</strong>: os servidores em que o site e o seu sistema funcionam.
+          </li>
+        </ul>
+        <p className="mt-2">Algum desses fornecedores pode guardar dados fora do Brasil. Só passamos o necessário para cada função.</p>
+      </section>
+      <section>
+        <h2>Por quanto tempo guardamos</h2>
+        <p className="mt-2">
+          Enquanto o cadastro estiver em andamento ou você for cliente. Depois, só pelo prazo que a lei exigir ou para nos defendermos em
+          algum processo. Passado isso, apagamos ou anonimizamos.
         </p>
       </section>
       <section>
@@ -41,7 +80,8 @@ export default function Privacidade() {
       </section>
       <section>
         <h2>Cookies</h2>
-        <p className="mt-2">O site comercial não usa cookies de rastreamento nem de publicidade. A medição de visitas descrita acima funciona sem cookies.</p>
+        <p className="mt-2">O site comercial não usa cookies de rastreamento nem de publicidade, então não mostramos aviso de cookies. A medição de visitas descrita
+          acima funciona sem cookies. O navegador guarda apenas, durante a sessão, a informação de que você já viu a animação de abertura.</p>
       </section>
       <section>
         <h2>Seus direitos pela LGPD</h2>

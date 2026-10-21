@@ -18,7 +18,7 @@ export const COMPARISON = [
   { label: "Comissão por pedido", us: "R$ 0, mensalidade fixa", them: "Até 30% por venda" },
   { label: "Marca exibida pro cliente", us: "A sua", them: "A do aplicativo" },
   { label: "Dados de contato do seu cliente", us: "Seus, pra sempre", them: "Do aplicativo" },
-  { label: "Personalização do cardápio/visual", us: "Total", them: "Quase nenhuma" },
+  { label: "Personalização do cardápio/visual", us: "Total", them: "Definida pelo aplicativo" },
 ];
 
 export type DiferencialKey = "comissao" | "marca" | "testado" | "internet" | "pagamento" | "gratis";

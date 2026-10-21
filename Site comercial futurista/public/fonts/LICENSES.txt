@@ -1,0 +1,19 @@
+Fontes usadas no site do Comandiva e suas licenças
+
+Clash Grotesk (clash-grotesk-*.woff2)
+  Indian Type Foundry, distribuída pela Fontshare.
+  Licença: ITF Free Font License (uso comercial permitido).
+  https://www.fontshare.com/licenses/itf-free-font-license
+
+Satoshi (satoshi-*.woff2)
+  Indian Type Foundry, distribuída pela Fontshare.
+  Licença: ITF Free Font License (uso comercial permitido).
+  https://www.fontshare.com/licenses/itf-free-font-license
+
+Signature (signature.woff2): subconjunto da Mrs Saint Delafield
+  Licença: SIL Open Font License 1.1.
+  https://openfontlicense.org
+
+JetBrains Mono (pacote @fontsource/jetbrains-mono)
+  Licença: SIL Open Font License 1.1.
+  https://openfontlicense.org
