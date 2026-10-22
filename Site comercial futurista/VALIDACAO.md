@@ -101,7 +101,7 @@ Lista de um vídeo sobre sites feitos com IA, conferida contra o código e o sit
 | 11 | Navegação por teclado | PASS | Tab chega à caixa de aceite, Espaço marca; foco visível |
 | 12 | Sem avaliações falsas | PASS | Não há depoimentos, estrelas nem contagem de clientes (conferido por busca no código) |
 | 13 | Sem promessas falsas | PARCIAL | Comparativo "Quase nenhuma" trocado por "Definida pelo aplicativo". Afirmações absolutas que só o dono pode confirmar estão na lista de pendências |
-| 14 | Copyright das imagens | PENDENTE DO DONO | Prints do painel são do próprio sistema. As 3 fotos de "Sua rotina" parecem geradas por IA, sem origem registrada: marcadas "Imagens ilustrativas". Fontes: licenças em `public/fonts/LICENSES.txt` |
+| 14 | Copyright das imagens | PASS (origem registrada) | Prints do painel são do próprio sistema. As 3 fotos de "Sua rotina" foram geradas pelo dono com o ChatGPT (IA) e vieram do site antigo; o site avisa "Imagens ilustrativas, geradas com inteligência artificial". Conferir de tempos em tempos os termos de uso da OpenAI para saídas de imagem. Fontes: licenças em `public/fonts/LICENSES.txt` |
 | 15 | Dados da empresa | PENDENTE DO DONO | O site não mostra razão social/nome, CNPJ/CPF, endereço nem contato |
 | 16 | Conformidade LGPD | PARCIAL | Controlador, direitos, finalidade, base, fornecedores e retenção estão. Falta canal real para o titular pedir seus direitos (e-mail/WhatsApp) |
 | 17 | Riscos jurídicos | PARCIAL | Ver itens 4, 13, 14, 15. Sem nome de concorrente e sem logotipo de terceiros |
