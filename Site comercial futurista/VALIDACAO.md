@@ -18,8 +18,8 @@ Testado no build de produção (`npm run build` + `vite preview`, porta 5181), C
 | 12 | Compartilhamento social | OK | OG + Twitter Card estáticos no index.html e por página; imagem nova `og-comandiva.png` 1200×630 com a marca Comandiva |
 | 13 | Favicon | OK | .ico (16/32/48), PNG 16/32, apple-touch 180, ícones 192/512 + manifest — todos gerados do ícone Comandiva (não usam mais o monograma MM) |
 | 14 | URL canônica | OK | `rel=canonical` por página (mmsystem.tech/comercial e /comercial/planos). Trocar `SITE_ORIGIN` em `src/lib/seo.ts` se o domínio mudar |
-| 15 | Consentimento de cookies | Não se aplica | Nenhum cookie é criado; a medição é sem cookie e sem ID. `sessionStorage` só guarda "preloader já visto" (funcional) |
-| 16 | Versão mobile | OK | 320, 390, 768, 1440 e 1920 px sem rolagem horizontal (scrollWidth = clientWidth); botões ≥ 44 px |
+| 15 | Dados da empresa | PARCIAL (por escolha do dono) | Rodapé, Termos e Privacidade mostram nome e cidade (Maycon Meneses, Croatá, Ceará), vindos de `src/data/company.ts`. O dono decidiu não publicar CPF, endereço completo, e-mail nem WhatsApp. Quando abrir MEI/CNPJ, basta preencher `document` nesse arquivo |
+| 16 | Conformidade LGPD | PARCIAL | Controlador identificado, finalidade, base legal, fornecedores, retenção e direitos. Sem canal público (decisão do dono): o pedido do titular é atendido por resposta ao contato que o dono faz após o cadastro. Risco: a LGPD pede canal facilitado; hoje só quem se cadastra tem como pedir |
 | 17 | Acessibilidade | OK | Lighthouse 100 (Home, Planos, 404); teclado percorre tudo com foco visível; `prefers-reduced-motion` respeitado |
 | 18 | Formulários | Não se aplica | Este site não tem formulário; o cadastro continua no site atual (links testados, 200) |
 | 19 | Links quebrados | OK | Todos os links internos e externos 200, sem redirecionamento; nenhuma imagem quebrada |
@@ -105,3 +105,6 @@ Lista de um vídeo sobre sites feitos com IA, conferida contra o código e o sit
 | 15 | Dados da empresa | PENDENTE DO DONO | O site não mostra razão social/nome, CNPJ/CPF, endereço nem contato |
 | 16 | Conformidade LGPD | PARCIAL | Controlador, direitos, finalidade, base, fornecedores e retenção estão. Falta canal real para o titular pedir seus direitos (e-mail/WhatsApp) |
 | 17 | Riscos jurídicos | PARCIAL | Ver itens 4, 13, 14, 15. Sem nome de concorrente e sem logotipo de terceiros |
+
+## Rolagem lateral a 320 px (2026-10-21)
+A assinatura de Maycon (SVG em "Suporte") passava da largura da coluna em telas de 320 px e criava rolagem lateral (já no ar). Corrigido com `max-w-full`. Conferido sem rolagem lateral em 320, 360, 390, 768 e 1440 px na Home, Planos, Termos, Privacidade e Cadastro.

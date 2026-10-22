@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { asset } from "../lib/asset";
+import { companyFooter } from "../data/company";
 
 export function Footer() {
   return (
@@ -27,8 +28,8 @@ export function Footer() {
           </Link>
         </nav>
       </div>
-      <p className="pb-8 text-center font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-        © 2026 Comandiva · Criado e mantido por Maycon Meneses
+      <p className="px-4 pb-8 text-center font-mono text-[10px] uppercase leading-relaxed tracking-wider text-ink-soft">
+        © 2026 Comandiva · {companyFooter()}
       </p>
     </footer>
   );

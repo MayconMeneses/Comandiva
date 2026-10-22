@@ -38,7 +38,7 @@ export function SupportFounder() {
             de quem administra um restaurante.
           </p>
           <div className="mt-8">
-            <Signature name="Maycon Meneses" className="h-20 w-auto text-ink sm:h-24" />
+            <Signature name="Maycon Meneses" className="h-20 w-auto max-w-full text-ink sm:h-24" />
             <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Maycon Meneses · Ideias · Sistemas · Soluções</p>
           </div>
         </motion.div>

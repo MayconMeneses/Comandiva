@@ -1,5 +1,6 @@
 import { LegalPage } from "../components/LegalPage";
 import { usePageMeta } from "../lib/seo";
+import { companyIdentity } from "../data/company";
 
 // Mesmo texto e mesma data de ../Site comercial/src/pages/Privacidade.tsx.
 // Data fixa de propósito: mudar só quando o texto da política mudar de verdade.
@@ -74,8 +75,8 @@ export default function Privacidade() {
       <section>
         <h2>Quem responde pelos dados</h2>
         <p className="mt-2">
-          O Comandiva é criado e mantido por Maycon Meneses, que responde pelo tratamento dos dados descritos nesta página, conforme a Lei
-          Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).
+          O Comandiva é criado e mantido por {companyIdentity()}, que responde pelo tratamento dos dados descritos nesta página, conforme a
+          Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).
         </p>
       </section>
       <section>
@@ -94,7 +95,10 @@ export default function Privacidade() {
           <li>informação sobre com quem os dados são compartilhados;</li>
           <li>revogação de um consentimento que você tenha dado.</li>
         </ul>
-        <p className="mt-2">Para pedir qualquer um desses itens, fale diretamente com a nossa equipe.</p>
+        <p className="mt-2">
+          Só tratamos dados de quem se cadastra, e o contato com essas pessoas é feito diretamente por mim. Para pedir qualquer um desses
+          itens, responda a esse contato e eu atendo o pedido.
+        </p>
       </section>
     </LegalPage>
   );

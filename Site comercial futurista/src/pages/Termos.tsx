@@ -1,5 +1,6 @@
 import { LegalPage } from "../components/LegalPage";
 import { usePageMeta } from "../lib/seo";
+import { companyIdentity } from "../data/company";
 
 // Data fixa: muda só quando o texto mudar (o site antigo mostrava a data de hoje,
 // o que fazia os termos parecerem atualizados todo dia — mesma correção já feita
@@ -14,6 +15,12 @@ export default function Termos() {
         O <strong>Comandiva</strong> é um sistema próprio, criado do zero por <strong>Maycon Meneses</strong>, oferecido como assinatura
         mensal pra restaurantes que querem cardápio digital, pedidos online e gestão de entregas com a marca do próprio negócio.
       </p>
+      <section>
+        <h2>Quem oferece o serviço</h2>
+        <p className="mt-2">
+          {companyIdentity()}. Não há canal de atendimento público: depois que você se cadastra, eu entro em contato diretamente com você.
+        </p>
+      </section>
       <section>
         <h2>Assinatura e cobrança</h2>
         <p className="mt-2">
