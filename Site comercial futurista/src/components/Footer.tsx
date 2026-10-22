@@ -22,6 +22,9 @@ export function Footer() {
           <Link href="/privacidade" className="hover:text-ink">
             Política de privacidade
           </Link>
+          <Link href="/termos#cancelamento-reembolso" className="hover:text-ink">
+            Cancelamento e reembolso
+          </Link>
         </nav>
       </div>
       <p className="pb-8 text-center font-mono text-[10px] uppercase tracking-wider text-ink-soft">

@@ -116,7 +116,7 @@ export const FAQ = [
     question: "Como funciona o teste grátis de 7 dias?",
     answer: "Assim que sua configuração estiver pronta (em até 10 dias úteis), o teste de 7 dias começa a valer — sem cartão de crédito.",
   },
-  { question: "Posso cancelar ou trocar de plano quando quiser?", answer: "Sim, direto no seu painel, sem multa e sem fidelidade." },
+  { question: "Posso cancelar ou trocar de plano quando quiser?", answer: "Sim, a qualquer momento, direto no seu painel, sem multa e sem fidelidade. Não há reembolso dos valores já pagos." },
   {
     question: "Meus dados ficam seguros?",
     answer:

@@ -89,9 +89,9 @@ Lista de um vídeo sobre sites feitos com IA, conferida contra o código e o sit
 | # | Ponto | Estado | O que existe / o que foi feito |
 |---|---|---|---|
 | 1 | Política de privacidade | PASS | Página no rodapé. Ampliada em 21/10: finalidade e base legal, cardápio enviado, fornecedores (Telegram, Mercado Pago, hospedagem), retenção, cookies/armazenamento |
-| 2 | Termos de serviço | PARCIAL | Existem; em 21/10 ganharam Cancelamento (igual ao FAQ), Uso do serviço e Alterações. Faltam reembolso e contato (item 4 e 15, dependem do dono) |
+| 2 | Termos de serviço | PARCIAL | Existem; em 21/10 ganharam Cancelamento e reembolso, Uso do serviço e Alterações. Falta contato (item 15, depende do dono) |
 | 3 | Aviso de cookies | PASS (não se aplica) | Nenhum cookie. Só `sessionStorage` da animação de abertura, dito na política. Banner seria falso aviso |
-| 4 | Política de reembolso | PENDENTE DO DONO | Não existe. Depende da regra de reembolso do dono |
+| 4 | Política de reembolso | PASS | Regra do dono (21/10): cancela a qualquer momento, sem multa e sem fidelidade; não há reembolso dos valores já pagos. Está nos Termos (seção Cancelamento e reembolso), no FAQ e num link no rodapé |
 | 5 | Formulários na LGPD | PASS | Cadastro ganhou caixa obrigatória "Li e concordo com Termos e Privacidade" + finalidade. Testado: sem marcar, nada é enviado (0 chamadas à API) |
 | 6 | Só dados necessários | PASS | 4 campos (restaurante, nome, e-mail, WhatsApp); cardápio é opcional. Texto "dados só com a equipe" trocado por texto fiel (Telegram etc.) |
 | 7 | Scripts de tracking | PASS | Sem Google/Meta/terceiros. Medição própria, sem cookie, respeita Do Not Track |

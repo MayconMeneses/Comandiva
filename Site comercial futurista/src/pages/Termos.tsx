@@ -21,9 +21,12 @@ export default function Termos() {
           seu restaurante. Você pode trocar de plano ou cancelar quando quiser, direto no seu painel.
         </p>
       </section>
-      <section>
-        <h2>Cancelamento</h2>
-        <p className="mt-2">Você cancela direto no seu painel, sem multa e sem fidelidade. O teste grátis de 7 dias não exige cartão de crédito.</p>
+      <section id="cancelamento-reembolso" className="scroll-mt-28">
+        <h2>Cancelamento e reembolso</h2>
+        <p className="mt-2">
+          Você cancela a qualquer momento, direto no seu painel, sem multa e sem fidelidade. Não há reembolso dos valores já pagos. O teste
+          grátis de 7 dias não exige cartão de crédito, então nada é cobrado antes de você decidir assinar.
+        </p>
       </section>
       <section>
         <h2>Uso do serviço</h2>
