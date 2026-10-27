@@ -30,11 +30,16 @@ describe("checkSecrets", () => {
     expect(checkSecrets({ ...base, saasCoreUrl: "http://203.0.113.10:8080", isProduction: false }).warnings).toEqual([]);
   });
 
-  it("DATA_ENCRYPTION_KEY vazia em produção só avisa; preenchida e fraca impede o boot", () => {
+  it("DATA_ENCRYPTION_KEY é obrigatória em produção (impede o boot); fora dela segue opcional", () => {
     const semChave = checkSecrets({ ...base, dataEncryptionKey: "" });
-    expect(semChave.fatal).toEqual([]);
-    expect(semChave.warnings[0]).toContain("DATA_ENCRYPTION_KEY");
-    expect(checkSecrets({ ...base, dataEncryptionKey: "", isProduction: false }).warnings).toEqual([]);
+    expect(semChave.fatal[0]).toContain("DATA_ENCRYPTION_KEY ausente");
+    expect(checkSecrets({ ...base, dataEncryptionKey: undefined }).fatal[0]).toContain("DATA_ENCRYPTION_KEY ausente");
+    expect(checkSecrets({ ...base, dataEncryptionKey: "", isProduction: false })).toEqual({ fatal: [], warnings: [] });
+  });
+
+  it("DATA_ENCRYPTION_KEY preenchida e fraca ou com texto de exemplo impede o boot em qualquer ambiente", () => {
     expect(checkSecrets({ ...base, dataEncryptionKey: "curta" }).fatal[0]).toContain("DATA_ENCRYPTION_KEY fraco");
+    expect(checkSecrets({ ...base, dataEncryptionKey: "curta", isProduction: false }).fatal[0]).toContain("DATA_ENCRYPTION_KEY fraco");
+    expect(checkSecrets({ ...base, dataEncryptionKey: "gere-um-segredo-aleatorio-com-pelo-menos-32-caracteres" }).fatal[0]).toContain("texto de exemplo");
   });
 });
