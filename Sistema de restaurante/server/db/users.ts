@@ -123,10 +123,6 @@ export async function getStaffCredentialSessionGate(userId: number): Promise<{ a
   return credential ? { active: credential.active, sessionsValidAfter: credential.sessionsValidAfter ?? null } : undefined;
 }
 
-export async function createRestaurantStaffAccount(input: { name: string; username: string; password: string }) {
-  return createRestaurantAccessAccount({ ...input, role: "staff" });
-}
-
 export async function authenticateRestaurantAccount(usernameInput: string, password: string) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
@@ -139,10 +135,6 @@ export async function authenticateRestaurantAccount(usernameInput: string, passw
   const now = Date.now();
   await db.update(restaurantStaffCredentials).set({ lastSignedInAt: now, updatedAt: now }).where(eq(restaurantStaffCredentials.id, credential.id));
   return { user, credential: { id: credential.id, username: credential.username } };
-}
-
-export async function authenticateRestaurantStaff(usernameInput: string, password: string) {
-  return authenticateRestaurantAccount(usernameInput, password);
 }
 
 export async function listRestaurantAccessAccounts() {
@@ -160,10 +152,6 @@ export async function listRestaurantAccessAccounts() {
       : undefined;
   });
   return result.filter((account): account is NonNullable<typeof account> => Boolean(account));
-}
-
-export async function listRestaurantStaffAccounts() {
-  return listRestaurantAccessAccounts();
 }
 
 /** Permissões já gravadas de uma conta — usado pelo router pra distinguir "editando sem mudar a restrição" (sempre liberado) de "adicionando/mudando uma restrição granular nova" (recurso de plano). */
@@ -204,10 +192,6 @@ export async function setRestaurantAccessAccountActive(accountId: number, active
   // Pausar revoga os logins existentes; reativar NÃO os ressuscita (o instante gravado ao pausar continua valendo).
   await db.update(restaurantStaffCredentials).set({ active, updatedAt: now, ...(active ? {} : { sessionsValidAfter: Math.floor(now / 1000) }) }).where(eq(restaurantStaffCredentials.id, accountId));
   return { success: true };
-}
-
-export async function setRestaurantStaffAccountActive(accountId: number, active: boolean) {
-  return setRestaurantAccessAccountActive(accountId, active);
 }
 
 export async function deleteRestaurantAccessAccount(accountId: number, protectedUserId?: number) {

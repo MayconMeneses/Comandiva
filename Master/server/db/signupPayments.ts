@@ -25,23 +25,10 @@ export async function createSignupPayment(input: { payload: SignupPayload; amoun
   return { id: Number(result[0].insertId) };
 }
 
-export async function attachMpPreference(signupPaymentId: number, mpPreferenceId: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível");
-  await db.update(signupPayments).set({ mpPreferenceId, updatedAt: Date.now() }).where(eq(signupPayments.id, signupPaymentId));
-}
-
 export async function getSignupPaymentById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
   const [row] = await db.select().from(signupPayments).where(eq(signupPayments.id, id)).limit(1);
-  return row;
-}
-
-export async function getSignupPaymentByPreferenceId(mpPreferenceId: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const [row] = await db.select().from(signupPayments).where(eq(signupPayments.mpPreferenceId, mpPreferenceId)).limit(1);
   return row;
 }
 

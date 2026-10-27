@@ -96,19 +96,6 @@ export async function getOrderByTrackingCode(publicCode: string, phone: string) 
   return order ? getOrderWithDetails(order.id) : undefined;
 }
 
-export async function getLatestActiveOrderByPhone(phone: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível");
-  const recentOrders = await db
-    .select()
-    .from(orders)
-    .where(eq(orders.customerPhone, phone))
-    .orderBy(desc(orders.createdAt))
-    .limit(12);
-  const activeOrder = recentOrders.find(order => order.status !== "COMPLETED" && order.status !== "CANCELLED");
-  return activeOrder ? getOrderWithDetails(activeOrder.id) : undefined;
-}
-
 export async function getActiveOrdersByPhone(phone: string) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
