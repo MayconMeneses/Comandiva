@@ -166,11 +166,6 @@ export async function storagePut(
   return { key, url: publicS3Url(key) };
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
-  const key = normalizeKey(relKey);
-  return { key, url: publicS3Url(key) };
-}
-
 /** Inverte publicS3Url — usado só pra recuperar a key de uma orders.adminAttachmentUrl já salva (única coluna que guarda a URL completa em vez da key) e gerar uma URL assinada nova a cada consulta. */
 export function keyFromPublicUrl(url: string): string {
   const base = ENV.s3PublicBaseUrl.replace(/\/+$/, "");

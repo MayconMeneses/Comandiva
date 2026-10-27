@@ -26,13 +26,6 @@ export async function listTables() {
   return db.select().from(restaurantTables).where(eq(restaurantTables.active, true)).orderBy(asc(restaurantTables.sector), asc(restaurantTables.sortOrder));
 }
 
-export async function getTableById(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível");
-  const [table] = await db.select().from(restaurantTables).where(eq(restaurantTables.id, id)).limit(1);
-  return table;
-}
-
 export async function findTableByToken(token: string) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
