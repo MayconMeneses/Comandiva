@@ -113,7 +113,7 @@ async function startServer() {
   if (secretCheck.fatal.length) {
     console.error(
       `[fatal] ${secretCheck.fatal.join(" ")} ` +
-      "Segredo fraco permitiria falsificar sessões. Corrija o .env antes de iniciar.",
+      "Segredo ausente ou fraco compromete as sessões e as chaves de pagamento. Corrija o .env antes de iniciar.",
     );
     process.exit(1);
   }
