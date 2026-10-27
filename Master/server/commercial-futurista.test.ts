@@ -6,6 +6,7 @@ import path from "path";
 import { createServer, type Server } from "http";
 import type { AddressInfo } from "net";
 import { FUTURISTA_OG_IMAGE_URL, registerCommercialFuturista } from "./_core/commercialFuturista";
+import { injectRootCanonical } from "./_core/commercialMeta";
 
 // Site futurista "de mentira" numa pasta temporária: mesmo formato do build real
 // (index.html com as tags que o servidor substitui + assets com hash).
@@ -49,7 +50,6 @@ describe("site comercial futurista em /comercial (COMMERCIAL_SITE=futurista)", (
   it("todas as URLs que já existem no site atual respondem 200 com o HTML do futurista", async () => {
     for (const p of [
       "/comercial",
-      "/comercial/",
       "/comercial/planos",
       "/comercial/termos",
       "/comercial/privacidade",
@@ -62,6 +62,25 @@ describe("site comercial futurista em /comercial (COMMERCIAL_SITE=futurista)", (
       expect(res.status, p).toBe(200);
       expect(await res.text(), p).toContain('<div id="root">');
     }
+  });
+
+  it("barra no fim redireciona (301) para a URL sem barra, mantendo a query", async () => {
+    for (const [de, para] of [
+      ["/comercial/", "/comercial"],
+      ["/comercial/planos/", "/comercial/planos"],
+      ["/comercial/cadastro/sucesso/?ref=1&t=x", "/comercial/cadastro/sucesso?ref=1&t=x"],
+    ]) {
+      const res = await fetch(`${base}${de}`, { redirect: "manual" });
+      expect(res.status, de).toBe(301);
+      expect(res.headers.get("location"), de).toBe(para);
+    }
+  });
+
+  it("a raiz recebe canônica para /comercial e as demais rotas não são afetadas", () => {
+    const html = '<head><link rel="canonical" href="https://mmsystem.tech/" /></head>';
+    expect(injectRootCanonical(html, "/")).toContain('href="https://mmsystem.tech/comercial"');
+    expect(injectRootCanonical(html, "/?utm=1")).toContain('href="https://mmsystem.tech/comercial"');
+    expect(injectRootCanonical(html, "/login")).toBe(html);
   });
 
   it("caminho inexistente em /comercial responde 404 de verdade (com a página do site)", async () => {

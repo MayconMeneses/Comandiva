@@ -4,7 +4,7 @@ import { type Server } from "http";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
-import { injectCommercialPageMeta } from "./commercialMeta";
+import { injectCommercialPageMeta, injectRootCanonical } from "./commercialMeta";
 import { resolveSpaStatus } from "../../shared/commercialRoutes";
 
 /**
@@ -62,7 +62,9 @@ export function serveStatic(app: Express) {
   }
 
   app.use("/assets", express.static(path.join(distPath, "assets"), { maxAge: "1y", immutable: true }));
-  app.use(express.static(distPath));
+  // index:false — o HTML da raiz (/) também sai pela rota abaixo, senão o static
+  // entregaria o index.html sem a canônica/meta injetadas.
+  app.use(express.static(distPath, { index: false }));
 
   // Não usa res.sendFile aqui de propósito — precisa ler o conteúdo pra
   // poder injetar o meta por rota (ver injectCommercialPageMeta em commercialMeta.ts)
@@ -71,7 +73,7 @@ export function serveStatic(app: Express) {
   app.use("*", async (req, res, next) => {
     try {
       const template = await fs.promises.readFile(path.resolve(distPath, "index.html"), "utf-8");
-      res.status(resolveSpaStatus(req.originalUrl)).set({ "Content-Type": "text/html" }).end(injectHeroPreload(injectCommercialPageMeta(template, req.originalUrl), req.originalUrl));
+      res.status(resolveSpaStatus(req.originalUrl)).set({ "Content-Type": "text/html" }).end(injectHeroPreload(injectRootCanonical(injectCommercialPageMeta(template, req.originalUrl), req.originalUrl), req.originalUrl));
     } catch (e) {
       next(e);
     }

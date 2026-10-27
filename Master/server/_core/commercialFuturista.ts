@@ -27,6 +27,14 @@ export function registerCommercialFuturista(app: Express, dir: string = FUTURIST
     return false;
   }
 
+  // /comercial/ (com barra no fim) vira /comercial: uma URL só por página, em vez
+  // de deixar o Google decidir entre as duas (aviso "página alternativa com tag canônica").
+  app.use("/comercial", (req, res, next) => {
+    const [pathname, query] = req.originalUrl.split("?");
+    if (!pathname || pathname.length <= 1 || !pathname.endsWith("/")) return next();
+    res.redirect(301, pathname.replace(/\/+$/, "") + (query ? `?${query}` : ""));
+  });
+
   // Arquivos com hash no nome: cache longo. index:false/redirect:false — o HTML
   // sai sempre pela rota abaixo (status + meta por rota), nunca pelo static.
   app.use("/comercial/assets", express.static(path.join(dir, "assets"), { maxAge: "1y", immutable: true, index: false, redirect: false }));

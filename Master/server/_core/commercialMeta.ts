@@ -14,6 +14,16 @@ function escapeHtmlAttr(value: string): string {
 }
 
 /**
+ * A raiz (/) entrega o mesmo site comercial que /comercial; a canônica dela
+ * aponta pra /comercial, assim o Google trata as duas como uma página só.
+ */
+export function injectRootCanonical(html: string, url: string): string {
+  const requestPath = url.split("?")[0]?.split("#")[0] ?? url;
+  if (requestPath !== "/") return html;
+  return html.replace(/(<link rel="canonical" href=")[^"]*(")/, "$1https://mmsystem.tech/comercial$2");
+}
+
+/**
  * Substitui título/descrição/OG/Twitter direto no HTML antes de responder,
  * pras rotas listadas em shared/commercialPageMeta.ts — sem isso, um
  * crawler que não executa JavaScript de verdade (o preview de link do
