@@ -1,5 +1,23 @@
 # Comandiva
 
+<!-- portfolio-quick-view:start -->
+## Visão rápida para recrutadores | Recruiter overview
+
+**Problema:** restaurantes precisam administrar pedidos e atendimento digital sem depender de um marketplace.  
+**Solução:** plataforma própria com cardápio, delivery/retirada, painel operacional, cozinha e atendimento por QR Code.  
+**Stack:** React · TypeScript · Node.js · Express · tRPC · MySQL/MariaDB · Drizzle · Docker.
+
+**O que demonstra no código**
+- Fluxos completos de pedidos, pagamentos e integrações (incluindo Mercado Pago).
+- Separação entre app do restaurante, painel Master e site comercial em um monorepo.
+- Autorização por planos e rotinas operacionais; CI configurada para testes, build e migrações com banco real.
+
+**Veja rapidamente:** [capturas de tela](#telas) · [estrutura](#como-o-repositório-está-organizado) · [tecnologias](#tecnologias) · [site comercial](https://mmsystem.tech/comercial).  
+**EN:** Full-stack restaurant ordering and management system with a branded storefront, payment integrations, kitchen workflow and operational dashboard.
+
+<!-- portfolio-quick-view:end -->
+
+
 **Sistema de pedidos para restaurantes, lanchonetes e bares, sem comissão por pedido e com a marca do próprio restaurante.**
 
 O cliente faz o pedido pelo celular, a equipe aceita no painel, a cozinha segue a fila e o dono acompanha o dia em uma tela só. Cada restaurante roda em um ambiente isolado (não é um marketplace compartilhado).
