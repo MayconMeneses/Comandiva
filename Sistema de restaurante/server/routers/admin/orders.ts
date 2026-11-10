@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from "../../../drizzle/schema";
 import { ALLOWED_STATUS_TRANSITIONS, STATUS_LABELS, endOfDayInRestaurantTimezone, startOfDayInRestaurantTimezone } from "../../../shared/orderDomain";
 import { getAdminOrders, getDashboardMetrics, getDb, getOrderWithDetails, getRevenueTrend, getStoreSettings } from "../../db";
 import { adminProcedure, restaurantProcedure, restaurantProcedureFor, router } from "../../_core/trpc";
 import { getOrderHistoryFloor } from "../../_core/orderHistoryWindow";
+import { ENV } from "../../_core/env";
 import { assertRealImageMatchesDeclaredType, keyFromPublicUrl, storageGetSignedUrl, storagePut } from "../../storage";
 import { orderInfoSchema, statusSchema } from "./shared";
 
@@ -236,9 +237,12 @@ export const adminOrdersRouter = router({
         cancelledAt: input.status === "CANCELLED" ? now : row.cancelledAt,
       }).where(eq(orders.id, input.orderId));
       if (input.status === "COMPLETED") await tx.update(payments).set({ status: "PAID", paidAt: now, updatedAt: now }).where(eq(payments.orderId, input.orderId));
-      if (input.status === "CANCELLED") await tx.update(payments).set({ status: "CANCELLED", updatedAt: now }).where(eq(payments.orderId, input.orderId));
+      // Só cancela cobranças ainda não pagas: um pagamento PAID continua PAID
+      // para a equipe registrar o estorno (markPaymentRefunded) em vez de
+      // apagar o registro de que o dinheiro entrou.
+      if (input.status === "CANCELLED") await tx.update(payments).set({ status: "CANCELLED", updatedAt: now }).where(and(eq(payments.orderId, input.orderId), inArray(payments.status, ["PENDING", "EXPIRED"])));
       await tx.insert(orderStatusHistory).values({ orderId: input.orderId, status: input.status, note: input.note ?? null, changedByUserId: ctx.user?.id ?? null, deviceId: input.deviceId ?? null, createdAt: now });
-      if (input.status === "ACCEPTED") {
+      if (input.status === "ACCEPTED" && ENV.printQueueEnabled) {
         const fullOrder = await getOrderWithDetails(input.orderId, tx);
         await tx.insert(printJobs).values({ orderId: input.orderId, status: "PENDING", receiptPayload: JSON.stringify(fullOrder), attempts: 0, createdAt: now, updatedAt: now });
       }

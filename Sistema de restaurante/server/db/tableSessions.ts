@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, gt, inArray } from "drizzle-orm";
 import { orders, restaurantTables, tableBillPayments, tableReservations, tableServiceRequests, tableSessions } from "../../drizzle/schema";
 import { getDb, type DbOrTx } from "./client";
@@ -151,30 +152,49 @@ export async function requestSessionBill(sessionId: number) {
 export async function recordBillPayment(sessionId: number, input: { method: "PIX" | "CASH" | "CARD_ON_DELIVERY" | "CARD_ONLINE"; amountCents: number; payerLabel?: string; clientOperationId?: string | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  const now = Date.now();
-  try {
-    await db.insert(tableBillPayments).values({
-      tableSessionId: sessionId,
-      method: input.method,
-      amountCents: input.amountCents,
-      payerLabel: input.payerLabel ?? null,
-      status: "PAID",
-      paidAt: now,
-      createdAt: now,
-      updatedAt: now,
-      clientOperationId: input.clientOperationId ?? null,
-    });
-  } catch (error) {
-    // Mesmo padrão de captura de insertPricedOrder — o `code` do driver
-    // (ER_DUP_ENTRY) fica em `error.cause`, não no erro que a gente pega
-    // direto (drizzle-orm embrulha num DrizzleQueryError).
-    const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
-    if (input.clientOperationId && errorCode === "ER_DUP_ENTRY") {
-      const [existing] = await db.select({ id: tableBillPayments.id }).from(tableBillPayments).where(eq(tableBillPayments.clientOperationId, input.clientOperationId)).limit(1);
-      if (existing) return;
+  // Leitura solta só pra achar a mesa a travar (mesmo padrão de
+  // requestSessionBill/closeTableSession); o status que decide o resultado é
+  // relido, travado, dentro da transação.
+  const [current] = await db.select({ tableId: tableSessions.tableId }).from(tableSessions).where(eq(tableSessions.id, sessionId)).limit(1);
+  if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Comanda não encontrada." });
+  await db.transaction(async tx => {
+    // Trava a mesa: serializa o pagamento com fechar/cancelar a comanda — sem
+    // isso, um pagamento atrasado podia ser gravado numa comanda que a equipe
+    // acabou de fechar ou cancelar (dinheiro registrado num caixa já encerrado).
+    await lockTableRow(tx, current.tableId);
+    // Idempotência primeiro: um retry de um pagamento já gravado continua
+    // sendo sucesso mesmo que a comanda tenha sido fechada nesse meio-tempo.
+    if (input.clientOperationId) {
+      const [duplicate] = await tx.select({ id: tableBillPayments.id }).from(tableBillPayments).where(eq(tableBillPayments.clientOperationId, input.clientOperationId)).limit(1);
+      if (duplicate) return;
     }
-    throw error;
-  }
+    const [session] = await tx.select({ status: tableSessions.status }).from(tableSessions).where(eq(tableSessions.id, sessionId)).limit(1);
+    if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Comanda não encontrada." });
+    if (session.status !== "OPEN" && session.status !== "AWAITING_PAYMENT") {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Esta comanda já foi encerrada. Não é possível registrar pagamento nela." });
+    }
+    const now = Date.now();
+    try {
+      await tx.insert(tableBillPayments).values({
+        tableSessionId: sessionId,
+        method: input.method,
+        amountCents: input.amountCents,
+        payerLabel: input.payerLabel ?? null,
+        status: "PAID",
+        paidAt: now,
+        createdAt: now,
+        updatedAt: now,
+        clientOperationId: input.clientOperationId ?? null,
+      });
+    } catch (error) {
+      // Rede de segurança do índice único (mesmo padrão de insertPricedOrder) — o
+      // `code` do driver (ER_DUP_ENTRY) fica em `error.cause`, não no erro direto.
+      // Com a trava da mesa isso quase não ocorre; se ocorrer, o duplicado já existe.
+      const errorCode = (error as { code?: string; cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
+      if (input.clientOperationId && errorCode === "ER_DUP_ENTRY") return;
+      throw error;
+    }
+  });
 }
 
 /**

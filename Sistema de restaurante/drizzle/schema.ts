@@ -120,11 +120,11 @@ export const fiscalSettings = mysqlTable("fiscal_settings", {
   nfceNextNumber: int("nfceNextNumber").notNull().default(1),
   cscId: varchar("cscId", { length: 40 }),
   cscTokenEncrypted: text("cscTokenEncrypted"),
-  // Token da conta do restaurante no provedor de emissão (Focus NFe) — ver
-  // server/_core/nfceEmission.ts. Substitui cscId/cscTokenEncrypted (pensados
-  // pra integração direta com a SEFAZ, que este projeto não faz) como
-  // credencial de emissão; os dois campos antigos ficam sem uso mas não são
-  // removidos (dado já gravado não quebra nada continuando ali).
+  // LEGADO, sem uso desde 2026-10-07 (NFC-e removida; o código de emissão
+  // server/_core/nfceEmission.ts não existe mais). Era o token da conta do
+  // restaurante no provedor de emissão (Focus NFe) e substituía
+  // cscId/cscTokenEncrypted, também sem uso. Colunas mantidas porque dado já
+  // gravado não quebra nada continuando ali e migration não pode ser destrutiva.
   providerApiTokenEncrypted: text("providerApiTokenEncrypted"),
   certificateEncrypted: text("certificateEncrypted"),
   certificatePasswordEncrypted: text("certificatePasswordEncrypted"),
@@ -181,7 +181,9 @@ export const fiscalDocuments = mysqlTable(
  * é (uma tabela nacional, igual pra qualquer empresa); a categoria fiscal
  * descreve como ESTE restaurante, no SEU regime, tributa aquele grupo — só o
  * contador sabe os valores reais. Nenhum valor é preenchido por padrão aqui
- * (tudo nulo até ser confirmado) — ver server/db/fiscalTaxCategories.ts.
+ * (tudo nulo até ser confirmado). LEGADO: tabela sem uso desde 2026-10-07
+ * (NFC-e removida; server/db/fiscalTaxCategories.ts não existe mais). Mantida
+ * só porque migration não pode ser destrutiva.
  * Alíquotas em pontos-base (1800 = 18,00%) pelo mesmo motivo de preço em
  * centavos no resto do sistema: nunca usar float pra dinheiro/imposto.
  */

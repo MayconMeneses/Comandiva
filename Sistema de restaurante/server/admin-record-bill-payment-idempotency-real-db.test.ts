@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
-import { tableBillPayments } from "../drizzle/schema";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { restaurantTables, tableBillPayments, tableSessions } from "../drizzle/schema";
 import { getDb } from "./db/client";
 import { recordBillPayment } from "./db/tableSessions";
 
@@ -19,15 +19,30 @@ import { recordBillPayment } from "./db/tableSessions";
  * `customerId: 999999` em order-idempotency-real-db.test.ts.
  */
 describe.skipIf(!process.env.DATABASE_URL)("recordBillPayment — idempotência contra MySQL real", () => {
-  const FAKE_SESSION_ID = 999999;
+  // recordBillPayment agora exige uma comanda REAL e aberta (e trava a mesa),
+  // então o teste cria uma mesa + comanda descartáveis e apaga no fim.
+  let FAKE_SESSION_ID = 0;
+  let testTableId = 0;
   const insertedPaymentOperationIds: string[] = [];
+
+  beforeAll(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DATABASE_URL configurada mas getDb() retornou null — checar conexão.");
+    const now = Date.now();
+    const table = await db.insert(restaurantTables).values({ label: "TESTE-PAGTO", qrToken: `t${now}`.slice(0, 24), createdAt: now, updatedAt: now });
+    testTableId = Number(table[0].insertId);
+    const session = await db.insert(tableSessions).values({ tableId: testTableId, status: "OPEN", openedAt: now, createdAt: now, updatedAt: now });
+    FAKE_SESSION_ID = Number(session[0].insertId);
+  });
 
   afterAll(async () => {
     const db = await getDb();
-    if (!db || !insertedPaymentOperationIds.length) return;
+    if (!db) return;
     for (const clientOperationId of insertedPaymentOperationIds) {
       await db.delete(tableBillPayments).where(eq(tableBillPayments.clientOperationId, clientOperationId));
     }
+    if (FAKE_SESSION_ID) await db.delete(tableSessions).where(eq(tableSessions.id, FAKE_SESSION_ID));
+    if (testTableId) await db.delete(restaurantTables).where(eq(restaurantTables.id, testTableId));
   });
 
   it("duas chamadas com o mesmo clientOperationId não duplicam o registro de pagamento", async () => {

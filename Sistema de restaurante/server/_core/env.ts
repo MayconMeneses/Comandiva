@@ -36,6 +36,9 @@ export const ENV = {
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
   telegramChatId: process.env.TELEGRAM_CHAT_ID ?? "",
   trustProxy: process.env.TRUST_PROXY === "true",
+  // Fila de impressão: desligada por padrão (restaurante sem impressora).
+  // Só "true" liga e faz o aceite do pedido gravar um print_job.
+  printQueueEnabled: envBoolean(process.env.PRINT_QUEUE_ENABLED, false),
   // Camada de licenciamento (SaaS) — em branco = desativada, sem mudar
   // nenhum comportamento existente (ver server/_core/license.ts).
   saasCoreUrl: process.env.SAAS_CORE_URL ?? "",

@@ -40,17 +40,21 @@ export const adminPaymentGatewaysRouter = router({
   setActivePaymentGateway: adminOnlyProcedure.input(z.object({ id: z.number().int().positive(), active: z.boolean() })).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+    // Desativar todos + ativar o alvo numa transação só: sem ela, uma falha no
+    // meio deixava o restaurante sem nenhum gateway ativo.
+    await db.transaction(async tx => {
     if (input.active) {
       // Mercado Pago só pode ficar ativo com a "chave secreta" do webhook preenchida: sem ela as
       // confirmações de pagamento seriam recusadas (e antes eram aceitas SEM assinatura).
-      const [target] = await db.select({ provider: paymentGateways.provider, secretKey: paymentGateways.secretKey }).from(paymentGateways).where(eq(paymentGateways.id, input.id)).limit(1);
+      const [target] = await tx.select({ provider: paymentGateways.provider, secretKey: paymentGateways.secretKey }).from(paymentGateways).where(eq(paymentGateways.id, input.id)).limit(1).for("update");
       if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Gateway não encontrado." });
       if (target.provider === "MERCADO_PAGO" && !target.secretKey) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Preencha a 'chave secreta' do webhook (Mercado Pago → Seu negócio → Webhooks → Assinatura secreta) antes de ativar." });
       }
-      await db.update(paymentGateways).set({ active: false, updatedAt: Date.now() }); // só um pode ficar ativo por vez
+      await tx.update(paymentGateways).set({ active: false, updatedAt: Date.now() }); // só um pode ficar ativo por vez
     }
-    await db.update(paymentGateways).set({ active: input.active, updatedAt: Date.now() }).where(eq(paymentGateways.id, input.id));
+    await tx.update(paymentGateways).set({ active: input.active, updatedAt: Date.now() }).where(eq(paymentGateways.id, input.id));
+    });
     await recordAccountAudit({ actorUserId: ctx.user.id, actorName: ctx.user.name ?? ctx.user.openId, action: "paymentGateway.activeChanged", entityType: "paymentGateway", entityId: input.id, after: { active: input.active }, ip: ctx.req.ip });
     return { success: true };
   }),

@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { restaurantTables, tableServiceRequests, tableSessions } from "../../drizzle/schema";
 import { getDb } from "./client";
+import { lockTableRow } from "./tableSessions";
 
 // ---- Chamados (chamar garçom) ----
 
@@ -8,10 +9,17 @@ import { getDb } from "./client";
 export async function createServiceRequest(sessionId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  const [existing] = await db.select().from(tableServiceRequests).where(and(eq(tableServiceRequests.tableSessionId, sessionId), eq(tableServiceRequests.status, "PENDING"))).limit(1);
-  if (existing) return existing.id;
-  const result = await db.insert(tableServiceRequests).values({ tableSessionId: sessionId, status: "PENDING", createdAt: Date.now() });
-  return Number(result[0].insertId);
+  // Trava a mesa antes do check-then-insert: sem isso, dois toques quase
+  // simultâneos em "chamar garçom" liam "nenhum pendente" e criavam dois chamados.
+  const [session] = await db.select({ tableId: tableSessions.tableId }).from(tableSessions).where(eq(tableSessions.id, sessionId)).limit(1);
+  if (!session) throw new Error("Comanda não encontrada.");
+  return db.transaction(async tx => {
+    await lockTableRow(tx, session.tableId);
+    const [existing] = await tx.select().from(tableServiceRequests).where(and(eq(tableServiceRequests.tableSessionId, sessionId), eq(tableServiceRequests.status, "PENDING"))).limit(1);
+    if (existing) return existing.id;
+    const result = await tx.insert(tableServiceRequests).values({ tableSessionId: sessionId, status: "PENDING", createdAt: Date.now() });
+    return Number(result[0].insertId);
+  });
 }
 
 export async function listPendingServiceRequests() {

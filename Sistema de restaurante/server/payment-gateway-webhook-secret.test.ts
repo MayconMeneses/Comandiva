@@ -6,7 +6,7 @@ import type { TrpcContext } from "./_core/context";
  * do webhook preenchida — sem ela as confirmações de pagamento são recusadas
  * (antes eram aceitas sem assinatura).
  */
-const mocks = vi.hoisted(() => ({ getDb: vi.fn(), recordAccountAudit: vi.fn().mockResolvedValue(undefined), updates: [] as unknown[] }));
+const mocks = vi.hoisted(() => ({ getDb: vi.fn(), recordAccountAudit: vi.fn().mockResolvedValue(undefined), updates: [] as unknown[], transactions: 0 }));
 vi.mock("./db", () => ({ getDb: mocks.getDb, recordAccountAudit: mocks.recordAccountAudit }));
 
 import { appRouter } from "./routers";
@@ -19,15 +19,19 @@ const admin = {
 } as unknown as TrpcContext;
 
 function dbWithGateway(row: { provider: string; secretKey: string | null } | undefined) {
-  return {
-    select: () => ({ from: () => ({ where: () => ({ limit: async () => (row ? [row] : []) }) }) }),
+  const db = {
+    select: () => ({ from: () => ({ where: () => ({ limit: () => Object.assign(Promise.resolve(row ? [row] : []), { for: async () => (row ? [row] : []) }) }) }) }),
     update: () => ({ set: (values: unknown) => { mocks.updates.push(values); return { where: async () => undefined, then: (resolve: (v: unknown) => void) => resolve(undefined) }; } }),
+    // setActivePaymentGateway agora roda os updates numa transação; o fake usa o mesmo db como tx.
+    transaction: async (fn: (tx: unknown) => Promise<unknown>) => { mocks.transactions++; return fn(db); },
   };
+  return db;
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.updates.length = 0;
+  mocks.transactions = 0;
 });
 
 describe("admin.setActivePaymentGateway — chave secreta do webhook", () => {
@@ -41,6 +45,9 @@ describe("admin.setActivePaymentGateway — chave secreta do webhook", () => {
     mocks.getDb.mockResolvedValue(dbWithGateway({ provider: "MERCADO_PAGO", secretKey: "segredo" }));
     await expect(appRouter.createCaller(admin).admin.setActivePaymentGateway({ id: 1, active: true })).resolves.toEqual({ success: true });
     expect(mocks.updates.length).toBeGreaterThan(0);
+    // desativar todos + ativar o alvo acontecem na mesma transação
+    expect(mocks.transactions).toBe(1);
+    expect(mocks.updates).toHaveLength(2);
   });
 
   it("desativar nunca exige a chave (não trava quem quer desligar)", async () => {

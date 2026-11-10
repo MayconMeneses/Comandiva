@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { orderChangeLogs, orderStatusHistory, orders, payments, printJobs } from "../drizzle/schema";
 
@@ -38,6 +38,7 @@ vi.mock("./db", () => ({
 }));
 
 import { adminOrdersRouter } from "./routers/admin/orders";
+import { ENV } from "./_core/env";
 
 const adminContext = {
   user: { id: 1, openId: "admin", name: "Admin", email: "admin@mmsystemcreator.test", loginMethod: "local", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
@@ -101,7 +102,28 @@ function makeFakeDb(options: { currentOrder?: Record<string, unknown>; paymentRo
 const BASE_ORDER = { id: 10, status: "PENDING", fulfillmentType: "DELIVERY", paymentMethod: "PIX", paymentStatus: "PENDING" };
 
 describe("admin.updateOrderStatus — transação", () => {
-  beforeEach(() => vi.clearAllMocks());
+  const printQueueOriginal = ENV.printQueueEnabled;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ENV.printQueueEnabled = true; // os testes desta describe cobrem a fila ligada
+  });
+  afterEach(() => { ENV.printQueueEnabled = printQueueOriginal; });
+
+  it("fila de impressão desligada (padrão): aceitar o pedido NÃO grava print_jobs", async () => {
+    ENV.printQueueEnabled = false;
+    const stub = makeFakeDb({ currentOrder: BASE_ORDER });
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getOrderWithDetails.mockResolvedValue({ ...BASE_ORDER, status: "ACCEPTED" });
+
+    const caller = adminOrdersRouter.createCaller(adminContext);
+    await caller.updateOrderStatus({ orderId: 10, status: "ACCEPTED" });
+
+    expect(stub.calls.map(call => ({ kind: call.kind, table: call.table }))).toEqual([
+      { kind: "update", table: orders },
+      { kind: "insert", table: orderStatusHistory },
+    ]);
+    expect(mocks.getOrderWithDetails).toHaveBeenCalledTimes(1);
+  });
 
   it("caminho feliz: grava orders + order_status_history na mesma transação, sem quebrar nada", async () => {
     const stub = makeFakeDb({ currentOrder: BASE_ORDER });

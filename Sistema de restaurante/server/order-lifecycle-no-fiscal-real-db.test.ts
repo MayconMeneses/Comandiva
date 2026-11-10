@@ -86,7 +86,7 @@ describe.skipIf(!process.env.DATABASE_URL)("ciclo de vida do pedido — sem nota
       ["PREPARING", "READY_FOR_PICKUP"],
       ["READY_FOR_PICKUP", "COMPLETED"],
     ]);
-    expect(jobs).toHaveLength(1);
+    expect(jobs).toHaveLength(0); // fila de impressão desligada por padrão
     expect(docs).toHaveLength(0);
   });
 
@@ -98,7 +98,7 @@ describe.skipIf(!process.env.DATABASE_URL)("ciclo de vida do pedido — sem nota
       ["PREPARING", "OUT_FOR_DELIVERY"],
       ["OUT_FOR_DELIVERY", "COMPLETED"],
     ]);
-    expect(jobs).toHaveLength(1);
+    expect(jobs).toHaveLength(0); // fila de impressão desligada por padrão
     expect(docs).toHaveLength(0);
   });
 

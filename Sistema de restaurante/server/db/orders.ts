@@ -1,7 +1,8 @@
-import { and, asc, desc, eq, gte, inArray, lte, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, notInArray, sql } from "drizzle-orm";
 import { orderChangeLogs, orderItemAddons, orderItems, orders, orderStatusHistory, payments, restaurantTables, tableSessions } from "../../drizzle/schema";
 import { endOfMonthInRestaurantTimezone, startOfDayInRestaurantTimezone, startOfMonthInRestaurantTimezone } from "../../shared/orderDomain";
 import { getDb, type DbOrTx } from "./client";
+import { sendOwnerAlert } from "../_core/alerts";
 
 type OrderRow = typeof orders.$inferSelect;
 
@@ -102,27 +103,30 @@ export async function getActiveOrdersByPhone(phone: string) {
   const recentOrders = await db
     .select()
     .from(orders)
-    .where(eq(orders.customerPhone, phone))
+    // Filtra os ativos no WHERE (não em memória depois do limit): com 12
+    // pedidos recentes já finalizados, um pedido ativo mais antigo sumia.
+    .where(and(eq(orders.customerPhone, phone), notInArray(orders.status, ["COMPLETED", "CANCELLED"])))
     .orderBy(desc(orders.createdAt))
     .limit(12);
-  const activeOrders = recentOrders.filter(order => order.status !== "COMPLETED" && order.status !== "CANCELLED");
-  return getOrdersWithDetailsBatch(db, activeOrders);
+  return getOrdersWithDetailsBatch(db, recentOrders);
 }
 
 export async function getAdminOrders(filters: { status?: string; startAt?: number; endAt?: number; limit: number }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  const conditions = [];
+  // Arquivados saem no WHERE: filtrar depois do limit devolvia menos
+  // pedidos que o pedido e escondia os mais antigos não arquivados.
+  const conditions = [isNull(orders.archivedAt)];
   if (filters.status) conditions.push(eq(orders.status, filters.status as typeof orders.status.enumValues[number]));
   if (filters.startAt) conditions.push(gte(orders.createdAt, filters.startAt));
   if (filters.endAt) conditions.push(lte(orders.createdAt, filters.endAt));
   const rows = await db
     .select()
     .from(orders)
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(orders.createdAt))
     .limit(filters.limit);
-  return getOrdersWithDetailsBatch(db, rows.filter(order => !order.archivedAt));
+  return getOrdersWithDetailsBatch(db, rows);
 }
 
 export async function getDashboardMetrics(startAt: number, endAt: number) {
@@ -223,6 +227,13 @@ export async function markOrderPaymentPaidByPublicCode(publicCode: string, provi
   // estorno já ter sido registrado por fora; sem esse filtro, isso desfazia
   // silenciosamente o estorno e deixava refundedAt/refundReason inconsistentes.
   await db.update(payments).set({ status: "PAID", providerReference, paidAt: now, updatedAt: now }).where(and(eq(payments.orderId, order.id), notInArray(payments.status, ["REFUNDED", "CANCELLED"])));
+  // Se o pagamento do pedido está CANCELLED, a confirmação acima foi
+  // descartada: o gateway cobrou o cliente de um pedido cancelado e a equipe
+  // precisa estornar. Alerta curto, só com o número do pedido (sem dados pessoais).
+  const [discarded] = await db.select({ id: payments.id }).from(payments).where(and(eq(payments.orderId, order.id), eq(payments.status, "CANCELLED"))).limit(1);
+  if (discarded) {
+    void sendOwnerAlert("Pagamento recebido em pedido cancelado", `O gateway confirmou pagamento do pedido #${order.id}, que está cancelado. Estorne o valor.`, `paidCancelledOrder-${order.id}`, undefined, "Pagamento de pedido (webhook)");
+  }
   if (order.paymentStatus !== "PAID") {
     await db.update(orders).set({ paymentStatus: "PAID", updatedAt: now }).where(eq(orders.id, order.id));
   }

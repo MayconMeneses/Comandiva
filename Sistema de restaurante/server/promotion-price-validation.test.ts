@@ -24,7 +24,8 @@ describe("validação de preço promocional (produtos vinculados)", () => {
     from.mockReturnValue({ where: selectWhere }); select.mockReturnValue({ from });
     insertValues.mockResolvedValue([{ insertId: 99 }]); insert.mockReturnValue({ values: insertValues });
     deleteWhere.mockResolvedValue(undefined); del.mockReturnValue({ where: deleteWhere });
-    mocks.getDb.mockResolvedValue({ select, insert, delete: del });
+    const fakeDb = { select, insert, delete: del, transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(fakeDb) };
+    mocks.getDb.mockResolvedValue(fakeDb);
   });
 
   it("rejeita preço promocional maior ou igual à soma do preço normal dos produtos", async () => {
@@ -68,5 +69,17 @@ describe("validação de preço promocional (produtos vinculados)", () => {
     await expect(adminRouter.createCaller(adminContext).savePromotion({
       title: "Promoção vazia", productIds: [], active: true, sortOrder: 0,
     })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("editar promoção inexistente: NOT_FOUND, sem apagar nem inserir nada", async () => {
+    // 1º select (produtos) resolve direto; 2º (existência da promoção) usa limit().for()
+    selectWhere.mockResolvedValueOnce([{ id: 12, priceCents: 3990 }]);
+    selectWhere.mockReturnValueOnce(Object.assign(Promise.resolve([]), { limit: () => ({ for: async () => [] }) }));
+    selectWhere.mockReturnValueOnce(Object.assign(Promise.resolve([]), { limit: () => ({ for: async () => [] }) }));
+    await expect(adminRouter.createCaller(adminContext).savePromotion({
+      id: 5, title: "Fantasma", productIds: [12], active: true, sortOrder: 0,
+    })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(deleteWhere).not.toHaveBeenCalled();
+    expect(insertValues).not.toHaveBeenCalled();
   });
 });

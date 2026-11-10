@@ -1,7 +1,6 @@
 import { COOKIE_NAME } from "@shared/const";
 import { GRANTABLE_STAFF_AREAS } from "@shared/permissions";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { getStaffPermissionsByUserId } from "./db/users";
 import { adminRouter } from "./routers/admin";
@@ -14,7 +13,6 @@ import { tableRouter } from "./routers/table";
 import { teamRouter } from "./routers/team";
 
 export const appRouter = router({
-  system: systemRouter,
   auth: router({
     // Sem login real, uma sessão de suporte válida se apresenta como um
     // admin (Modo Suporte tem acesso completo via o Admin de verdade) — a

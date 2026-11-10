@@ -86,28 +86,37 @@ export const adminPromotionsRouter = router({
     }
     const now = Date.now();
     const values = { title: input.title, description: input.description || null, promoPriceCents: input.promoPriceCents ?? null, objective: input.objective ?? null, validDays: input.validDays || null, active: input.active, sortOrder: input.sortOrder, updatedAt: now };
-    let promotionId: number;
-    if (input.id) {
-      await db.update(promotions).set(values).where(eq(promotions.id, input.id));
-      promotionId = input.id;
-    } else {
-      const result = await db.insert(promotions).values({ ...values, createdAt: now });
-      promotionId = Number(result[0].insertId);
-    }
-    await db.delete(promotionProducts).where(eq(promotionProducts.promotionId, promotionId));
-    await db.insert(promotionProducts).values(input.productIds.map((productId, index) => ({ promotionId, productId, sortOrder: index, createdAt: now })));
-    await db.delete(promotionAddonDefaults).where(eq(promotionAddonDefaults.promotionId, promotionId));
-    if (input.addonDefaults.length) {
-      await db.insert(promotionAddonDefaults).values(input.addonDefaults.map(entry => ({ promotionId, productId: entry.productId, addonGroupId: entry.addonGroupId, mode: entry.mode, defaultOptionId: entry.defaultOptionId ?? null, createdAt: now })));
-    }
-    return { id: promotionId };
+    // Tudo numa transação: antes, uma falha entre o delete e o insert dos
+    // produtos deixava a promoção sem produtos (ou sem adicionais padrão).
+    return db.transaction(async tx => {
+      let promotionId: number;
+      if (input.id) {
+        const [existing] = await tx.select({ id: promotions.id }).from(promotions).where(eq(promotions.id, input.id)).limit(1).for("update");
+        if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Promoção não encontrada." });
+        await tx.update(promotions).set(values).where(eq(promotions.id, input.id));
+        promotionId = input.id;
+      } else {
+        const result = await tx.insert(promotions).values({ ...values, createdAt: now });
+        promotionId = Number(result[0].insertId);
+      }
+      await tx.delete(promotionProducts).where(eq(promotionProducts.promotionId, promotionId));
+      await tx.insert(promotionProducts).values(input.productIds.map((productId, index) => ({ promotionId, productId, sortOrder: index, createdAt: now })));
+      await tx.delete(promotionAddonDefaults).where(eq(promotionAddonDefaults.promotionId, promotionId));
+      if (input.addonDefaults.length) {
+        await tx.insert(promotionAddonDefaults).values(input.addonDefaults.map(entry => ({ promotionId, productId: entry.productId, addonGroupId: entry.addonGroupId, mode: entry.mode, defaultOptionId: entry.defaultOptionId ?? null, createdAt: now })));
+      }
+      return { id: promotionId };
+    });
   }),
   deletePromotion: promotionsProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
-    await db.delete(promotionProducts).where(eq(promotionProducts.promotionId, input.id));
-    await db.delete(promotionAddonDefaults).where(eq(promotionAddonDefaults.promotionId, input.id));
-    await db.delete(promotions).where(eq(promotions.id, input.id));
+    // 3 tabelas: apagar tudo ou nada (senão sobram filhos órfãos).
+    await db.transaction(async tx => {
+      await tx.delete(promotionProducts).where(eq(promotionProducts.promotionId, input.id));
+      await tx.delete(promotionAddonDefaults).where(eq(promotionAddonDefaults.promotionId, input.id));
+      await tx.delete(promotions).where(eq(promotions.id, input.id));
+    });
     return { success: true };
   }),
 });
