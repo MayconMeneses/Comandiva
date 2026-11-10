@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   markWebhookEventOnce: vi.fn(),
   unmarkWebhookEvent: vi.fn(),
   applyPreapprovalStatus: vi.fn(),
+  verifySignature: vi.fn(() => true),
 }));
 
 vi.mock("./telegramService", () => ({ alertSystemError: mocks.alertSystemError }));
@@ -24,7 +25,7 @@ vi.mock("./env", () => ({ ENV: { mercadoPagoAccessToken: "TEST-token", mercadoPa
 vi.mock("./mercadoPagoBilling", () => ({
   getSubscriptionPreapproval: mocks.getSubscriptionPreapproval,
   getAuthorizedPayment: mocks.getAuthorizedPayment,
-  verifyMercadoPagoWebhookSignature: vi.fn(() => true),
+  verifyMercadoPagoWebhookSignature: mocks.verifySignature,
 }));
 vi.mock("./mercadoPagoCheckout", () => ({ getPayment: mocks.getPayment }));
 vi.mock("../db/webhookEvents", () => ({ markWebhookEventOnce: mocks.markWebhookEventOnce, unmarkWebhookEvent: mocks.unmarkWebhookEvent }));
@@ -113,6 +114,41 @@ describe("handleMercadoPagoBillingWebhook — falha ao APLICAR não perde o paga
 });
 
 describe("handleMercadoPagoSignupWebhook — alerta em falha real", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("assinatura inválida: responde 200, avisa o dono sem vazar segredo/id e não consulta o Mercado Pago", async () => {
+    mocks.verifySignature.mockReturnValueOnce(false);
+    const { req, res, getResult } = fakeReqRes({ type: "payment", data: { id: "pay-1" } });
+
+    await handleMercadoPagoSignupWebhook(req, res);
+
+    expect(getResult().statusCode).toBe(200);
+    expect(mocks.getPayment).not.toHaveBeenCalled();
+    expect(mocks.alertSystemError).toHaveBeenCalledTimes(1);
+    const args = mocks.alertSystemError.mock.calls[0].slice(0, 2).join(" ");
+    expect(args).not.toContain("segredo-de-teste");
+    expect(args).not.toContain("pay-1");
+  });
+});
+
+describe("handleMercadoPagoBillingWebhook — assinatura inválida", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("responde 200, avisa o dono e não processa a notificação", async () => {
+    mocks.verifySignature.mockReturnValueOnce(false);
+    const { req, res, getResult } = fakeReqRes({ type: "subscription_preapproval", data: { id: "pre-1" } });
+
+    await handleMercadoPagoBillingWebhook(req, res);
+
+    expect(getResult().statusCode).toBe(200);
+    expect(mocks.getSubscriptionPreapproval).not.toHaveBeenCalled();
+    expect(mocks.alertSystemError).toHaveBeenCalledTimes(1);
+    expect(mocks.alertSystemError.mock.calls[0][2]).toBe("mercadoPagoBillingWebhookInvalidSignature");
+    expect(mocks.alertSystemError.mock.calls[0].slice(0, 2).join(" ")).not.toContain("segredo-de-teste");
+  });
+});
+
+describe("handleMercadoPagoSignupWebhook — alerta em falha real (consultas)", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("falha ao consultar o pagamento dispara alerta com área do site comercial", async () => {

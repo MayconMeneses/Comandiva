@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
   createSubscriptionPreapproval: vi.fn(),
   updateSubscriptionPreapproval: vi.fn(),
+  getSubscriptionPreapproval: vi.fn(),
   getPlanByKey: vi.fn(),
   mercadoPagoAccessToken: "TEST-token",
 }));
@@ -26,7 +27,7 @@ vi.mock("./db/plans", async importOriginal => {
 });
 vi.mock("./_core/mercadoPagoBilling", async importOriginal => {
   const actual = await importOriginal<typeof import("./_core/mercadoPagoBilling")>();
-  return { ...actual, createSubscriptionPreapproval: mocks.createSubscriptionPreapproval, updateSubscriptionPreapproval: mocks.updateSubscriptionPreapproval };
+  return { ...actual, createSubscriptionPreapproval: mocks.createSubscriptionPreapproval, updateSubscriptionPreapproval: mocks.updateSubscriptionPreapproval, getSubscriptionPreapproval: mocks.getSubscriptionPreapproval };
 });
 vi.mock("./_core/env", () => ({ ENV: { get mercadoPagoAccessToken() { return mocks.mercadoPagoAccessToken; } } }));
 

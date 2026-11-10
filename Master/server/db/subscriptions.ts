@@ -2,6 +2,7 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import { getDb } from "./client";
 import { billingPayments, features, planFeatures, planLimits, plans, restaurants, subscriptionEvents, subscriptions, type SubscriptionStatus } from "../../drizzle/schema";
 import { createSubscriptionPreapproval, updateSubscriptionPreapproval } from "../_core/mercadoPagoBilling";
+import { applyGatewayPreapprovalAction, cancelPreapprovalIdempotent } from "./preapprovalGateway";
 import { ENV, commercialHomeUrl } from "../_core/env";
 import { getPlanByKey } from "./plans";
 import { PLATFORM_NAME } from "../../shared/branding";
@@ -38,6 +39,28 @@ const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000;
 // restaurants.promoEligible (ver server/db/restaurants.ts::LAUNCH_PROMO_ACTIVE).
 const LAUNCH_PROMO_DISCOUNT_RATE = 0.2;
 const LAUNCH_PROMO_CYCLES = 2;
+
+/**
+ * Valor da preapproval para um plano: enquanto restam ciclos de promoção, o
+ * mesmo desconto de lançamento vale também para o plano NOVO (senão trocar de
+ * plano no meio da promoção cobraria o preço cheio e o cliente perderia o
+ * desconto prometido). Sem ciclos restantes, preço cheio.
+ */
+function planAmountCents(priceCents: number, promoCyclesRemaining: number | null | undefined): number {
+  return promoCyclesRemaining != null && promoCyclesRemaining > 0 ? Math.round(priceCents * (1 - LAUNCH_PROMO_DISCOUNT_RATE)) : priceCents;
+}
+
+/**
+ * Início do próximo período ao rolar o ciclo. Normalmente é o fim do período
+ * anterior (mantém a âncora da cobrança). Se esse fim já ficou pra trás por
+ * mais de um mês (ninguém consultou a assinatura por um tempo), partir dele
+ * criaria um período também já vencido e cada consulta "recuperaria" um mês
+ * (descontando ciclos de promoção sem cobrança real); nesse caso o período
+ * recomeça de agora.
+ */
+function nextPeriodStart(currentPeriodEnd: number, now: number): number {
+  return now - currentPeriodEnd > ONE_MONTH_MS ? now : currentPeriodEnd;
+}
 
 /** Ausência de linha (ex.: harness de teste sem stub de `restaurants`) conta como não-elegível — preço cheio. */
 async function isRestaurantPromoEligible(restaurantId: number): Promise<boolean> {
@@ -80,7 +103,9 @@ export async function assignPlan(input: { restaurantId: number; planKey: string;
   const nextPlan = await getPlanByKey(input.planKey);
   if (!nextPlan) throw new Error(`Plano "${input.planKey}" não encontrado.`);
 
-  await db.update(subscriptions).set({ planId: nextPlan.id, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
+  // Troca manual também limpa um downgrade agendado: senão ele sobrevivia e,
+  // no fim do ciclo, desfazia a troca que o operador acabou de fazer.
+  await db.update(subscriptions).set({ planId: nextPlan.id, scheduledPlanId: null, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
   await recordEvent(current.subscription.id, "plan_changed", { planKey: current.plan.key }, { planKey: nextPlan.key }, input.actor ?? "operator:cli");
   // Sem isso, uma troca manual de plano pelo Painel Master (diferente do
   // self-service em startOrChangePlan, que já sincroniza) deixava o valor
@@ -88,7 +113,7 @@ export async function assignPlan(input: { restaurantId: number; planKey: string;
   // restaurante com acesso ao plano novo mas cobrança automática continuando
   // no preço errado, sem nenhum aviso (achado M3 da auditoria).
   if (current.subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
-    await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: current.subscription.gatewaySubscriptionId, amountCents: nextPlan.priceCents }).catch(error =>
+    await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: current.subscription.gatewaySubscriptionId, amountCents: planAmountCents(nextPlan.priceCents, current.subscription.promoDiscountCyclesRemaining) }).catch(error =>
       alertSystemError(
         "Falha ao atualizar valor da preapproval no Mercado Pago (troca manual de plano pelo Painel Master)",
         `Restaurante #${input.restaurantId}, assinatura #${current.subscription.id}, novo plano "${nextPlan.key}". Cobrança automática pode ter ficado no valor do plano antigo. ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
@@ -105,6 +130,18 @@ export async function updateSubscriptionStatus(input: { restaurantId: number; st
   if (!db) throw new Error("Banco de dados indisponível");
   const current = await getSubscriptionForRestaurant(input.restaurantId);
   if (!current) throw new Error("Restaurante sem assinatura cadastrada.");
+
+  // Cancelar/suspender (e retomar depois de suspensa) tem de ser avisado ao
+  // Mercado Pago ANTES de gravar, igual setRestaurantStatus: senão o painel
+  // mostra a assinatura encerrada e o cliente continua sendo cobrado (ou, na
+  // reativação, a cobrança pausada nunca volta). Se o MP recusar, nada é gravado.
+  // Cancelada de verdade não volta (preapproval cancelada é definitiva), então
+  // "canceled" -> "active" não chama o MP.
+  const gatewayId = current.subscription.gatewaySubscriptionId;
+  if (gatewayId && current.subscription.status !== input.status) {
+    const action = input.status === "canceled" ? "cancel" : input.status === "suspended" ? "pause" : input.status === "active" && current.subscription.status === "suspended" ? "resume" : null;
+    if (action) await applyGatewayPreapprovalAction({ preapprovalId: gatewayId, action, unchanged: "O status da assinatura NÃO foi alterado" });
+  }
 
   await db.update(subscriptions).set({ status: input.status, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
   await recordEvent(current.subscription.id, "status_changed", { status: current.subscription.status }, { status: input.status }, input.actor ?? "operator:cli");
@@ -175,6 +212,12 @@ export async function applyPreapprovalStatus(input: { preapprovalId: string; mpS
   const activating = nextStatus === "active" && subscription.status !== "active" && subscription.scheduledPlanId;
   if (subscription.status === nextStatus && !activating) return { found: true as const, applied: false as const };
 
+  // Cliente que cancelou pelo self-service: a cobrança foi PAUSADA no MP na hora
+  // (scheduleCancellation) e o webhook "paused" que volta daí não pode trocar o
+  // status local para "suspended" (nem um "cancelled" encerrar o acesso) antes
+  // do fim do período já pago. Quem finaliza é applyDueScheduledChanges.
+  if (subscription.status === "cancel_at_period_end" && (nextStatus === "suspended" || nextStatus === "canceled")) return { found: true as const, applied: false as const };
+
   const wasPastDue = subscription.status === "past_due";
   const updates: Partial<typeof subscriptions.$inferInsert> = { status: nextStatus, gatewayCustomerId: input.payerId != null ? String(input.payerId) : subscription.gatewayCustomerId, updatedAt: Date.now() };
   if (activating) {
@@ -186,6 +229,18 @@ export async function applyPreapprovalStatus(input: { preapprovalId: string; mpS
   // confiável que o webhook de cobrança individual, cujo status "processed"
   // é ambíguo entre sucesso e falha definitiva, ver markSubscriptionPastDue).
   if (wasPastDue && nextStatus === "active") updates.pastDueSince = null;
+  // Ativação vinda de um estado sem cobrança em dia (trial, ended, canceled,
+  // payment_pending, suspended...): o período pago começa AGORA, senão ficava o
+  // currentPeriodEnd antigo (já vencido) e a assinatura recém-paga seria
+  // rebaixada/rolada na primeira consulta. Exceções: past_due -> active só
+  // regulariza o mês corrente, e cancel_at_period_end -> active (desfazer o
+  // cancelamento, ou corrida com o webhook) segue no mesmo ciclo já pago; em
+  // ambos a data de cobrança não muda.
+  if (nextStatus === "active" && subscription.status !== "active" && !wasPastDue && subscription.status !== "cancel_at_period_end") {
+    const activatedAt = Date.now();
+    updates.currentPeriodStart = activatedAt;
+    updates.currentPeriodEnd = activatedAt + ONE_MONTH_MS;
+  }
   await db.update(subscriptions).set(updates).where(eq(subscriptions.id, subscription.id));
   await recordEvent(subscription.id, activating ? "plan_activated_from_payment" : "mercadopago_status_changed", { status: subscription.status, planId: subscription.planId }, { status: nextStatus, mpStatus: input.mpStatus, planId: updates.planId ?? subscription.planId }, "mercadopago:webhook");
 
@@ -320,7 +375,9 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
     await db.update(subscriptions).set({ status: "canceled", canceledAt: now, updatedAt: now }).where(eq(subscriptions.id, subscription.id));
     await recordEvent(subscription.id, "cancellation_finalized", { status: subscription.status }, { status: "canceled" }, "system:reconciliation");
     if (subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
-      await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, status: "cancelled" }).catch(error =>
+      // Idempotente: o cliente já cancelou no MP na hora (scheduleCancellation);
+      // se já está cancelada lá, não repete o PUT nem alerta à toa.
+      await cancelPreapprovalIdempotent(subscription.gatewaySubscriptionId).catch(error =>
         alertSystemError(
           "Falha ao cancelar preapproval no Mercado Pago",
           `Restaurante #${subscription.restaurantId}, assinatura #${subscription.id}. ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
@@ -375,7 +432,7 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
   }
 
   if (subscription.scheduledPlanId) {
-    const newPeriodStart = subscription.currentPeriodEnd;
+    const newPeriodStart = nextPeriodStart(subscription.currentPeriodEnd, now);
     const newPeriodEnd = newPeriodStart + ONE_MONTH_MS;
     const targetPlanId = subscription.scheduledPlanId;
     await db.update(subscriptions).set({ planId: targetPlanId, scheduledPlanId: null, currentPeriodStart: newPeriodStart, currentPeriodEnd: newPeriodEnd, updatedAt: now }).where(eq(subscriptions.id, subscription.id));
@@ -383,7 +440,7 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
     if (subscription.gatewaySubscriptionId && ENV.mercadoPagoAccessToken) {
       const [targetPlan] = await db.select().from(plans).where(eq(plans.id, targetPlanId)).limit(1);
       if (targetPlan) {
-        await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, amountCents: targetPlan.priceCents }).catch(error =>
+        await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: subscription.gatewaySubscriptionId, amountCents: planAmountCents(targetPlan.priceCents, subscription.promoDiscountCyclesRemaining) }).catch(error =>
           alertSystemError(
             "Falha ao atualizar valor da preapproval no Mercado Pago (downgrade agendado aplicado)",
             `Restaurante #${subscription.restaurantId}, assinatura #${subscription.id}, novo plano #${targetPlanId}. ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
@@ -400,7 +457,7 @@ export async function applyDueScheduledChanges(subscriptionId: number): Promise<
   // de verdade é sempre do Mercado Pago; isto é uma aproximação (30 dias) só
   // pra saber quando reavaliar de novo, nunca usada pra cobrar ninguém.
   if (subscription.status === "active") {
-    const newPeriodStart = subscription.currentPeriodEnd;
+    const newPeriodStart = nextPeriodStart(subscription.currentPeriodEnd, now);
     const updates: Partial<typeof subscriptions.$inferInsert> = { currentPeriodStart: newPeriodStart, currentPeriodEnd: newPeriodStart + ONE_MONTH_MS, updatedAt: now };
 
     // Cada ciclo que rola é uma renovação cobrada — decrementa a promoção de
@@ -464,6 +521,17 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
     // Primeira assinatura de verdade (ou recuperando de um estado ruim) — cria
     // a preapproval; o plano só muda quando o Mercado Pago confirmar via
     // webhook (applyPreapprovalStatus acima), nunca antes.
+    // Já existe preapproval (checkout abandonado, vencida, cancelada...): cancela
+    // a antiga ANTES de criar a nova, senão o cliente poderia autorizar as duas
+    // e ser cobrado em duplicidade. Se o cancelamento falhar, não cria a nova.
+    if (current.subscription.gatewaySubscriptionId) {
+      await applyGatewayPreapprovalAction({
+        preapprovalId: current.subscription.gatewaySubscriptionId,
+        action: "cancel",
+        unchanged: "A mudança de plano NÃO foi iniciada",
+        retryHint: "tente de novo em instantes ou fale com o suporte",
+      });
+    }
     const promoEligible = await isRestaurantPromoEligible(input.restaurantId);
     const amountCents = promoEligible ? Math.round(targetPlan.priceCents * (1 - LAUNCH_PROMO_DISCOUNT_RATE)) : targetPlan.priceCents;
     const preapproval = await createSubscriptionPreapproval({
@@ -496,7 +564,7 @@ export async function startOrChangePlan(input: { restaurantId: number; planKey: 
   }
 
   if (targetPlan.position > current.plan.position) {
-    await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: current.subscription.gatewaySubscriptionId!, amountCents: targetPlan.priceCents });
+    await updateSubscriptionPreapproval({ accessToken: ENV.mercadoPagoAccessToken, preapprovalId: current.subscription.gatewaySubscriptionId!, amountCents: planAmountCents(targetPlan.priceCents, current.subscription.promoDiscountCyclesRemaining) });
     await db.update(subscriptions).set({ planId: targetPlan.id, scheduledPlanId: null, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
     await recordEvent(current.subscription.id, "plan_upgraded", { planKey: current.plan.key }, { planKey: targetPlan.key }, input.actor);
     const contact = await getRestaurantContact(input.restaurantId);
@@ -535,6 +603,20 @@ export async function scheduleCancellation(input: { restaurantId: number; reason
   const current = await getSubscriptionForRestaurant(input.restaurantId);
   if (!current) throw new Error("Restaurante sem assinatura cadastrada.");
   if (current.subscription.status === "canceled" || current.subscription.status === "cancel_at_period_end") return { effectiveAt: current.subscription.currentPeriodEnd };
+  // PAUSA a cobrança no MP NA HORA pra não haver nova cobrança; o acesso local
+  // segue até o fim do período já pago (status cancel_at_period_end). Pausa, e
+  // não cancela, porque preapproval cancelada é definitiva e quebraria o
+  // "desfazer cancelamento"; o cancelamento de verdade é feito no fim do período
+  // (applyDueScheduledChanges). Se o MP recusar, o cancelamento NÃO é gravado
+  // (senão o cliente acharia que cancelou e seria cobrado).
+  if (current.subscription.gatewaySubscriptionId) {
+    await applyGatewayPreapprovalAction({
+      preapprovalId: current.subscription.gatewaySubscriptionId,
+      action: "pause",
+      unchanged: "Seu cancelamento NÃO foi registrado",
+      retryHint: "tente de novo em instantes ou fale com o suporte",
+    });
+  }
   await db.update(subscriptions).set({ status: "cancel_at_period_end", cancelReason: input.reason ?? null, scheduledPlanId: null, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
   await recordEvent(current.subscription.id, "cancellation_scheduled", { status: current.subscription.status }, { status: "cancel_at_period_end", effectiveAt: current.subscription.currentPeriodEnd }, input.actor);
   const contact = await getRestaurantContact(input.restaurantId);
@@ -556,6 +638,16 @@ export async function reactivateScheduledCancellation(input: { restaurantId: num
   const current = await getSubscriptionForRestaurant(input.restaurantId);
   if (!current) throw new Error("Restaurante sem assinatura cadastrada.");
   if (current.subscription.status !== "cancel_at_period_end") throw new Error("Não há cancelamento agendado para desfazer.");
+  // A cobrança foi pausada no MP ao agendar o cancelamento; desfazer exige
+  // retomá-la ("authorized"). Se o MP recusar, nada é gravado.
+  if (current.subscription.gatewaySubscriptionId) {
+    await applyGatewayPreapprovalAction({
+      preapprovalId: current.subscription.gatewaySubscriptionId,
+      action: "resume",
+      unchanged: "O cancelamento agendado continua valendo",
+      retryHint: "tente de novo em instantes ou fale com o suporte",
+    });
+  }
   await db.update(subscriptions).set({ status: "active", cancelReason: null, updatedAt: Date.now() }).where(eq(subscriptions.id, current.subscription.id));
   await recordEvent(current.subscription.id, "cancellation_undone", { status: "cancel_at_period_end" }, { status: "active" }, input.actor);
   return { success: true };
@@ -566,25 +658,32 @@ export async function reactivateScheduledCancellation(input: { restaurantId: num
  * só avisa o id — o valor/estado sempre vêm de reconsultar o Mercado Pago,
  * nunca do corpo do webhook). Idempotente via billing_payments.gatewayPaymentId.
  */
-export async function recordBillingPayment(input: { preapprovalId: string; gatewayPaymentId: string; amountCents: number | null; mpStatus: string }) {
+export async function recordBillingPayment(input: { preapprovalId: string; gatewayPaymentId: string; amountCents: number | null; mpStatus: string; paymentStatus?: string | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const subscription = await getSubscriptionByGatewaySubscriptionId(input.preapprovalId);
   if (!subscription) return { found: false as const };
+  // "processed" do authorized_payment é ambíguo (sucesso OU falha definitiva); a verdade é o
+  // status do pagamento real: approved -> paid; rejected/cancelled ou recycling -> failed; resto -> pending.
+  const status: "paid" | "failed" | "pending" =
+    input.paymentStatus === "approved" ? "paid"
+    : input.paymentStatus === "rejected" || input.paymentStatus === "cancelled" || input.mpStatus === "recycling" ? "failed"
+    : "pending";
   const [existing] = await db.select().from(billingPayments).where(eq(billingPayments.gatewayPaymentId, input.gatewayPaymentId)).limit(1);
-  if (existing) return { found: true as const, duplicate: true as const };
-  // "processed" do Mercado Pago pode significar tanto "cobrado com sucesso"
-  // quanto "esgotou as tentativas e falhou definitivamente" — ambíguo demais
-  // pra marcar como "paid" sem confirmação. Fica "pending" até validação
-  // manual a primeira vez que uma cobrança real acontecer (ver pendência).
-  const status = input.mpStatus === "processed" ? "pending" : input.mpStatus === "recycling" ? "failed" : "pending";
+  if (existing) {
+    // Notificação posterior do mesmo id com desfecho definitivo atualiza a linha (pending/failed -> paid/failed).
+    if (status !== "pending" && existing.status !== status && existing.status !== "paid" && existing.status !== "refunded") {
+      await db.update(billingPayments).set({ status, paidAt: status === "paid" ? Date.now() : null }).where(eq(billingPayments.id, existing.id));
+    }
+    return { found: true as const, duplicate: true as const };
+  }
   await db.insert(billingPayments).values({
     subscriptionId: subscription.id,
     gateway: "mercadopago",
     gatewayPaymentId: input.gatewayPaymentId,
     amountCents: input.amountCents ?? 0,
     status,
-    paidAt: null,
+    paidAt: status === "paid" ? Date.now() : null,
     createdAt: Date.now(),
   });
   return { found: true as const, duplicate: false as const };

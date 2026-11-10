@@ -191,7 +191,7 @@ export default function RestaurantDetail() {
             </p>
             {restaurant.deliveredAt ? (
               <p className="mt-2 text-xs font-medium text-emerald-700">
-                Entregue em {new Date(restaurant.deliveredAt).toLocaleString("pt-BR")} — teste grátis em andamento.
+                Entregue em {new Date(restaurant.deliveredAt).toLocaleString("pt-BR")}{subscription?.subscription.status === "trial" ? " — teste grátis em andamento." : "."}
               </p>
             ) : (
               <>
@@ -333,7 +333,7 @@ export default function RestaurantDetail() {
             ) : (
               <>
                 <p className="mt-1 text-xs text-ink-soft">Ainda não conectado — o restaurante precisa abrir o link e autorizar a cobrança recorrente no cartão dele.</p>
-                <Button className="mt-2" disabled={startBilling.isPending} onClick={() => startBilling.mutate({ restaurantId, backUrl: window.location.href })}>
+                <Button className="mt-2" disabled={startBilling.isPending} onClick={() => startBilling.mutate({ restaurantId })}>
                   {startBilling.isPending ? "Gerando link…" : "Configurar cobrança (Mercado Pago)"}
                 </Button>
               </>
@@ -421,7 +421,7 @@ export default function RestaurantDetail() {
       <ConfirmDialog
         open={pendingMarkDelivered}
         title="Marcar como entregue"
-        description="Confirma que a configuração deste restaurante (cardápio, config geral) está pronta? A partir de agora, o teste grátis de 7 dias passa a contar — essa ação não pode ser desfeita."
+        description={`Confirma que a configuração deste restaurante (cardápio, config geral) está pronta? ${subscription?.subscription.status === "trial" ? "A partir de agora, o teste grátis de 7 dias passa a contar — " : "Esta conta não está em teste grátis, então nenhum teste será iniciado — "}essa ação não pode ser desfeita.`}
         confirmLabel="Marcar como entregue"
         pending={markDelivered.isPending}
         onCancel={() => setPendingMarkDelivered(false)}

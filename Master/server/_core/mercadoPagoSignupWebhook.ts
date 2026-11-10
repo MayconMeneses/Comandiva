@@ -45,6 +45,8 @@ export async function handleMercadoPagoSignupWebhook(req: Request, res: Response
       });
       if (!valid) {
         console.warn("[signup-webhook] Assinatura do Mercado Pago inválida — ignorando notificação.");
+        // Continua 200 (evita tempestade de reenvios), mas avisa o dono (limite por "kind"; sem segredo/assinatura/corpo).
+        void alertSystemError("Webhook de taxa de implementação recusado: assinatura inválida", "Uma notificação do Mercado Pago chegou com assinatura inválida e foi ignorada. Confira a Assinatura secreta do webhook no painel do Mercado Pago.", "mercadoPagoSignupWebhookInvalidSignature", "Site comercial — pagamento de cadastro (webhook Mercado Pago)");
         res.status(200).json({ received: true });
         return;
       }

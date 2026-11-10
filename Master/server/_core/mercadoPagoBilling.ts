@@ -65,7 +65,9 @@ export async function createSubscriptionPreapproval(params: {
  * do próximo ciclo) quanto pra aplicar um downgrade agendado no vencimento,
  * e pra cancelar de fato quando um cancelamento agendado se efetiva.
  */
-export async function updateSubscriptionPreapproval(params: { accessToken: string; preapprovalId: string; amountCents?: number; status?: "paused" | "cancelled" }): Promise<void> {
+// "authorized" retoma uma preapproval pausada (reativação após suspensão).
+// PROVÁVEL a confirmar no sandbox: a API aceita authorized/paused/cancelled no PUT.
+export async function updateSubscriptionPreapproval(params: { accessToken: string; preapprovalId: string; amountCents?: number; status?: "paused" | "cancelled" | "authorized" }): Promise<void> {
   const body: Record<string, unknown> = {};
   if (params.amountCents != null) body.auto_recurring = { transaction_amount: params.amountCents / 100, currency_id: "BRL" };
   if (params.status) body.status = params.status;
@@ -103,8 +105,16 @@ export async function getAuthorizedPayment(accessToken: string, authorizedPaymen
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) throw new Error(`Mercado Pago recusou a consulta da cobrança (status ${response.status}).`);
-  const data = (await response.json()) as { id: string; status: string; preapproval_id?: string | null; transaction_amount?: number | null };
-  return { id: data.id, status: data.status, preapprovalId: data.preapproval_id ?? null, amountCents: data.transaction_amount != null ? Math.round(data.transaction_amount * 100) : null };
+  // "payment" é o pagamento real da cobrança (id/status/status_detail). O nome do campo é PROVÁVEL
+  // (API de authorized_payments) e deve ser confirmado com um pagamento real/sandbox.
+  const data = (await response.json()) as { id: string; status: string; preapproval_id?: string | null; transaction_amount?: number | null; payment?: { id?: number | string | null; status?: string | null; status_detail?: string | null } | null };
+  return {
+    id: data.id,
+    status: data.status,
+    preapprovalId: data.preapproval_id ?? null,
+    amountCents: data.transaction_amount != null ? Math.round(data.transaction_amount * 100) : null,
+    paymentStatus: data.payment?.status ?? null,
+  };
 }
 
 /**

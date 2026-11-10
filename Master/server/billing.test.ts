@@ -120,11 +120,37 @@ describe("recordBillingPayment", () => {
     expect(insertValues).not.toHaveBeenCalled();
   });
 
-  it("nunca marca como 'paid' sozinho — status do Mercado Pago é ambíguo demais pra decidir sucesso automaticamente", async () => {
+  it("'processed' sem o pagamento real (paymentStatus ausente) continua 'pending' — ambíguo demais pra decidir sozinho", async () => {
     const { db, insertValues } = dbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" }, undefined);
     mocks.getDb.mockResolvedValue(db);
     await recordBillingPayment({ preapprovalId: "pre-1", gatewayPaymentId: "auth-2", amountCents: 24990, mpStatus: "processed" });
     expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ status: "pending", paidAt: null }));
+  });
+
+  it("pagamento real 'approved' grava 'paid' com paidAt preenchido", async () => {
+    const { db, insertValues } = dbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" }, undefined);
+    mocks.getDb.mockResolvedValue(db);
+    await recordBillingPayment({ preapprovalId: "pre-1", gatewayPaymentId: "auth-3", amountCents: 24990, mpStatus: "processed", paymentStatus: "approved" });
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ status: "paid", paidAt: expect.any(Number) }));
+  });
+
+  it.each([
+    ["processed", "rejected"],
+    ["processed", "cancelled"],
+    ["recycling", null],
+  ])("authorized_payment '%s' com pagamento '%s' grava 'failed' sem paidAt", async (mpStatus, paymentStatus) => {
+    const { db, insertValues } = dbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" }, undefined);
+    mocks.getDb.mockResolvedValue(db);
+    await recordBillingPayment({ preapprovalId: "pre-1", gatewayPaymentId: "auth-4", amountCents: 24990, mpStatus, paymentStatus });
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ status: "failed", paidAt: null }));
+  });
+
+  it("cobrança já registrada como 'pending' vira 'paid' quando chega o pagamento aprovado (não fica pendente pra sempre)", async () => {
+    const { db, insertValues, updateSet } = dbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" }, { id: 1, gatewayPaymentId: "auth-5", status: "pending" });
+    mocks.getDb.mockResolvedValue(db);
+    await recordBillingPayment({ preapprovalId: "pre-1", gatewayPaymentId: "auth-5", amountCents: 24990, mpStatus: "processed", paymentStatus: "approved" });
+    expect(insertValues).not.toHaveBeenCalled();
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "paid", paidAt: expect.any(Number) }));
   });
 });
 
@@ -260,12 +286,65 @@ describe("handleMercadoPagoBillingWebhook — subscription_authorized_payment (2
     const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
     (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
     mocks.getDb.mockResolvedValue(stub.db);
-    mocks.getAuthorizedPayment.mockResolvedValue({ id: "auth-2", status: "processed", preapprovalId: "pre-1", amountCents: 24990 });
+    mocks.getAuthorizedPayment.mockResolvedValue({ id: "auth-2", status: "processed", preapprovalId: "pre-1", amountCents: 24990, paymentStatus: "approved" });
 
     await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-2"), fakeRes());
 
     expect(applyDueScheduledChanges).toHaveBeenCalledTimes(1);
     expect(markSubscriptionPastDue).not.toHaveBeenCalled();
     expect(stub.getCurrent().currentPeriodEnd).toBeGreaterThan(pastPeriodEnd); // avançou
+  });
+
+  it("mesmo data.id: 'processed'+'in_process' e depois 'processed'+'approved' — a 2ª aplica a renovação; repetir a 'approved' é descartada", async () => {
+    const pastPeriodEnd = Date.now() - 86400000;
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
+    mocks.getDb.mockResolvedValue(stub.db);
+    const base = { id: "auth-seq", status: "processed", preapprovalId: "pre-1", amountCents: 24990 };
+
+    mocks.getAuthorizedPayment.mockResolvedValue({ ...base, paymentStatus: "in_process" });
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-seq"), fakeRes());
+    expect(applyDueScheduledChanges).not.toHaveBeenCalled();
+
+    mocks.getAuthorizedPayment.mockResolvedValue({ ...base, paymentStatus: "approved" });
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-seq"), fakeRes());
+    expect(applyDueScheduledChanges).toHaveBeenCalledTimes(1);
+
+    // Retry idêntico da 'approved': descartado, não aplica de novo.
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq("auth-seq"), fakeRes());
+    expect(applyDueScheduledChanges).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["rejected", "cancelled"])("'processed' com pagamento '%s' (falha definitiva): marca past_due e NÃO rola o período", async paymentStatus => {
+    const pastPeriodEnd = Date.now() - 86400000;
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getAuthorizedPayment.mockResolvedValue({ id: `auth-${paymentStatus}`, status: "processed", preapprovalId: "pre-1", amountCents: 24990, paymentStatus });
+
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq(`auth-${paymentStatus}`), fakeRes());
+
+    expect(markSubscriptionPastDue).toHaveBeenCalledTimes(1);
+    expect(applyDueScheduledChanges).not.toHaveBeenCalled();
+    expect(stub.getCurrent().currentPeriodEnd).toBe(pastPeriodEnd);
+  });
+
+  it.each([
+    ["scheduled", null],
+    ["processed", "in_process"],
+    ["processed", null],
+    ["processed", "algo_novo"],
+  ])("authorized_payment '%s' com pagamento '%s' (não confirmado): não rola período, não marca past_due", async (status, paymentStatus) => {
+    const pastPeriodEnd = Date.now() - 86400000;
+    const stub = buildWebhookDbStub({ id: 5, restaurantId: 2, status: "active", gatewaySubscriptionId: "pre-1", gatewayCustomerId: "999" });
+    (stub.getCurrent() as Record<string, unknown>).currentPeriodEnd = pastPeriodEnd;
+    mocks.getDb.mockResolvedValue(stub.db);
+    mocks.getAuthorizedPayment.mockResolvedValue({ id: `auth-${status}-${paymentStatus}`, status, preapprovalId: "pre-1", amountCents: 24990, paymentStatus });
+
+    await handleMercadoPagoBillingWebhook(fakeAuthorizedPaymentReq(`auth-${status}-${paymentStatus}`), fakeRes());
+
+    expect(applyDueScheduledChanges).not.toHaveBeenCalled();
+    expect(markSubscriptionPastDue).not.toHaveBeenCalled();
+    expect(stub.getCurrent().currentPeriodEnd).toBe(pastPeriodEnd);
   });
 });

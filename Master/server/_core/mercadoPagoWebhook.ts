@@ -47,6 +47,9 @@ export async function handleMercadoPagoBillingWebhook(req: Request, res: Respons
       });
       if (!valid) {
         console.warn("[billing-webhook] Assinatura do Mercado Pago inválida — ignorando notificação.");
+        // Continua 200 (evita tempestade de reenvios), mas avisa o dono. Alerta tem limite por "kind"
+        // (1 a cada 10min) e não leva segredo, assinatura nem corpo da requisição.
+        void alertSystemError("Webhook de cobrança recusado: assinatura inválida", "Uma notificação do Mercado Pago chegou com assinatura inválida e foi ignorada. Confira a Assinatura secreta do webhook no painel do Mercado Pago.", "mercadoPagoBillingWebhookInvalidSignature", "Cobrança de assinatura (webhook Mercado Pago)");
         res.status(200).json({ received: true });
         return;
       }
@@ -77,7 +80,11 @@ export async function handleMercadoPagoBillingWebhook(req: Request, res: Respons
       await applyPreapprovalStatus({ preapprovalId: preapproval.id, mpStatus: preapproval.status, payerId: preapproval.payerId });
     } else {
       const payment = await getAuthorizedPayment(ENV.mercadoPagoAccessToken, dataId);
-      const eventId = `${type}:${dataId}:${payment.status}`;
+      // O desfecho depende também do status do pagamento real (ex.: "processed" + "in_process"
+      // e depois "processed" + "approved" são notificações DIFERENTES do mesmo data.id); sem
+      // paymentStatus na chave, a renovação paga seria descartada como duplicata. Retry
+      // idêntico (mesmo status e mesmo paymentStatus) continua gerando a mesma chave.
+      const eventId = `${type}:${dataId}:${payment.status}:${payment.paymentStatus ?? "none"}`;
       const { alreadyProcessed } = await markWebhookEventOnce({ gateway: "mercadopago", gatewayEventId: eventId, result: "received" });
       if (alreadyProcessed) {
         res.status(200).json({ received: true });
@@ -87,25 +94,26 @@ export async function handleMercadoPagoBillingWebhook(req: Request, res: Respons
       if (payment.preapprovalId) {
         const subscription = await getSubscriptionByGatewaySubscriptionId(payment.preapprovalId);
         if (subscription) {
-          if (payment.status === "recycling") {
-            // Cobrança recusada, Mercado Pago tentando de novo automaticamente
-            // — status inequívoco (diferente de "processed", que pode
-            // significar sucesso OU falha definitiva). NUNCA adianta
-            // currentPeriodEnd aqui: o cliente não pode ganhar acesso de
-            // graça só porque o cartão recusou.
+          const failedPayment = payment.paymentStatus === "rejected" || payment.paymentStatus === "cancelled";
+          if (payment.status === "recycling" || (payment.status === "processed" && failedPayment)) {
+            // "recycling": cobrança recusada, Mercado Pago tentando de novo.
+            // "processed" com pagamento rejeitado/cancelado: falha definitiva.
+            // NUNCA adianta currentPeriodEnd aqui: o cliente não pode ganhar
+            // acesso de graça só porque o cartão recusou.
             await markSubscriptionPastDue(subscription.id);
-          } else {
-            // Uma cobrança de renovação real é o sinal mais confiável de que o
-            // ciclo virou — aplica downgrade/cancelamento agendado aqui,
-            // além do polling periódico (computeSnapshotForRestaurant), que é
-            // só o reforço/fallback.
+          } else if (payment.status === "processed" && payment.paymentStatus === "approved") {
+            // Renovação PAGA (authorized_payment processado E pagamento aprovado) é o
+            // sinal confiável de que o ciclo virou — aplica downgrade/cancelamento
+            // agendado aqui, além do polling periódico, que é só o reforço/fallback.
             const wasActive = subscription.status === "active";
             await applyDueScheduledChanges(subscription.id);
             if (wasActive && payment.amountCents != null) {
               await notifySubscriptionRenewed(subscription.id, payment.amountCents);
             }
           }
-          await recordBillingPayment({ preapprovalId: payment.preapprovalId, gatewayPaymentId: payment.id, amountCents: payment.amountCents, mpStatus: payment.status });
+          // Qualquer outro caso (scheduled, in_process, pagamento ausente/desconhecido):
+          // não rola período nem envia e-mail; só registra a cobrança.
+          await recordBillingPayment({ preapprovalId: payment.preapprovalId, gatewayPaymentId: payment.id, amountCents: payment.amountCents, mpStatus: payment.status, paymentStatus: payment.paymentStatus });
         }
       }
     }

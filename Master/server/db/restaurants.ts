@@ -8,6 +8,7 @@ import { listPlatformAuditLog } from "./auditLog";
 import { sendEmailAsync } from "../_core/emailService";
 import { buildRestaurantDeliveredMessage, sendTelegramMessageAsync } from "../_core/telegramService";
 import { commercialHomeUrl } from "../_core/env";
+import { applyGatewayPreapprovalAction } from "./preapprovalGateway";
 
 // O teste grátis só começa a contar quando a equipe marca o restaurante como
 // entregue (menu/config organizados) — nunca no momento do cadastro. Ver
@@ -160,18 +161,22 @@ export async function markRestaurantDelivered(restaurantId: number, actor: strin
   const currentPeriodEnd = now + TRIAL_DAYS * DAY_MS;
 
   await db.update(restaurants).set({ deliveredAt: now, updatedAt: now }).where(eq(restaurants.id, restaurantId));
+  // Teste grátis só existe para quem está em "trial". Contato repetido nasce
+  // "ended" e quem já pagou está "active": nesses casos a entrega não pode
+  // prometer (nem devolver) uma data de fim de teste que não vale.
+  const hasTrial = current.subscription.status === "trial";
 
   // Só reinicia o período se ainda estiver em trial — se por algum motivo já
   // foi pra um plano pago antes da entrega (não deveria acontecer no fluxo
   // normal), o ciclo de cobrança real do Mercado Pago não é mexido aqui.
-  if (current.subscription.status === "trial") {
+  if (hasTrial) {
     await db
       .update(subscriptions)
       .set({ currentPeriodStart: now, currentPeriodEnd, updatedAt: now })
       .where(eq(subscriptions.id, current.subscription.id));
   }
 
-  await recordSubscriptionDeliveredEvent(current.subscription.id, currentPeriodEnd, actor);
+  await recordSubscriptionDeliveredEvent(current.subscription.id, hasTrial ? currentPeriodEnd : null, actor);
 
   if (restaurant.contactEmail) {
     sendEmailAsync(restaurant.contactEmail, "restaurantReady", {
@@ -181,17 +186,25 @@ export async function markRestaurantDelivered(restaurantId: number, actor: strin
     });
   }
 
-  sendTelegramMessageAsync(buildRestaurantDeliveredMessage({ restaurantId, restaurantName: restaurant.name, trialEndsAt: currentPeriodEnd }));
+  sendTelegramMessageAsync(
+    hasTrial
+      ? buildRestaurantDeliveredMessage({ restaurantId, restaurantName: restaurant.name, trialEndsAt: currentPeriodEnd })
+      : [
+          "✅ <b>Ambiente entregue</b>",
+          `Restaurante: <b>${restaurant.name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</b> (#${restaurantId})`,
+          "Sem teste grátis nesta conta — a assinatura não está em período de teste.",
+        ].join("\n"),
+  );
 
-  return { success: true as const, trialEndsAt: currentPeriodEnd };
+  return { success: true as const, trialEndsAt: hasTrial ? currentPeriodEnd : null };
 }
 
-async function recordSubscriptionDeliveredEvent(subscriptionId: number, trialEndsAt: number, actor: string) {
+async function recordSubscriptionDeliveredEvent(subscriptionId: number, trialEndsAt: number | null, actor: string) {
   const db = await getDb();
   if (!db) return;
   await db.insert(subscriptionEvents).values({
     subscriptionId,
-    eventType: "delivered_trial_started",
+    eventType: trialEndsAt != null ? "delivered_trial_started" : "delivered",
     afterJson: JSON.stringify({ trialEndsAt }),
     actor,
     createdAt: Date.now(),
@@ -226,6 +239,24 @@ export async function setRestaurantStatus(restaurantId: number, status: Restaura
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const now = Date.now();
+  // Cancelar/suspender a conta tem de parar a cobrança no Mercado Pago ANTES
+  // de gravar o status local; senão o cliente continua sendo cobrado de uma
+  // conta que o painel mostra como encerrada. Se o MP recusar, o status local
+  // não muda e o operador vê o erro (nada fica pela metade). Reativar a partir
+  // de "suspended" retoma a cobrança pausada ("authorized"); sem isso a
+  // preapproval ficava "paused" pra sempre e a cobrança nunca voltava. A partir
+  // de "cancelled" não chama o MP: preapproval cancelada não volta, e o cliente
+  // precisa autorizar uma nova assinatura pelo fluxo normal.
+  const [currentRestaurant] = await db.select().from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
+  // Já está nesse status: não repete a chamada ao MP (a preapproval já foi tratada).
+  if (currentRestaurant && currentRestaurant.status !== status) {
+    const action = status === "cancelled" ? "cancel" : status === "suspended" ? "pause" : currentRestaurant.status === "suspended" ? "resume" : null;
+    if (action) {
+      const current = await getSubscriptionForRestaurant(restaurantId);
+      const preapprovalId = current?.subscription.gatewaySubscriptionId;
+      if (preapprovalId) await applyGatewayPreapprovalAction({ preapprovalId, action, unchanged: "O status do restaurante NÃO foi alterado" });
+    }
+  }
   // cancelledAt marca a última vez que virou "cancelled" — usado só pra
   // ocultar da lista principal do Painel Master 10 dias depois (ver
   // listRestaurantsForPanel). Reativar (voltar pra active/suspended) limpa
