@@ -1,12 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SmartImage from "@/components/SmartImage";
 import { trpc } from "@/lib/trpc";
 import { ChevronDown, Pencil, Plus, Search, Trash2, X } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loading } from "./shared";
 
@@ -61,6 +62,7 @@ function ProductPicker({ products, categories, selectedIds, onToggle }: { produc
 }
 
 export default function PromotionManager() {
+  const uid = useId();
   const utils = trpc.useUtils();
   const query = trpc.admin.promotions.useQuery();
   const catalog = trpc.admin.catalog.useQuery();
@@ -134,12 +136,12 @@ export default function PromotionManager() {
         {!promotions.length ? <p className="text-sm text-muted-foreground">Nenhuma promoção cadastrada ainda.</p> : null}
       </div>
     </div></div></div>
-    {(editing || creating) ? <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/45 p-4"><form onSubmit={submit} className="my-6 w-full max-w-lg rounded-3xl bg-card p-6 shadow-2xl">
-      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">{editing ? "Editar" : "Nova"}</p><h2 className="mt-1 font-display text-2xl font-bold">Promoção</h2></div><Button type="button" variant="ghost" onClick={close} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button></div>
+    <Dialog open={Boolean(editing || creating)} onOpenChange={open => { if (!open) close(); }}><DialogContent showCloseButton={false} aria-describedby={undefined} onInteractOutside={event => event.preventDefault()} className="max-h-[90vh] max-w-lg gap-0 overflow-y-auto rounded-3xl border-0 bg-card p-0 shadow-2xl sm:max-w-lg"><form onSubmit={submit} className="p-6">
+      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-primary">{editing ? "Editar" : "Nova"}</p><DialogTitle className="mt-1 font-display text-2xl leading-8 font-bold">Promoção</DialogTitle></div><Button type="button" variant="ghost" onClick={close} className="h-9 w-9 rounded-lg p-0"><X className="h-5 w-5" /></Button></div>
       <div className="mt-5 space-y-4">
         <Input required autoFocus value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} placeholder="Título da promoção" className="h-10 rounded-xl" />
         <Textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} placeholder="Descrição e condições" className="min-h-20 rounded-xl" />
-        <div><Label>Produto(s) do cardápio</Label><div className="mt-1.5"><ProductPicker products={products} categories={categories} selectedIds={form.productIds} onToggle={toggleProduct} /></div></div>
+        <div><Label id={uid + "-produtos"}>Produto(s) do cardápio</Label><div role="group" aria-labelledby={uid + "-produtos"} className="mt-1.5"><ProductPicker products={products} categories={categories} selectedIds={form.productIds} onToggle={toggleProduct} /></div></div>
         {form.productIds.map(productId => {
           const groups = requiredGroupsFor(productId);
           if (!groups.length) return null;
@@ -159,13 +161,13 @@ export default function PromotionManager() {
             })}
           </div>;
         })}
-        <div><Label>Preço promocional (R$, opcional)</Label><Input value={form.promoPriceCents} onChange={event => setForm({ ...form, promoPriceCents: event.target.value })} inputMode="decimal" placeholder="Ex.: 29,90" className="mt-1.5 h-10 rounded-xl" />{discountPct !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">-{discountPct}% em relação ao preço normal ({money(normalTotalCents)})</p>}</div>
+        <div><Label htmlFor={uid + "-preco"}>Preço promocional (R$, opcional)</Label><Input id={uid + "-preco"} value={form.promoPriceCents} onChange={event => setForm({ ...form, promoPriceCents: event.target.value })} inputMode="decimal" placeholder="Ex.: 29,90" className="mt-1.5 h-10 rounded-xl" />{discountPct !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">-{discountPct}% em relação ao preço normal ({money(normalTotalCents)})</p>}</div>
         <Input value={form.validDays} onChange={event => setForm({ ...form, validDays: event.target.value })} placeholder="Validade, ex.: Ter–Qui" className="h-10 rounded-xl" />
         <select value={form.objective} onChange={event => setForm({ ...form, objective: event.target.value as PromotionObjective | "" })} className="h-10 w-full rounded-xl border bg-card px-3 text-sm"><option value="">Objetivo (opcional)</option>{Object.entries(OBJECTIVE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
         <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.active} onChange={event => setForm({ ...form, active: event.target.checked })} className="h-4 w-4 accent-primary" />Exibir agora no cardápio</label>
       </div>
       {save.error ? <p className="mt-4 text-sm text-red-700">{save.error.message}</p> : null}
       <Button disabled={save.isPending} className="mt-6 h-11 w-full rounded-xl bg-primary hover:bg-primary-hover">{save.isPending ? "Salvando…" : "Salvar promoção"}</Button>
-    </form></div> : null}
+    </form></DialogContent></Dialog>
   </section>;
 }

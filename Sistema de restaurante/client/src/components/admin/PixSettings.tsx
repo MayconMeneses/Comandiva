@@ -3,9 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { compressImageFile } from "@/lib/imageCompression";
 import { trpc } from "@/lib/trpc";
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 
 export default function PixSettings({ settings }: { settings: { isAcceptingOrders: boolean; deliveryFeeCents: number; minimumOrderCents: number; estimatedDeliveryMin: number; estimatedDeliveryMax: number; openingHours: string | null; logoUrl?: string | null; pixKey?: string | null; pixQrCodeUrl?: string | null } | null | undefined }) {
+  const uid = useId();
   const utils = trpc.useUtils();
   const [form, setForm] = useState(() => ({ pixKey: settings?.pixKey ?? "", pixQrCodeUrl: settings?.pixQrCodeUrl ?? "" }));
   const [fileError, setFileError] = useState("");
@@ -27,13 +28,13 @@ export default function PixSettings({ settings }: { settings: { isAcceptingOrder
     <h2 className="mt-1 font-display text-2xl font-bold">Pix</h2>
     <p className="mt-1 text-sm text-muted-foreground">Preencha a chave e/ou envie o QR Code para exibir na tela de pagamento quando o cliente escolher Pix.</p>
     <form onSubmit={submit} className="mt-5 space-y-4">
-      <div><Label>Chave Pix</Label><Input value={form.pixKey} onChange={event => setForm({ ...form, pixKey: event.target.value })} placeholder="CPF, e-mail, telefone ou chave aleatória" className="mt-1.5 h-11 rounded-xl bg-card" /></div>
+      <div><Label htmlFor={uid + "-chave"}>Chave Pix</Label><Input id={uid + "-chave"} value={form.pixKey} onChange={event => setForm({ ...form, pixKey: event.target.value })} placeholder="CPF, e-mail, telefone ou chave aleatória" className="mt-1.5 h-11 rounded-xl bg-card" /></div>
       <div>
-        <Label>QR Code</Label>
+        <Label htmlFor={uid + "-qr"}>QR Code</Label>
         <div className="mt-1.5 flex items-center gap-4">
           <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-dashed border-border bg-card">{form.pixQrCodeUrl ? <img src={form.pixQrCodeUrl} alt="QR Code Pix" className="h-full w-full object-contain" /> : <span className="text-[10px] text-muted-foreground">Sem QR</span>}</div>
           <div className="flex-1">
-            <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handlePixQrFile(event.target.files?.[0])} className="h-10 rounded-xl bg-card file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" />
+            <Input id={uid + "-qr"} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handlePixQrFile(event.target.files?.[0])} className="h-10 rounded-xl bg-card file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3eadf] file:px-3 file:py-1.5 file:text-xs file:font-semibold" />
             {uploadPixQr.isPending && <p className="mt-1 text-xs text-muted-foreground">Enviando imagem…</p>}
             {fileError && <p className="mt-1 text-xs text-red-700">{fileError}</p>}
             {uploadPixQr.error && <p className="mt-1 text-xs text-red-700">{uploadPixQr.error.message}</p>}

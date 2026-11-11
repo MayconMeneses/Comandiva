@@ -32,6 +32,7 @@ type AppearanceSettingsProps = {
  * preview — aplica direto via applyColorTheme, sem montar uma prévia falsa.
  */
 export default function AppearanceSettings({ settings }: AppearanceSettingsProps) {
+  const uid = React.useId();
   const utils = trpc.useUtils();
   const [colorTheme, setColorTheme] = useState<ColorThemeKey>((settings?.colorTheme as ColorThemeKey) ?? DEFAULT_COLOR_THEME);
   const [customBackgroundColor, setCustomBackgroundColor] = useState<string | null>(settings?.customBackgroundColor ?? null);
@@ -109,8 +110,8 @@ export default function AppearanceSettings({ settings }: AppearanceSettingsProps
     <p className="mt-1 text-sm text-muted-foreground">Aplica no cardápio público e no painel administrativo.</p>
 
     <div className="mt-5">
-      <Label>Cor de marca</Label>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <Label id={uid + "-marca"}>Cor de marca</Label>
+      <div role="group" aria-labelledby={uid + "-marca"} className="mt-2 flex flex-wrap gap-2">
         {COLOR_THEME_KEYS.map(key => {
           const themeOption = COLOR_THEMES[key];
           const isSelected = colorTheme === key;
@@ -124,7 +125,7 @@ export default function AppearanceSettings({ settings }: AppearanceSettingsProps
 
     <div className="mt-5">
       <div className="flex items-center gap-1.5">
-        <Label>Cor de fundo personalizada</Label>
+        <Label htmlFor={uid + "-fundo-hex"}>Cor de fundo personalizada</Label>
         {themeLocked ? <FeatureLockDot title="Recurso do plano" onClick={() => setUpgradeInfo({ featureId: "custom_theme", requiredPlanKey: themeLocked.requiredPlanKey, requiredPlanName: themeLocked.requiredPlanName })} /> : null}
       </div>
       <p className="mt-1 text-xs text-muted-foreground">Muda o fundo do sistema de verdade — texto, superfícies e bordas se ajustam automaticamente pra continuar legíveis.</p>
@@ -142,6 +143,7 @@ export default function AppearanceSettings({ settings }: AppearanceSettingsProps
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <input type="color" value={HEX_PATTERN.test(hexDraft) ? hexDraft : (customBackgroundColor ?? "#f6f1e8")} onChange={event => pickBackground(event.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-border bg-card p-1" aria-label="Selecionar cor de fundo" />
               <Input
+                id={uid + "-fundo-hex"}
                 value={hexDraft}
                 onChange={event => {
                   const value = event.target.value;

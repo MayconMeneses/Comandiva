@@ -215,3 +215,17 @@ button:disabled { cursor: not-allowed; }
 .mm-no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Reduzir movimento: zera as animações de entrada/saída dos componentes Radix
+   (tw-animate-css: animate-in/animate-out, fade, zoom e slide). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .animate-out,
+  [data-state="open"],
+  [data-state="closed"] {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
