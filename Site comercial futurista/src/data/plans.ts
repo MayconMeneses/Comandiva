@@ -7,6 +7,8 @@
  * site atual (`public.plans`, ver lib/usePlans.ts) e só usa estes se a API
  * não responder — preço exibido = preço cobrado.
  */
+import { ENTRY_PRICE_CENTS } from "./pricing";
+
 export type PlanKey = "essencial" | "profissional" | "premium";
 
 export type Plan = {
@@ -26,7 +28,7 @@ export const PLANS: Plan[] = [
   {
     key: "essencial",
     name: "Entrada",
-    priceCents: 9990,
+    priceCents: ENTRY_PRICE_CENTS,
     tagline: "Quero receber pedidos e ter meu próprio canal de vendas.",
     users: 3,
     tables: 4,

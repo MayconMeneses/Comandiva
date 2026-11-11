@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { ENTRY_PRICE_BRL } from "../data/pricing";
 
 /**
  * Endereço público onde este site vai morar. Hoje o site comercial fica em
@@ -46,7 +47,7 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
   "/planos": {
     title: "Planos e Preços — Sistema para Restaurante | Comandiva",
     description:
-      "Compare os planos do Comandiva: cardápio digital, pedidos e mesas com QR Code. A partir de R$ 99,90/mês, sem comissão. 7 dias grátis.",
+      `Compare os planos do Comandiva: cardápio digital, pedidos e mesas com QR Code. A partir de ${ENTRY_PRICE_BRL}/mês, sem comissão. 7 dias grátis.`,
   },
 };
 

@@ -1,4 +1,5 @@
 import { asset } from "../lib/asset";
+import { ENTRY_PRICE_CENTS } from "./pricing";
 
 /**
  * Textos das seções da Home, tirados de ../Site comercial/src/pages/Home.tsx
@@ -7,7 +8,7 @@ import { asset } from "../lib/asset";
 
 export const SAVINGS = {
   commissionRate: 0.3, // "até 30%", o mesmo número usado no site atual
-  basePlanCents: 9990, // plano de entrada (seed-plans.ts)
+  basePlanCents: ENTRY_PRICE_CENTS, // plano de entrada (seed-plans.ts)
   minCents: 300_000,
   maxCents: 10_000_000,
   stepCents: 100_000,
