@@ -96,6 +96,31 @@ describe("site comercial futurista em /comercial (COMMERCIAL_SITE=futurista)", (
     expect(html).toContain('<link rel="canonical" href="https://mmsystem.tech/comercial/termos" />');
   });
 
+  it("aplica a política de indexação: home aponta ao portfólio, planos e cadastro noindex, termos e privacidade indexáveis", async () => {
+    const get = async (p: string) => await (await fetch(`${base}${p}`)).text();
+    const portfolio = "https://www.mmsystem.tech/sistemas/comandiva";
+    const home = await get("/comercial");
+    expect(home).toContain('<meta name="robots" content="noindex, follow" />');
+    expect(home).toContain(`<link rel="canonical" href="${portfolio}" />`);
+    expect(home).toContain(`<meta property="og:url" content="${portfolio}" />`);
+    const planos = await get("/comercial/planos");
+    expect(planos).toContain('<meta name="robots" content="noindex, follow" />');
+    expect(planos).toContain('<link rel="canonical" href="https://mmsystem.tech/comercial/planos" />');
+    const cad = await get("/comercial/cadastro/essencial?x=1");
+    expect(cad).toContain('<meta name="robots" content="noindex, follow" />');
+    expect(cad).toContain('<link rel="canonical" href="https://mmsystem.tech/comercial/cadastro/essencial" />');
+    for (const p of ["termos", "privacidade"]) {
+      const html = await get(`/comercial/${p}`);
+      expect(html, p).toContain('<meta name="robots" content="index, follow" />');
+      expect(html, p).toContain(`<link rel="canonical" href="https://mmsystem.tech/comercial/${p}" />`);
+    }
+  });
+
+  it("o sitemap do Master lista só as URLs indexáveis do site de venda", () => {
+    const xml = fs.readFileSync(path.resolve(process.cwd(), "client", "public", "sitemap.xml"), "utf-8");
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
+    expect(locs).toEqual(["https://mmsystem.tech/comercial/termos", "https://mmsystem.tech/comercial/privacidade"]);
+  });
   it("serve os arquivos do build com cache longo e o HTML sem cache", async () => {
     const asset = await fetch(`${base}/comercial/assets/app-abc123.js`);
     expect(asset.status).toBe(200);

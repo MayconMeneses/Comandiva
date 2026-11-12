@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { resolveSpaStatus } from "../../shared/commercialRoutes";
 import { injectCommercialPageMeta } from "./commercialMeta";
+import { injectFuturistaSeo } from "./commercialSeoPolicy";
 
 /**
  * Site comercial "futurista" (projeto irmão `Site comercial futurista`):
@@ -46,7 +47,7 @@ export function registerCommercialFuturista(app: Express, dir: string = FUTURIST
       res
         .status(resolveSpaStatus(req.originalUrl))
         .set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" })
-        .end(injectCommercialPageMeta(template, req.originalUrl, FUTURISTA_OG_IMAGE_URL));
+        .end(injectFuturistaSeo(injectCommercialPageMeta(template, req.originalUrl, FUTURISTA_OG_IMAGE_URL), req.originalUrl));
     } catch (e) {
       next(e);
     }
