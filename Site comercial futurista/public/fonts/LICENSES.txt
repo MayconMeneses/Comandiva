@@ -17,3 +17,4 @@ Signature (signature.woff2): subconjunto da Mrs Saint Delafield
 JetBrains Mono (pacote @fontsource/jetbrains-mono)
   Licença: SIL Open Font License 1.1.
   https://openfontlicense.org
+

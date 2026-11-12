@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { motion, useInView } from "motion/react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { DIFERENCIAIS, type DiferencialKey } from "../../data/home";
 import { SectionHeading } from "../ui/SectionHeading";
 import { reveal } from "../../lib/motion";
@@ -21,10 +21,12 @@ function Card({ index }: { index: number }) {
   const item = DIFERENCIAIS[index];
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: "some" });
+  const reduce = useReducedMotion();
   const Demo = DEMOS[item.key];
 
-  // Spotlight discreto que segue o cursor (referência: Spotlight Card, 21st.dev) — só borda, sem glow.
+  // Realce sutil na borda que segue o cursor (referência: Spotlight Card, 21st.dev); desligado com movimento reduzido.
   function onMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (reduce) return;
     const r = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
     e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
@@ -35,7 +37,9 @@ function Card({ index }: { index: number }) {
       <div
         ref={ref}
         onPointerMove={onMove}
-        className="group relative h-full rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5 [background-image:radial-gradient(240px_circle_at_var(--mx,50%)_var(--my,50%),rgba(77,176,255,.14),transparent_70%)]"
+        className={`group relative h-full rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5 ${
+          reduce ? "" : "[background-image:radial-gradient(180px_circle_at_var(--mx,50%)_var(--my,50%),rgba(255,255,255,.09),transparent_70%)]"
+        }`}
       >
         <div className="flex h-full flex-col justify-between gap-6 rounded-[calc(2rem-0.375rem)] bg-bg-raised p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,.06)] sm:p-7">
           <Demo play={inView} />
@@ -60,7 +64,7 @@ export function LiveBento() {
         id="dif-title"
         eyebrow="Diferenciais"
         title="Por que trocar o app de entrega pelo seu próprio sistema"
-        lead="O que faz diferença de verdade no fim do mês — funcionando aqui embaixo."
+        lead="O que faz diferença de verdade no fim do mês, funcionando aqui embaixo."
       />
       <div className="mx-auto mt-14 grid max-w-6xl gap-4 lg:grid-cols-6">
         {DIFERENCIAIS.map((_, i) => (

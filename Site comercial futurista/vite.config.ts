@@ -43,7 +43,19 @@ export default defineConfig({
   // sozinho: http://localhost:5180/comercial/
   base: '/comercial/',
   // Fontes nunca viram data: no CSS (a CSP font-src 'self' bloqueia data:).
-  build: { assetsInlineLimit: file => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined) },
+  build: {
+    assetsInlineLimit: file => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined),
+    rollupOptions: {
+      output: {
+        // Separa o que quase não muda (React, motion) do código do site: o navegador
+        // faz parse em tarefas menores e reaproveita o cache entre publicações.
+        manualChunks(id) {
+          if (/node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'vendor-react'
+          if (/node_modules[\\/](motion|framer-motion|motion-dom|motion-utils)[\\/]/.test(id)) return 'vendor-motion'
+        },
+      },
+    },
+  },
   server: { proxy: API_PROXY, headers: SECURITY_HEADERS },
   preview: { proxy: API_PROXY, headers: { ...SECURITY_HEADERS, 'Content-Security-Policy': CONTENT_SECURITY_POLICY } },
 })

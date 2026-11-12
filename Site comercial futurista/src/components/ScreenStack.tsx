@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useScroll, useTransform, type MotionValue } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { TELAS } from "../data/home";
 
 function StackCard({ index, progress }: { index: number; progress: MotionValue<number> }) {
@@ -7,7 +7,8 @@ function StackCard({ index, progress }: { index: number; progress: MotionValue<n
   const total = TELAS.length;
   // Cada cartão encolhe um pouco quando o próximo chega por cima.
   const start = index / total;
-  const scale = useTransform(progress, [start, 1], [1, 1 - (total - index) * 0.04]);
+  const reduce = useReducedMotion();
+  const scale = useTransform(progress, [start, 1], [1, reduce ? 1 : 1 - (total - index) * 0.04]);
 
   return (
     <div className="sticky flex h-[100dvh] items-center justify-center" style={{ top: `${index * 14}px` }}>

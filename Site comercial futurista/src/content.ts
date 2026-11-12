@@ -18,11 +18,11 @@ export const HERO = {
 
 /** Pedidos de demonstração: os mesmos dados fictícios dos prints reais do painel. */
 export const DEMO_ORDERS = [
-  { code: "PX-UQQVTRS", name: "Fernanda Dias", items: "1× Picanha · 1× Pudim", total: 57, mode: "Entrega" },
-  { code: "PX-3A7LQ9P", name: "Juliana Rocha", items: "2× X-Tudo · 2× Brownie", total: 60, mode: "Retirada" },
-  { code: "PX-7T2QT5P", name: "Rafael Lima", items: "1× X-Bacon · 1× Coca-Cola 2L", total: 32, mode: "Entrega" },
-  { code: "PX-3QMTPPN", name: "Mariana Costa", items: "2× X-Bacon · 2× Coca-Cola Lata", total: 40, mode: "Retirada" },
-  { code: "PX-XWP43YE", name: "Pedro Santos", items: "1× X-Salada · 1× Coca-Cola Lata", total: 20, mode: "Retirada" },
+  { code: "CD-UQQVTRS", name: "Fernanda Dias", items: "1× Picanha · 1× Pudim", total: 57, mode: "Entrega" },
+  { code: "CD-3A7LQ9P", name: "Juliana Rocha", items: "2× X-Tudo · 2× Brownie", total: 60, mode: "Retirada" },
+  { code: "CD-7T2QT5P", name: "Rafael Lima", items: "1× X-Bacon · 1× Coca-Cola 2L", total: 32, mode: "Entrega" },
+  { code: "CD-3QMTPPN", name: "Mariana Costa", items: "2× X-Bacon · 2× Coca-Cola Lata", total: 40, mode: "Retirada" },
+  { code: "CD-XWP43YE", name: "Pedro Santos", items: "1× X-Salada · 1× Coca-Cola Lata", total: 20, mode: "Retirada" },
 ];
 
 /** Taxa usada só na simulação do hero; o site atual fala em "até 30%". */

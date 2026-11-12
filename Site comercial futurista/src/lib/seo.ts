@@ -13,24 +13,33 @@ export const SITE_BASE = "/comercial";
 export const publicPath = (route: string) => (route === "/" ? SITE_BASE : `${SITE_BASE}${route}`);
 export const publicUrl = (route: string) => `${SITE_ORIGIN}${publicPath(route)}`;
 
+/** Vitrine principal: o portfólio. A home de /comercial é secundária e aponta para ele. */
+export const PORTFOLIO_URL = "https://www.mmsystem.tech/sistemas/comandiva";
+
+/** Canonical/og:url por rota (padrão: a própria URL pública). */
+const canonicalFor = (route: string) => (route === "/" ? PORTFOLIO_URL : publicUrl(route));
+
+/** Rotas que ficam fora do índice mesmo sem pedido da página (home e planos são vitrine secundária). */
+const NOINDEX_ROUTES = new Set(["/", "/planos"]);
+
 /** Títulos (~60 caracteres) e descrições (~155) — os mesmos do site atual (shared/commercialPageMeta.ts). */
 export const PAGE_META: Record<string, { title: string; description: string }> = {
   "/": {
     title: "Sistema para Restaurante sem Comissão | Comandiva",
     description:
-      "Sistema para restaurante com cardápio digital, pedidos online e Pix, sem comissão por venda. Teste 7 dias grátis, sem cartão de crédito.",
+      "Sistema para restaurante com cardápio digital, pedidos online e Pix, sem comissão por venda. Teste 7 dias grátis, sem cartão. Cadastre-se agora.",
   },
   "/cadastro": {
-    title: "Cadastro — Comandiva",
-    description: "Cadastre seu restaurante no Comandiva: nossa equipe organiza seu cardápio e sua configuração. 7 dias grátis, sem cartão.",
+    title: "Cadastro de Restaurante | Comandiva",
+    description: "Cadastre seu restaurante no Comandiva: nossa equipe organiza seu cardápio e sua configuração. 7 dias grátis, sem cartão. Comece agora.",
   },
   "/cadastro/sucesso": {
-    title: "Cadastro recebido — Comandiva",
-    description: "Cadastro recebido. Nossa equipe entra em contato para organizar o cardápio e a configuração do seu restaurante.",
+    title: "Cadastro recebido | Comandiva",
+    description: "Cadastro recebido. Nossa equipe entra em contato em breve para organizar o cardápio e a configuração do seu restaurante.",
   },
   "/cadastro/cardapio": {
-    title: "Envie seu cardápio — Comandiva",
-    description: "Envie o cardápio do seu restaurante (PDF, Word ou foto) para adiantar a configuração do sistema.",
+    title: "Envie seu Cardápio Digital | Comandiva",
+    description: "Envie o cardápio do seu restaurante em PDF, Word ou foto e adiante a configuração do seu sistema. É rápido: escolha o arquivo e envie.",
   },
   "/termos": {
     title: "Termos de Uso | Comandiva",
@@ -41,13 +50,13 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
     description: "Política de privacidade do Comandiva: quais dados coletamos, para que usamos, como protegemos e como exercer seus direitos pela LGPD.",
   },
   "/cadastro/confirmando": {
-    title: "Confirmando pagamento — Comandiva",
-    description: "Confirmando o pagamento do seu cadastro no Comandiva.",
+    title: "Confirmando pagamento | Comandiva",
+    description: "Estamos confirmando o pagamento do seu cadastro no Comandiva. Aguarde alguns instantes, não feche esta página.",
   },
   "/planos": {
-    title: "Planos e Preços — Sistema para Restaurante | Comandiva",
+    title: "Planos e Preços do Sistema para Restaurante | Comandiva",
     description:
-      `Compare os planos do Comandiva: cardápio digital, pedidos e mesas com QR Code. A partir de ${ENTRY_PRICE_BRL}/mês, sem comissão. 7 dias grátis.`,
+      `Compare os planos do Comandiva: cardápio digital, pedidos e mesas com QR Code. A partir de ${ENTRY_PRICE_BRL}/mês, sem comissão. 7 dias grátis, sem cartão. Veja os planos.`,
   },
 };
 
@@ -74,8 +83,10 @@ function setMeta(attr: "name" | "property", key: string, value: string) {
  * padrão do usePageMeta do Master.
  */
 export function usePageMeta(route: string, opts: { noindex?: boolean; jsonLd?: object } = {}) {
-  const meta = PAGE_META[route] ?? { title: "Página não encontrada | Comandiva", description: PAGE_META["/"].description };
-  const { noindex = false, jsonLd } = opts;
+  const meta = PAGE_META[route] ?? { title: "Página não encontrada | Comandiva", description: "A página que você procurou não existe ou mudou de endereço. Volte ao início do Comandiva ou veja os planos." };
+  const known = route in PAGE_META;
+  const noindex = opts.noindex || NOINDEX_ROUTES.has(route);
+  const { jsonLd } = opts;
   const json = jsonLd ? JSON.stringify(jsonLd).replace(/</g, "\\u003c") : "";
 
   useEffect(() => {
@@ -83,15 +94,20 @@ export function usePageMeta(route: string, opts: { noindex?: boolean; jsonLd?: o
     setMeta("name", "description", meta.description);
     setMeta("property", "og:title", meta.title);
     setMeta("property", "og:description", meta.description);
-    setMeta("property", "og:url", publicUrl(route));
+    if (known) setMeta("property", "og:url", canonicalFor(route));
+    else document.head.querySelector('meta[property="og:url"]')?.remove();
     setMeta("name", "twitter:title", meta.title);
     setMeta("name", "twitter:description", meta.description);
     setMeta("name", "robots", noindex ? "noindex, follow" : "index, follow");
-    upsert<HTMLLinkElement>('link[rel="canonical"]', () => {
-      const l = document.createElement("link");
-      l.rel = "canonical";
-      return l;
-    }).href = publicUrl(route);
+    if (known) {
+      upsert<HTMLLinkElement>('link[rel="canonical"]', () => {
+        const l = document.createElement("link");
+        l.rel = "canonical";
+        return l;
+      }).href = canonicalFor(route);
+    } else {
+      document.head.querySelector('link[rel="canonical"]')?.remove(); // 404: sem canonical, só noindex
+    }
 
     let script: HTMLScriptElement | null = null;
     if (json) {
@@ -101,5 +117,5 @@ export function usePageMeta(route: string, opts: { noindex?: boolean; jsonLd?: o
       document.head.appendChild(script);
     }
     return () => script?.remove();
-  }, [route, meta.title, meta.description, noindex, json]);
+  }, [route, known, meta.title, meta.description, noindex, json]);
 }

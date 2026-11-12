@@ -69,7 +69,7 @@ export default function Cardapio() {
     const f = await compressImage(original);
     setPreparing(false);
     if (f.size > MAX_FILE_BYTES) {
-      setError(`Arquivo com ${formatMB(f.size)} — o limite é 20MB. Envie uma versão mais leve.`);
+      setError(`Arquivo com ${formatMB(f.size)} - o limite é 20MB. Envie uma versão mais leve.`);
       setFile(null);
       input.value = "";
       return;
@@ -103,9 +103,12 @@ export default function Cardapio() {
       <div className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
         <div className="rounded-[calc(2rem-0.375rem)] bg-bg-raised p-6 sm:p-8">
           {!validLink ? (
-            <p role="alert" className="text-sm text-[#ff9a9a]">
-              Link inválido — não encontramos a referência do seu cadastro. Abra de novo o link que você recebeu ao se cadastrar ou fale com a nossa equipe para enviar o cardápio.
-            </p>
+            <div role="alert">
+              <h1 id="cardapio-title" className="font-display text-3xl font-semibold tracking-tight">Link inválido</h1>
+              <p className="mt-2 text-sm text-[#ff9a9a]">
+              Não encontramos a referência do seu cadastro. Abra de novo o link que você recebeu ao se cadastrar ou fale com a nossa equipe para enviar o cardápio.
+              </p>
+            </div>
           ) : sent ? (
             <div className="py-6 text-center" role="status">
               <Stamp text="Cardápio recebido" sub="Comandiva" tone="light" rotate={-6} />
@@ -119,10 +122,10 @@ export default function Cardapio() {
               <h1 id="cardapio-title" className="font-display text-3xl font-semibold tracking-tight">
                 Envie seu cardápio
               </h1>
-              <p className="mt-2 text-sm text-ink-soft">PDF, Word ou foto — o que você já tiver serve. Isso adianta a organização do seu sistema.</p>
+              <p className="mt-2 text-sm text-ink-soft">PDF, Word ou foto - o que você já tiver serve. Isso adianta a organização do seu sistema.</p>
 
               <label htmlFor="arquivo" className="mt-6 block text-sm font-medium text-ink">
-                Arquivo do cardápio <span className="font-normal text-ink-soft">(até 20MB — fotos são reduzidas automaticamente)</span>
+                Arquivo do cardápio <span className="font-normal text-ink-soft">(até 20MB - fotos são reduzidas automaticamente)</span>
               </label>
               <input
                 id="arquivo"

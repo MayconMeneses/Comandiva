@@ -12,7 +12,7 @@ function Marker({ children }: { children: string }) {
         className="absolute inset-x-[-4px] bottom-[0.08em] top-[0.45em] -z-0 origin-left rounded-sm bg-accent/35"
         initial={{ scaleX: 0 }}
         whileInView={{ scaleX: 1 }}
-        viewport={{ once: true, amount: 1 }}
+        viewport={{ once: true, amount: "some" }}
         transition={{ duration: 0.9, delay: 0.3, ease: EASE }}
       />
       <span className="relative">{children}</span>

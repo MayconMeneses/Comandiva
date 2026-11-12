@@ -45,7 +45,7 @@ export default function Termos() {
       <section>
         <h2>Seus dados</h2>
         <p className="mt-2">
-          Os dados do seu restaurante (cardápio, pedidos, clientes) ficam no deployment isolado do seu próprio restaurante — nunca
+          Os dados do seu restaurante (cardápio, pedidos, clientes) ficam no deployment isolado do seu próprio restaurante - nunca
           compartilhados com outros clientes da plataforma.
         </p>
       </section>

@@ -10,7 +10,7 @@ const WAITING: CardState = { label: "Aceite", meta: "10 min · 25%", progress: 0
 const IN_PREP: CardState = { label: "Produção", meta: "15 min · 38%", progress: 0.38, action: "Enviar para entrega" };
 
 export const FEATURED_ORDER: BoardOrder = {
-  code: "PX-UQQVTRS",
+  code: "CD-UQQVTRS",
   name: "Fernanda Dias",
   total: 57,
   items: "1× Picanha · 1× Pudim",
@@ -23,7 +23,7 @@ export const BOARD_COLUMNS: { title: string; hint: string; bg: string; orders: B
     title: "Aguardando aceite",
     hint: "Pedidos novos aguardando confirmação.",
     bg: "bg-[#fbf6e4]",
-    orders: [{ code: "PX-3QMTPPN", name: "Mariana Costa", total: 40, items: "2× X-Bacon · 2× Coca-Cola Lata", mode: "Retirada", state: WAITING }],
+    orders: [{ code: "CD-3QMTPPN", name: "Mariana Costa", total: 40, items: "2× X-Bacon · 2× Coca-Cola Lata", mode: "Retirada", state: WAITING }],
   },
   {
     title: "Aceitos",
@@ -31,7 +31,7 @@ export const BOARD_COLUMNS: { title: string; hint: string; bg: string; orders: B
     bg: "bg-[#eef4fb]",
     orders: [
       {
-        code: "PX-3A7LQ9P",
+        code: "CD-3A7LQ9P",
         name: "Juliana Rocha",
         total: 60,
         items: "2× X-Tudo · 2× Brownie",
@@ -44,7 +44,7 @@ export const BOARD_COLUMNS: { title: string; hint: string; bg: string; orders: B
     title: "Em produção",
     hint: "Pedidos em preparo na cozinha.",
     bg: "bg-[#f1eefb]",
-    orders: [{ code: "PX-7T2QT5P", name: "Rafael Lima", total: 32, items: "1× X-Bacon · 1× Coca-Cola 2L", mode: "Entrega", state: IN_PREP }],
+    orders: [{ code: "CD-7T2QT5P", name: "Rafael Lima", total: 32, items: "1× X-Bacon · 1× Coca-Cola 2L", mode: "Entrega", state: IN_PREP }],
   },
 ];
 

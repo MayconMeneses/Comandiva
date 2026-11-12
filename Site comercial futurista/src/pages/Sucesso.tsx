@@ -43,7 +43,7 @@ export default function Sucesso() {
         Cadastro recebido!
       </h1>
       <p className="mx-auto mt-3 max-w-md text-ink-soft">
-        Nossa equipe vai entrar em contato em breve pra organizar o cardápio e a configuração do seu restaurante — em até 10 dias úteis,
+        Nossa equipe vai entrar em contato em breve pra organizar o cardápio e a configuração do seu restaurante - em até 10 dias úteis,
         podendo ser antes. Assim que tudo estiver pronto, seu teste grátis de 7 dias começa a valer, sem cartão de crédito.
       </p>
 

@@ -29,7 +29,7 @@ export function FinalCta() {
           <CutReveal text="Pronto pra vender" play={inView} className="block" />
           <CutReveal text="sem depender de app?" play={inView} delay={0.15} className="block text-ink-soft" />
         </h2>
-        <p className="mx-auto mt-6 max-w-xl text-ink-soft">7 dias grátis assim que seu sistema estiver pronto — sem cartão de crédito. Cancele quando quiser.</p>
+        <p className="mx-auto mt-6 max-w-xl text-ink-soft">7 dias grátis assim que seu sistema estiver pronto, sem cartão de crédito. Cancele quando quiser.</p>
         <div className="mt-10 flex justify-center">
           <MagneticLink
             href={asset("/planos")}

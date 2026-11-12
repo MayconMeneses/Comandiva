@@ -1,9 +1,8 @@
 @import "tailwindcss";
 /* Só o alfabeto latino (português). Os outros subconjuntos eram embutidos como data: e a CSP do Master (font-src 'self') bloqueava. */
-@import "@fontsource/jetbrains-mono/latin-400.css";
-@import "@fontsource/jetbrains-mono/latin-500.css";
 
-/* Fontes da marca, hospedadas localmente (Fontshare) */
+@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Clash Grotesk"; src: url("/fonts/clash-grotesk-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Clash Grotesk"; src: url("/fonts/clash-grotesk-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
@@ -119,6 +118,9 @@ html { scroll-behavior: smooth; }
 .marquee-track { animation: marquee 40s linear infinite; }
 .marquee-track[data-reverse] { animation-direction: reverse; }
 .marquee:hover .marquee-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track, .marquee-track[data-reverse] { animation: none; transform: none; }
+}
 
 @keyframes live-dot {
   0%, 100% { opacity: 1; }
@@ -131,9 +133,10 @@ html { scroll-behavior: smooth; }
 .range-comanda {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
+  /* Área de toque de 44px; o trilho visível continua fino (6px) */
+  height: 44px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--accent) var(--pct), var(--line) var(--pct));
+  background: linear-gradient(to right, var(--accent) var(--pct), var(--line) var(--pct)) center / 100% 6px no-repeat;
   cursor: pointer;
 }
 .range-comanda::-webkit-slider-thumb {
@@ -161,7 +164,7 @@ html { scroll-behavior: smooth; }
 /* Papel térmico: ruído bem leve por cima da cor */
 .paper-texture {
   background-color: var(--ticket);
-  background-image: url("/paper-grain.png");
+  background-image: url("/paper-grain.webp");
 }
 
 /* Tinta de carimbo: falhas irregulares (máscara de ruído) */
@@ -175,3 +178,5 @@ html { scroll-behavior: smooth; }
 @keyframes printer-led { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 .printer-led[data-busy] { animation: printer-led .5s steps(2) infinite; }
 @media (prefers-reduced-motion: reduce) { .printer-led[data-busy] { animation: none; } }
+
+#calc-title { scroll-margin-top: 9rem; }

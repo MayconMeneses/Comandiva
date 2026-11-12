@@ -16,7 +16,7 @@ const planosLd = (plans: Plan[]) => ({
   name: "Comandiva",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
-  description: "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido.",
+  description: "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por pedido. Veja os planos e teste grátis.",
   offers: plans.map(plan => ({
     "@type": "Offer",
     name: plan.name,

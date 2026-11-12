@@ -23,7 +23,7 @@ export function ParaQuem() {
         id="para-quem-title"
         eyebrow="Para quem é"
         title="Serve pro seu restaurante, seja qual for o formato"
-        lead="Salão, delivery, começando agora ou com equipe grande — o sistema se adapta."
+        lead="Salão, delivery, começando agora ou com equipe grande: o sistema se adapta."
       />
       <div className="mx-auto mt-14 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {PARA_QUEM.map((item, i) => (
@@ -33,7 +33,7 @@ export function ParaQuem() {
             </svg>
             <h3 className="mt-5 font-display text-lg font-semibold leading-tight">{item.title}</h3>
             <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-soft">{item.description}</p>
-            <Link href="/planos" className="mt-5 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-accent-text hover:text-ink">
+            <Link href="/planos" className="mt-3 inline-flex min-h-11 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-accent-text hover:text-ink">
               Indicado: {item.plan} <span aria-hidden="true">→</span>
             </Link>
           </motion.article>

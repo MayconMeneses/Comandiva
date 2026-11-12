@@ -28,17 +28,17 @@ export const DIFERENCIAIS: { key: DiferencialKey; title: string; description: st
   {
     key: "comissao",
     title: "Zero comissão por pedido",
-    description: "Aplicativo de entrega costuma cobrar até 30% em cima de cada venda. Aqui a mensalidade é fixa — o resto da venda é seu.",
+    description: "Aplicativo de entrega costuma cobrar até 30% em cima de cada venda. Aqui a mensalidade é fixa - o resto da venda é seu.",
   },
   {
     key: "internet",
     title: "Aguenta internet ruim na hora do pedido",
-    description: "Se a conexão do cliente cair no meio do pedido, o sistema tenta enviar de novo sozinho — sem duplicar e sem perder a venda. Em todos os planos.",
+    description: "Se a conexão do cliente cair no meio do pedido, o sistema tenta enviar de novo sozinho - sem duplicar e sem perder a venda. Em todos os planos.",
   },
   {
     key: "marca",
     title: "A marca é do seu restaurante",
-    description: "Cardápio, checkout e acompanhamento de pedido com a cara do seu negócio — não a de um concorrente na mesma vitrine.",
+    description: "Cardápio, checkout e acompanhamento de pedido com a cara do seu negócio - não a de um concorrente na mesma vitrine.",
   },
   {
     key: "pagamento",
@@ -53,7 +53,7 @@ export const DIFERENCIAIS: { key: DiferencialKey; title: string; description: st
   {
     key: "gratis",
     title: "7 dias grátis, sem cartão",
-    description: "Organizamos seu cardápio e sua configuração em até 10 dias úteis — só depois disso, com tudo pronto, o teste grátis de 7 dias começa a contar.",
+    description: "Organizamos seu cardápio e sua configuração em até 10 dias úteis - só depois disso, com tudo pronto, o teste grátis de 7 dias começa a contar.",
   },
 ];
 
@@ -94,7 +94,7 @@ export const TELAS = [
 
 export const STEPS = [
   { title: "Escolha o plano", description: "Compare os recursos e escolha o que faz sentido pro tamanho do seu restaurante." },
-  { title: "Cadastre seu restaurante", description: "Leva menos de 2 minutos — sem cartão de crédito, sem burocracia." },
+  { title: "Cadastre seu restaurante", description: "Leva menos de 2 minutos - sem cartão de crédito, sem burocracia." },
   {
     title: "Comece a vender",
     description: "Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis. Pronto, seu teste grátis de 7 dias começa a valer.",
@@ -103,7 +103,7 @@ export const STEPS = [
 
 export const SUPORTE = [
   { title: "WhatsApp direto comigo", description: "Depois que você vira cliente, eu respondo direto, sem robô e sem fila de espera." },
-  { title: "Acesso remoto", description: "Se travar, eu entro no seu painel pra resolver junto com você — sem pedir sua senha." },
+  { title: "Acesso remoto", description: "Se travar, eu entro no seu painel pra resolver junto com você - sem pedir sua senha." },
   { title: "Treinamento ao vivo", description: "Chamada de vídeo ensinando a usar o sistema, junto com a entrega do seu restaurante." },
 ];
 
@@ -115,13 +115,13 @@ export const FAQ = [
   },
   {
     question: "Como funciona o teste grátis de 7 dias?",
-    answer: "Assim que sua configuração estiver pronta (em até 10 dias úteis), o teste de 7 dias começa a valer — sem cartão de crédito.",
+    answer: "Assim que sua configuração estiver pronta (em até 10 dias úteis), o teste de 7 dias começa a valer - sem cartão de crédito.",
   },
   { question: "Posso cancelar ou trocar de plano quando quiser?", answer: "Sim, a qualquer momento, direto no seu painel, sem multa e sem fidelidade. Não há reembolso dos valores já pagos." },
   {
     question: "Meus dados ficam seguros?",
     answer:
-      "Cada restaurante roda num deployment isolado — seus dados de cardápio, pedidos e clientes nunca ficam misturados com os de outro restaurante. Conexão sempre criptografada, senhas nunca guardadas em texto puro.",
+      "Cada restaurante roda num deployment isolado - seus dados de cardápio, pedidos e clientes nunca ficam misturados com os de outro restaurante. Conexão sempre criptografada, senhas nunca guardadas em texto puro.",
   },
   {
     question: "Como funciona o pagamento?",
@@ -150,7 +150,7 @@ export const ROTINA = [
     image: asset("/assets/rotina-tudo-tela.webp"),
     w: 800,
     h: 741,
-    description: "Cardápio, mesa, entrega e relatório do mês reunidos no mesmo lugar — chega de abrir três sistemas diferentes pra fechar o caixa.",
+    description: "Cardápio, mesa, entrega e relatório do mês reunidos no mesmo lugar - chega de abrir três sistemas diferentes pra fechar o caixa.",
   },
 ];
 
@@ -159,7 +159,7 @@ export const RESUMO = [
   {
     figure: "∞",
     title: "Sem limite de faturamento",
-    description: "A mensalidade é fixa — não importa quanto seu restaurante venda, não tem cobrança extra por cima do seu faturamento.",
+    description: "A mensalidade é fixa - não importa quanto seu restaurante venda, não tem cobrança extra por cima do seu faturamento.",
   },
   {
     figure: "R$ 0",
@@ -182,7 +182,7 @@ export const PARA_QUEM = [
   },
   {
     title: "Trabalha só com delivery",
-    description: "Cardápio e pedidos direto no seu sistema, com a sua marca — sem comissão por venda.",
+    description: "Cardápio e pedidos direto no seu sistema, com a sua marca - sem comissão por venda.",
     plan: "A partir do Entrada",
   },
   {

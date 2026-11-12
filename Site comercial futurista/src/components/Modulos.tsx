@@ -15,7 +15,7 @@ export function Modulos() {
         id="modulos-title"
         eyebrow="Módulos"
         title="Um sistema completo, sem juntar outros por fora"
-        lead="Tudo no mesmo painel — cresce junto com o plano escolhido."
+        lead="Tudo no mesmo painel, que cresce junto com o plano escolhido."
       />
       <motion.ol {...reveal(0.1)} className="mx-auto mt-14 max-w-4xl divide-y divide-line rounded-[1.75rem] border border-line bg-bg-raised">
         {MODULOS.map((m, i) => (

@@ -1,25 +1,27 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { EASE } from "../../lib/motion";
 
 /**
  * Mini demonstrações dos cartões do bento. Cada uma recebe `play` (cartão
- * na tela e sem movimento reduzido) e só então anima, em ciclo.
+ * na tela) e só então anima, em ciclo. Com movimento reduzido, fica parada
+ * no estado final (`rest`).
  */
-function useCycle(length: number, ms: number, play: boolean) {
+function useCycle(length: number, ms: number, play: boolean, rest = length - 1) {
+  const reduce = useReducedMotion();
   const [i, setI] = useState(0);
   useEffect(() => {
-    if (!play) return;
+    if (!play || reduce) return;
     const t = setInterval(() => setI(v => (v + 1) % length), ms);
     return () => clearInterval(t);
-  }, [length, ms, play]);
-  return i;
+  }, [length, ms, play, reduce]);
+  return reduce ? rest : i;
 }
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function DemoComissao({ play }: { play: boolean }) {
-  const tick = useCycle(1000, 1400, play);
+  const tick = useCycle(1000, 1400, play, 4);
   const sold = [57, 60, 32, 40, 20].slice(0, (tick % 5) + 1).reduce((a, b) => a + b, 0) + Math.floor(tick / 5) * 209;
   return (
     <div className="grid grid-cols-2 gap-2 font-mono text-[11px] uppercase tracking-wider">
@@ -156,7 +158,7 @@ export function DemoTestado({ play }: { play: boolean }) {
             key={line}
             layout
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: k === 2 ? 1 : 0.55, y: 0 }}
+            animate={{ opacity: k === 2 ? 1 : 0.8, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.4, ease: EASE }}
             className={k === 2 ? "text-ink" : ""}

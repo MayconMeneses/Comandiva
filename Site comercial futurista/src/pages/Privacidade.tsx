@@ -14,7 +14,7 @@ export default function Privacidade() {
       <section>
         <h2>O que coletamos no cadastro</h2>
         <p className="mt-2">
-          Nome do restaurante, nome e e-mail do responsável e WhatsApp de contato — só o necessário pra configurar seu sistema e falar com
+          Nome do restaurante, nome e e-mail do responsável e WhatsApp de contato - só o necessário pra configurar seu sistema e falar com
           você. Nunca pedimos dados de cartão diretamente: o pagamento é processado pelo Mercado Pago, que tem seus próprios padrões de
           segurança (PCI-DSS).
         </p>
@@ -68,7 +68,7 @@ export default function Privacidade() {
       <section>
         <h2>Como protegemos seus dados</h2>
         <p className="mt-2">
-          Conexão sempre criptografada, senhas nunca guardadas em texto puro, e cada restaurante roda num deployment isolado — seus dados de
+          Conexão sempre criptografada, senhas nunca guardadas em texto puro, e cada restaurante roda num deployment isolado - seus dados de
           cardápio, pedidos e clientes nunca ficam misturados com os de outro restaurante.
         </p>
       </section>

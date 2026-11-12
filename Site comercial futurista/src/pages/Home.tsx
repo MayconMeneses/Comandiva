@@ -16,7 +16,7 @@ const STRUCTURED_DATA = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
-        "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão — sem comissão por pedido, com a marca do seu restaurante.",
+        "Sistema para restaurante com cardápio digital, pedidos online, entregas e pagamento por Pix e cartão, sem comissão por pedido. Teste grátis.",
       offers: { "@type": "Offer", price: ENTRY_PRICE_DECIMAL, priceCurrency: "BRL", url: publicUrl("/planos") },
       author: { "@type": "Person", name: "Maycon Meneses" },
     },

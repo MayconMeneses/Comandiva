@@ -1,17 +1,30 @@
-import { useId, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useId, useState } from "react";
+import { motion } from "motion/react";
 import { FAQ } from "../data/home";
 import { SectionHeading } from "./ui/SectionHeading";
 import { EASE, reveal } from "../lib/motion";
+import { scrollToHashWhenReady } from "../lib/scroll";
 
 /**
  * Perguntas frequentes com abertura em mola e destaque que desliza para a
  * pergunta aberta (referências: Accordion ddoemonn e Animated Line
  * Accordion, 21st.dev). Uma aberta por vez; botões com aria-expanded.
+ * Os painéis ficam sempre no DOM (escondidos quando fechados), para o
+ * aria-controls apontar para um elemento real. Abre por âncora (#faq-2).
  */
 export function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   const base = useId();
+
+  useEffect(() => {
+    const n = Number(/^#faq-(\d+)$/.exec(window.location.hash)?.[1]);
+    if (n >= 1 && n <= FAQ.length) {
+      setOpen(n - 1);
+      // Espera o item anterior fechar para a posição final do alvo estabilizar.
+      const t = window.setTimeout(() => scrollToHashWhenReady(window.location.hash), 500);
+      return () => window.clearTimeout(t);
+    }
+  }, []);
 
   return (
     <section className="px-4 py-28 sm:px-6" aria-labelledby="faq-title">
@@ -21,12 +34,13 @@ export function Faq() {
           const isOpen = open === i;
           const panel = `${base}-p${i}`;
           return (
-            <li key={item.question} className="relative">
+            <li key={item.question} id={`faq-${i + 1}`} className="relative scroll-mt-24">
               {isOpen && (
                 <motion.span layoutId="faq-ativo" className="absolute inset-0 rounded-[1.5rem] border border-white/10 bg-bg-raised" transition={{ duration: 0.5, ease: EASE }} />
               )}
               <button
                 type="button"
+                id={`${panel}-q`}
                 aria-expanded={isOpen}
                 aria-controls={panel}
                 onClick={() => setOpen(isOpen ? null : i)}
@@ -38,20 +52,17 @@ export function Faq() {
                   +
                 </motion.span>
               </button>
-              <AnimatePresence initial={false}>
-                {isOpen && (
-                  <motion.div
-                    id={panel}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.45, ease: EASE }}
-                    className="relative overflow-hidden"
-                  >
-                    <p className="px-5 pb-6 pl-14 text-ink-soft sm:px-6 sm:pl-[3.75rem]">{item.answer}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <motion.div
+                id={panel}
+                role="region"
+                aria-labelledby={`${panel}-q`}
+                initial={false}
+                animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0, visibility: isOpen ? "visible" : "hidden" }}
+                transition={{ duration: 0.45, ease: EASE }}
+                className="relative overflow-hidden"
+              >
+                <p className="px-5 pb-6 pl-14 text-ink-soft sm:px-6 sm:pl-[3.75rem]">{item.answer}</p>
+              </motion.div>
             </li>
           );
         })}

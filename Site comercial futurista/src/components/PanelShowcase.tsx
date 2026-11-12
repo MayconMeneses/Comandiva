@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { asset } from "../lib/asset";
 
 /**
@@ -9,12 +9,14 @@ import { asset } from "../lib/asset";
  * framer-motion → motion, mesma escala em qualquer tela, moldura da marca.
  * O print teve a barra de rolagem falsa recortada e o corte de baixo vira
  * um degradê, para não parecer uma área rolável. Único brilho (glow) do site.
+ * Com movimento reduzido não há inclinação nem escala: o print fica reto.
  */
 export function PanelShowcase() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "center center"] });
-  const rotateX = useTransform(scrollYProgress, [0, 1], [24, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [0.9, 1]);
+  const reduce = useReducedMotion();
+  const rotateX = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : 24, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [reduce ? 1 : 0.9, 1]);
 
   return (
     <section ref={ref} className="relative px-4 pb-16 pt-28 sm:px-6" aria-labelledby="telas-title">
@@ -48,7 +50,7 @@ export function PanelShowcase() {
               loading="lazy"
               decoding="async"
               alt="Painel de pedidos do restaurante com colunas Aguardando aceite, Aceitos e Em produção"
-              className="block w-full"
+              className="-ml-[2.65%] block w-[105.3%] max-w-none"
             />
             <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-bg-raised to-transparent" />
           </div>

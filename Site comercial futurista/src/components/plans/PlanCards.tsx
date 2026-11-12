@@ -55,7 +55,7 @@ export function PlanCards({ plans, groups = FEATURE_GROUPS, recommended }: { pla
                     </div>
                     <div className="rounded-xl border border-line px-3 py-2">
                       <dt className="text-ink-soft">Mesas</dt>
-                      <dd className="mt-0.5 text-ink">{plan.tables === null ? "Ilimitadas" : plan.tables === 0 ? "—" : `Até ${plan.tables}`}</dd>
+                      <dd className="mt-0.5 text-ink">{plan.tables === null ? "Ilimitadas" : plan.tables === 0 ? "Não incluso" : `Até ${plan.tables}`}</dd>
                     </div>
                   </dl>
                 </>

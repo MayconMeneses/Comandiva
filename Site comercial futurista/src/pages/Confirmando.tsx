@@ -53,7 +53,7 @@ export default function Confirmando() {
             Confirmando seu pagamento…
           </h1>
           <p className="mt-2 text-sm text-ink-soft" role="status">
-            Isso pode levar alguns instantes. Não feche esta página — o cadastro só é concluído quando o Mercado Pago confirma o pagamento
+            Isso pode levar alguns instantes. Não feche esta página - o cadastro só é concluído quando o Mercado Pago confirma o pagamento
             pra gente.
           </p>
           {!valid && (
@@ -62,7 +62,7 @@ export default function Confirmando() {
             </p>
           )}
           {valid && failed && (
-            <p className="mt-4 text-xs text-ink-soft">Conexão instável — continuamos tentando automaticamente.</p>
+            <p className="mt-4 text-xs text-ink-soft">Conexão instável - continuamos tentando automaticamente.</p>
           )}
         </div>
       </div>

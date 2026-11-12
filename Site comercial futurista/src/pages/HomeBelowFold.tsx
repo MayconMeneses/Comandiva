@@ -3,7 +3,7 @@ import { CompareSlider } from "../components/CompareSlider";
 import { Rotina } from "../components/Rotina";
 import { ParaQuem } from "../components/ParaQuem";
 import { Modulos } from "../components/Modulos";
-import { KitchenBoard } from "../components/KitchenBoard";
+import { PedidoSlot } from "../components/pedido/PedidoSlot";
 import { LiveBento } from "../components/bento/LiveBento";
 import { PanelShowcase } from "../components/PanelShowcase";
 import { ScreenStack } from "../components/ScreenStack";
@@ -20,7 +20,7 @@ export default function HomeBelowFold() {
       <Rotina />
       <ParaQuem />
       <CompareSlider />
-      <KitchenBoard />
+      <PedidoSlot />
       <LiveBento />
       <Modulos />
       <PanelShowcase />

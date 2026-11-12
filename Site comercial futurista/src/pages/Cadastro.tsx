@@ -85,7 +85,7 @@ export default function Cadastro() {
             Cadastre seu restaurante
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis — podendo ser antes. Só depois de tudo pronto é que
+            Nossa equipe organiza seu cardápio e sua configuração em até 10 dias úteis - podendo ser antes. Só depois de tudo pronto é que
             seu teste grátis de 7 dias começa a valer.
           </p>
 

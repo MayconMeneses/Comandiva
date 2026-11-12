@@ -112,7 +112,7 @@ export function SavingsReceipt() {
           value={revenue}
           onChange={e => setRevenue(Number(e.target.value))}
           aria-valuetext={brl0.format(revenue / 100)}
-          className="range-comanda mt-6 w-full"
+          className="range-comanda mt-3 w-full"
           style={{ ["--pct" as string]: `${pct}%` }}
         />
         <div className="mt-2 flex justify-between font-mono text-[11px] text-ink-soft">
@@ -133,7 +133,7 @@ export function SavingsReceipt() {
                   −<Rolling cents={commission} />
                 </span>
               </Line>
-              <Line label="Mensalidade">—</Line>
+              <Line label="Mensalidade">Não considerada</Line>
             </Receipt>
           </ReceiptPrinter>
         </motion.div>
@@ -165,13 +165,13 @@ export function SavingsReceipt() {
           <strong className="font-display text-2xl font-semibold text-accent-text">
             +<Rolling cents={diff} fmt={brl2} />
           </strong>{" "}
-          a mais no seu bolso por mês — <span className="text-ink">
+          a mais no seu bolso por mês, ou <span className="text-ink">
             <Rolling cents={diff * 12} />
           </span>{" "}
           por ano.
         </p>
         <p className="mt-4 text-xs text-ink-soft">
-          Estimativa educativa a partir do plano de entrada e de uma comissão comum de mercado (até 30%) — o valor exato do seu app de
+          Estimativa educativa a partir do plano de entrada e de uma comissão comum de mercado (até 30%); o valor exato do seu app de
           entrega pode variar. Taxas de pagamento (Pix e cartão) existem nos dois casos e não entram na conta.
         </p>
       </motion.div>
