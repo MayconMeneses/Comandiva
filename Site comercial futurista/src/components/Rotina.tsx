@@ -21,8 +21,8 @@ export function Rotina() {
 
       <div className="mx-auto mt-14 grid max-w-6xl gap-5 md:grid-cols-3">
         {ROTINA.map((item, i) => (
-          <motion.article key={item.title} {...reveal(i * 0.08)} className="group rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
-            <div className="overflow-hidden rounded-[calc(2rem-0.375rem)] bg-bg-raised">
+          <motion.article key={item.title} {...reveal(i * 0.08)} className="card-lift group rounded-2xl border border-line bg-bg-raised">
+            <div className="overflow-hidden rounded-2xl bg-bg-raised">
               <div className="aspect-[4/3] overflow-hidden">
                 <img
                   src={item.image}
@@ -49,9 +49,9 @@ export function Rotina() {
         <motion.h2 {...reveal()} id="resumo-title" className="text-center font-display text-[clamp(1.8rem,3.5vw,2.75rem)] font-semibold tracking-[-0.02em]">
           Por que escolher o Comandiva?
         </motion.h2>
-        <dl className="mt-10 grid gap-px overflow-hidden rounded-[1.75rem] border border-line bg-line md:grid-cols-3" aria-labelledby="resumo-title">
+        <dl className="mt-10 grid gap-px overflow-hidden rounded-3xl border border-line bg-line md:grid-cols-3" aria-labelledby="resumo-title">
           {RESUMO.map((item, i) => (
-            <motion.div key={item.title} {...reveal(i * 0.08)} className="bg-bg p-7">
+            <motion.div key={item.title} {...reveal(i * 0.08)} className="bg-bg-raised p-7">
               <p aria-hidden="true" className="font-display text-5xl font-semibold tracking-tight text-accent-text">
                 {item.figure}
               </p>

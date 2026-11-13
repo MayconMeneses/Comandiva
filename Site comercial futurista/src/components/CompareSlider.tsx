@@ -4,6 +4,8 @@ import { COMPARISON } from "../data/home";
 import { SectionHeading } from "./ui/SectionHeading";
 import { reveal } from "../lib/motion";
 import { asset } from "../lib/asset";
+import { SearchIcon } from "./ui/Icons";
+import { Marked } from "./ui/Kw";
 
 const NEIGHBORS = ["Pizzaria vizinha", "Hamburgueria ao lado", "Seu restaurante", "Japonês da esquina", "Lanchonete da rua"];
 
@@ -11,19 +13,19 @@ const NEIGHBORS = ["Pizzaria vizinha", "Hamburgueria ao lado", "Seu restaurante"
 function MarketplaceMock() {
   return (
     <div className="absolute inset-0 flex flex-col bg-[#e9e7e4] p-3 pt-12 text-[#3b3936] sm:p-5 sm:pt-14">
-      <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[10px] text-[#66615b] sm:text-xs">⌕ Buscar restaurantes</div>
+      <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs text-[#66615b] sm:text-xs"><SearchIcon /> Buscar restaurantes</div>
       <div className="mt-3 grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
         {NEIGHBORS.map(name => {
           const you = name === "Seu restaurante";
           return (
-            <div key={name} className={`flex flex-col rounded-lg bg-white p-2 sm:p-3 ${you ? "ring-2 ring-[#66615b]" : ""}`}>
+            <div key={name} className={`flex flex-col rounded-xl bg-white p-2 sm:p-3 ${you ? "ring-2 ring-[#66615b]" : ""}`}>
               <div className="h-6 rounded bg-[#d9d5cf] sm:h-12" />
-              <p className="mt-1.5 truncate text-[10px] font-semibold sm:text-sm">{name}</p>
-              <p className="text-[9px] text-[#66615b] sm:text-[11px]">{you ? "taxa de até 30% por pedido" : "patrocinado"}</p>
+              <p className="mt-1.5 truncate text-xs font-semibold sm:text-sm">{name}</p>
+              <p className="text-[9px] text-[#66615b] sm:text-xs">{you ? "taxa de até 30% por pedido" : "patrocinado"}</p>
             </div>
           );
         })}
-        <div className="hidden rounded-lg border-2 border-dashed border-[#c9c4bd] sm:block" />
+        <div className="hidden rounded-xl border-2 border-dashed border-[#c9c4bd] sm:block" />
       </div>
     </div>
   );
@@ -64,15 +66,15 @@ export function CompareSlider() {
       <SectionHeading
         id="compare-home-title"
         eyebrow="Sistema próprio x app de entrega"
-        title="Na vitrine do app, você é mais um. No seu sistema, é o único."
+        title={<Marked text="Na vitrine do app, você é mais um. No seu sistema, é o único." phrase="No seu sistema, é o único." />}
         lead="Nada contra os apps. Só que quem carrega o restaurante no ombro é você. Arraste para comparar."
       />
 
       <motion.div {...reveal(0.1)} className="mx-auto mt-14 max-w-6xl">
-        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
+        <div className="rounded-2xl border border-line bg-bg-raised">
           <div
             ref={frame}
-            className="group/frame relative aspect-[4/3] cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-[calc(2rem-0.375rem)] sm:aspect-[1352/633]"
+            className="group/frame relative aspect-[4/3] cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-2xl sm:aspect-[1352/633]"
             onPointerDown={e => {
               (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
               fromPointer(e.clientX);
@@ -93,15 +95,15 @@ export function CompareSlider() {
               <MarketplaceMock />
             </motion.div>
 
-            <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-white">
+            <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 font-mono text-xs text-white">
               App de entrega
             </span>
-            <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-accent-strong px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-white">
+            <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-accent-strong px-3 py-1 font-mono text-xs text-white">
               Seu cardápio
             </span>
 
-            <motion.div style={{ left }} className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_0_1px_rgba(0,0,0,.2)]">
-              <span className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-sm font-semibold text-bg shadow-lg group-has-[:focus-visible]/frame:ring-4 group-has-[:focus-visible]/frame:ring-accent-strong group-has-[:focus-visible]/frame:ring-offset-2 group-has-[:focus-visible]/frame:ring-offset-black">
+            <motion.div style={{ left }} className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white">
+              <span className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-sm font-semibold text-bg group-has-[:focus-visible]/frame:ring-4 group-has-[:focus-visible]/frame:ring-accent-strong group-has-[:focus-visible]/frame:ring-offset-2 group-has-[:focus-visible]/frame:ring-offset-bg">
                 ⟷
               </span>
             </motion.div>
@@ -117,17 +119,17 @@ export function CompareSlider() {
             />
           </div>
         </div>
-        <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+        <p className="mt-3 text-center font-mono text-xs text-ink-soft">
           À direita, print real do cardápio · à esquerda, ilustração de um app genérico
         </p>
 
-        <dl className="mt-12 grid gap-px overflow-hidden rounded-[1.5rem] border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-12 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
           {COMPARISON.map(row => (
-            <div key={row.label} className="bg-bg p-5">
-              <dt className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{row.label}</dt>
+            <div key={row.label} className="bg-bg-raised p-5">
+              <dt className="font-mono text-xs text-ink-soft">{row.label}</dt>
               <dd className="mt-3">
-                <span className="block font-display text-lg font-semibold text-ink">{row.us}</span>
-                <span className="mt-1 block text-sm text-ink-soft line-through decoration-late/60">{row.them}</span>
+                <span className={"block font-display text-lg " + (row.win ? "font-extrabold text-ok" : "font-semibold text-ink")}>{row.us}</span>
+                <span className="mt-1 block text-sm text-late line-through decoration-late">{row.them}</span>
               </dd>
             </div>
           ))}

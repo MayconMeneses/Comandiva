@@ -4,7 +4,7 @@ import { companyFooter } from "../data/company";
 
 export function Footer() {
   return (
-    <footer className="border-t border-dashed border-line">
+    <footer className="border-t border-line">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <Link href="/" className="flex min-h-11 items-center gap-2">
@@ -28,7 +28,7 @@ export function Footer() {
           </Link>
         </nav>
       </div>
-      <p className="px-4 pb-8 text-center font-mono text-[10px] uppercase leading-relaxed tracking-wider text-ink-soft">
+      <p className="px-4 pb-8 text-center text-xs leading-relaxed text-ink-soft">
         © 2026 Comandiva · {companyFooter()}
       </p>
     </footer>

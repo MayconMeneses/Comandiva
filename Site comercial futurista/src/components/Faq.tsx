@@ -36,7 +36,7 @@ export function Faq() {
           return (
             <li key={item.question} id={`faq-${i + 1}`} className="relative scroll-mt-24">
               {isOpen && (
-                <motion.span layoutId="faq-ativo" className="absolute inset-0 rounded-[1.5rem] border border-white/10 bg-bg-raised" transition={{ duration: 0.5, ease: EASE }} />
+                <motion.span layoutId="faq-ativo" className="absolute inset-0 rounded-xl border border-line bg-bg-raised" transition={{ duration: 0.5, ease: EASE }} />
               )}
               <button
                 type="button"
@@ -44,7 +44,7 @@ export function Faq() {
                 aria-expanded={isOpen}
                 aria-controls={panel}
                 onClick={() => setOpen(isOpen ? null : i)}
-                className="relative flex w-full items-center gap-4 rounded-[1.5rem] px-5 py-5 text-left sm:px-6"
+                className="relative flex w-full items-center gap-4 rounded-xl px-5 py-5 text-left sm:px-6"
               >
                 <span className="font-mono text-xs text-accent-text">{String(i + 1).padStart(2, "0")}</span>
                 <span className={`flex-1 font-display text-lg font-semibold ${isOpen ? "text-ink" : "text-ink-soft"}`}>{item.question}</span>

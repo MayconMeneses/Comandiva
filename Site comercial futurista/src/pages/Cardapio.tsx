@@ -4,6 +4,7 @@ import { uploadMenuReference, ApiError } from "../lib/api";
 import { track } from "../lib/track";
 import { usePageMeta } from "../lib/seo";
 import { Stamp } from "../components/ui/Stamp";
+import { ArrowIcon } from "../components/ui/Icons";
 import { compressImage, formatMB } from "../lib/compressImage";
 
 // Mesmo limite do servidor (Master: MAX_MENU_FILE_BYTES = 20MB). Fotos são reduzidas antes.
@@ -74,7 +75,7 @@ export default function Cardapio() {
       input.value = "";
       return;
     }
-    if (f !== original) setSizeNote(`Foto otimizada para envio: ${formatMB(original.size)} → ${formatMB(f.size)}`);
+    if (f !== original) setSizeNote(`Foto otimizada para envio: ${formatMB(original.size)} para ${formatMB(f.size)}`);
     setFile(f);
   }
 
@@ -97,21 +98,21 @@ export default function Cardapio() {
 
   return (
     <section className="mx-auto max-w-lg px-4 pb-24 pt-14 sm:px-6" aria-labelledby="cardapio-title">
-      <Link href="/" className="text-sm text-ink-soft hover:text-ink">
-        ← Voltar para a página inicial
+      <Link href="/" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
+        <ArrowIcon className="h-4 w-4 rotate-180" /> Voltar para a página inicial
       </Link>
-      <div className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
-        <div className="rounded-[calc(2rem-0.375rem)] bg-bg-raised p-6 sm:p-8">
+      <div className="mt-6 rounded-2xl border border-line bg-bg-raised">
+        <div className="rounded-2xl bg-bg-raised p-6 sm:p-8">
           {!validLink ? (
             <div role="alert">
               <h1 id="cardapio-title" className="font-display text-3xl font-semibold tracking-tight">Link inválido</h1>
-              <p className="mt-2 text-sm text-[#ff9a9a]">
+              <p className="mt-2 text-sm text-late-ink">
               Não encontramos a referência do seu cadastro. Abra de novo o link que você recebeu ao se cadastrar ou fale com a nossa equipe para enviar o cardápio.
               </p>
             </div>
           ) : sent ? (
             <div className="py-6 text-center" role="status">
-              <Stamp text="Cardápio recebido" sub="Comandiva" tone="light" rotate={-6} />
+              <Stamp text="Cardápio recebido" sub="Comandiva" tone="ok" rotate={-6} />
               <h1 id="cardapio-title" className="mt-8 font-display text-3xl font-semibold tracking-tight">
                 Cardápio recebido!
               </h1>
@@ -136,7 +137,7 @@ export default function Cardapio() {
               />
 
               {(preparing || sizeNote) && (
-                <p className="mt-2 font-mono text-[11px] text-accent-text" role="status">
+                <p className="mt-2 font-mono text-xs text-accent-text" role="status">
                   {preparing ? "Otimizando foto…" : sizeNote}
                 </p>
               )}
@@ -155,7 +156,7 @@ export default function Cardapio() {
               />
 
               {error && (
-                <p role="alert" className="mt-4 rounded-xl border border-[#ff7a7a]/30 bg-[#ff7a7a]/10 p-3 text-sm text-[#ff9a9a]">
+                <p role="alert" className="mt-4 rounded-xl border border-late-ink/30 bg-late-ink/10 p-3 text-sm text-late-ink">
                   {error}
                 </p>
               )}
@@ -163,7 +164,7 @@ export default function Cardapio() {
               <button
                 type="submit"
                 disabled={!file || sending || preparing}
-                className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent-strong font-semibold text-white transition-colors hover:bg-[#0076e0] disabled:opacity-50"
+                className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent-strong font-semibold text-white transition-colors hover:brightness-90 disabled:opacity-50"
               >
                 {sending ? "Enviando…" : "Enviar cardápio"}
               </button>

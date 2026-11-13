@@ -52,7 +52,7 @@ export default function Sucesso() {
           <p className="text-sm text-ink-soft">Quer adiantar? Já pode mandar seu cardápio agora.</p>
           <Link
             href={`/cadastro/cardapio?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(token)}`}
-            className="mt-3 inline-flex h-12 items-center justify-center rounded-full bg-accent-strong px-7 font-semibold text-white transition-colors hover:bg-[#0076e0]"
+            className="mt-3 inline-flex h-12 items-center justify-center rounded-full bg-accent-strong px-7 font-semibold text-white transition-colors hover:brightness-90"
           >
             Enviar cardápio agora
           </Link>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, animate, motion, useInView } from "motion/react";
+import { AnimatePresence, animate, motion, useInView, useReducedMotion } from "motion/react";
 import { APP_FEE_RATE, DEMO_ORDERS } from "../content";
 import { formatBRL } from "../lib/format";
 
@@ -53,6 +53,7 @@ export function LiveTickets({ play }: { play: boolean }) {
   // "some": roda assim que qualquer parte aparece. Em celular a lista é mais alta que o que
   // cabe abaixo dos botões, então exigir uma fração dela (amount) deixava a demo parada ao abrir.
   const inView = useInView(root, { amount: "some" });
+  const reduce = useReducedMotion();
   const [count, setCount] = useState(VISIBLE);
 
   const running = play && inView;
@@ -71,16 +72,16 @@ export function LiveTickets({ play }: { play: boolean }) {
 
   return (
     <div ref={root} className="relative">
-      <div className="mb-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+      <div className="mb-3 flex items-center justify-between text-xs text-ink-soft">
         <span className="flex items-center gap-2">
-          <span className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
+          <span className="live-dot h-2 w-2 rounded-full bg-warm" />
           Pedidos chegando
         </span>
-        <span>Simulação</span>
+        <span className="rounded-full bg-tint px-2.5 py-1 font-medium text-warm-ink">Simulação</span>
       </div>
 
       <ol className="relative flex flex-col gap-3" aria-label="Exemplo de pedidos no painel">
-        <AnimatePresence initial={false} mode="popLayout">
+        <AnimatePresence initial={!reduce} mode="popLayout">
           {tickets.map((t, position) => {
             const order = DEMO_ORDERS[t.orderIndex];
             const stage = STAGES[Math.min(position, STAGES.length - 1)];
@@ -88,22 +89,22 @@ export function LiveTickets({ play }: { play: boolean }) {
               <motion.li
                 key={t.id}
                 layout
-                initial={{ clipPath: "inset(0 0 100% 0)", y: -16 }}
-                animate={{ clipPath: "inset(0 0 0% 0)", y: 0, opacity: 1 - position * 0.12 }}
+                initial={reduce ? false : { clipPath: "inset(0 0 100% 0)", y: -16 }}
+                animate={play || count > VISIBLE ? { clipPath: "inset(0 0 0% 0)", y: 0, opacity: 1 } : undefined}
                 exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.25 } }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="ticket-edge bg-ticket px-4 pb-5 pt-3.5 text-ticket-ink shadow-[0_18px_40px_-20px_rgba(0,0,0,.8)]"
+                transition={{ duration: 0.7, delay: count === VISIBLE ? position * 0.14 : 0, ease: [0.22, 1, 0.36, 1] }}
+                className="ticket-edge border-x border-t border-line bg-ticket px-4 pb-5 pt-3.5 text-ticket-ink"
               >
-                <div className="flex items-center justify-between font-mono text-[11px] tracking-wide text-ticket-soft">
+                <div className="flex items-center justify-between font-mono text-xs tracking-wide text-ticket-soft">
                   <span>{order.code}</span>
                   <span>{t.time}</span>
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-3">
-                  <span className="font-display text-lg font-semibold leading-tight">{order.name}</span>
+                  <span className="text-lg font-bold leading-tight">{order.name}</span>
                   <span className="font-mono text-sm font-medium">{formatBRL(order.total)}</span>
                 </div>
                 <p className="mt-0.5 text-sm text-ticket-soft">{order.items}</p>
-                <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
+                <div className="mt-3 flex items-center justify-between text-xs">
                   <span>{stage.label}</span>
                   <span className="text-ticket-soft">{order.mode}</span>
                 </div>
@@ -121,25 +122,25 @@ export function LiveTickets({ play }: { play: boolean }) {
         </AnimatePresence>
       </ol>
 
-      <dl className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line font-mono text-[11px]">
+      <dl className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line text-xs">
         <div className="bg-bg p-3">
-          <dt className="uppercase tracking-wider text-ink-soft">Vendido</dt>
-          <dd className="mt-1 text-sm text-ink">
+          <dt className="text-ink-soft">Vendido</dt>
+          <dd className="mt-1 font-mono text-[1.2rem] font-bold leading-[1.4286] text-ink">
             <Ticker value={sold} />
           </dd>
         </div>
-        <div className="bg-bg p-3">
-          <dt className="uppercase tracking-wider text-ink-soft">App levaria*</dt>
-          <dd className="mt-1 text-sm text-[#ff7a7a]">
+        <div className="bg-tint p-3">
+          <dt className="text-ink-soft">App levaria*</dt>
+          <dd className="mt-1 font-mono text-[1.2rem] font-bold leading-[1.4286] text-late-ink">
             <Ticker value={sold * APP_FEE_RATE} />
           </dd>
         </div>
-        <div className="bg-bg p-3">
-          <dt className="uppercase tracking-wider text-ink-soft">Comandiva</dt>
-          <dd className="mt-1 text-sm text-accent-text">R$ 0,00</dd>
+        <div className="bg-ok-bg p-3">
+          <dt className="text-ink-soft">Comandiva</dt>
+          <dd className="mt-1 font-mono text-[1.2rem] font-bold leading-[1.4286] text-ok">R$ 0,00</dd>
         </div>
       </dl>
-      <p className="mt-2 text-[11px] text-ink-soft">
+      <p className="mt-2 text-xs text-ink-soft">
         *Simulação com comissão de 30%, o teto cobrado por apps de entrega. Na Comandiva a mensalidade é fixa.
       </p>
     </div>

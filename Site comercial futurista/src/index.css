@@ -3,75 +3,119 @@
 
 @font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Clash Grotesk"; src: url("/fonts/clash-grotesk-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Clash Grotesk"; src: url("/fonts/clash-grotesk-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 
 /*
- * Conceito "cozinha em tempo real": fundo noturno em degradê (Aurora),
- * comandas em papel claro e UMA cor de destaque para ação (o azul da marca).
+ * Paleta A (decisão do dono, 2026-11-12): fundos claros que alternam (--bg e --bg-alt),
+ * UMA cor de ação (azul), UM destaque quente pontual (tomate) e poucas zonas de contraste:
+ * a faixa azul-noite (--band) da cena "a vida de um pedido" e a faixa azul (--brand-band).
+ * Sem degradê, vidro, blur ou brilho. Os papéis das comandas seguem papel (é o produto real).
  */
 :root {
-  /* Tema Aurora (escolha do dono, 2026-10-14): azul do logo → violeta → roxo claro
-     do logo MM System Creator. O degradê do fundo é pintado no html (abaixo);
-     superfícies elevadas são translúcidas para ele aparecer por trás. */
-  --bg: #060a1a;
-  --bg-raised: rgba(140, 170, 255, 0.055);
-  --line: rgba(150, 175, 255, 0.16);
-  --ink: #eef0f4;
-  --ink-soft: #a3acc6;
-  --accent: #1a86fd;
-  --accent-text: #62c4ff;
-  --accent-2: #6d3df0;
-  /* Fundo de botão com texto branco: contraste AA (#1a86fd sozinho não passa) */
-  --accent-strong: #0a63d8;
-  --ticket: #f4efe6;
-  --ticket-ink: #17140f;
-  --ticket-soft: #6b6255;
-  --ok: #15803d;
-  --warn: #b45309;
-  --late: #dc2626;
+  --bg: #f6f7f8;
+  --bg-alt: #e6eefb;
+  --bg-raised: #ffffff;
+  --ink: #14181f;
+  --ink-soft: #4b5563;
+  --line: #dde2e8;
+  --line-strong: #c3cad3;
+  --accent: #0a63d8;
+  --accent-hover: #0852b5;
+  /* Marca forte (Opção A, decisão do dono, 2026-11-13): bloco azul profundo no topo, mostarda para
+     palavras-chave e destaques, verde e tomate fortes nos números de economia e de comissão. */
+  --hero: #0b4db3;
+  --mark: #ffc83d;
+  --mark-ink: #3d3410;
+  --seal: #c2410c;
+  /* Tomate: ícones, selos e ilustração. Texto quente usa --warm-ink */
+  --warm: #e8532b;
+  --warm-ink: #a8321a;
+  --tint: #fde8df;
+  /* Aliases do tema antigo: apontam para a mesma cor de ação */
+  --accent-text: var(--accent);
+  --accent-strong: var(--accent);
+  /* Comanda (papel) e faixa escura */
+  --ticket: #fbf8f1;
+  --ticket-ink: #1b1712;
+  --ticket-soft: #5f564a;
+  --band: #0f1520;
+  --band-raised: #172030;
+  --band-ink: #f3f5f8;
+  --band-soft: #a9b4c4;
+  --band-line: #263247;
+  /* Estados: cor + fundo suave. As variantes -ink valem o mesmo tom (já passam AA no claro) */
+  --ok: #0f6b3a;
+  --warn: #8a5500;
+  --late: #b8321a;
+  --ok-bg: #dff1e6;
+  --warn-bg: #fff0cc;
+  --late-bg: #fde6e4;
+  --ok-ink: var(--ok);
+  --warn-ink: var(--warn);
+  --late-ink: var(--late);
 }
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-bg-alt: var(--bg-alt);
   --color-bg-raised: var(--bg-raised);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-text: var(--accent-text);
-  --color-accent-2: var(--accent-2);
   --color-accent-strong: var(--accent-strong);
+  --color-warm: var(--warm);
+  --color-warm-ink: var(--warm-ink);
+  --color-tint: var(--tint);
   --color-ticket: var(--ticket);
   --color-ticket-ink: var(--ticket-ink);
   --color-ticket-soft: var(--ticket-soft);
+  --color-band: var(--band);
+  --color-band-raised: var(--band-raised);
+  --color-band-ink: var(--band-ink);
+  --color-band-soft: var(--band-soft);
+  --color-band-line: var(--band-line);
+  --color-hero: var(--hero);
+  --color-mark: var(--mark);
+  --color-mark-ink: var(--mark-ink);
+  --color-seal: var(--seal);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-late: var(--late);
-  --font-display: "Clash Grotesk", "Satoshi", sans-serif;
+  --color-ok-bg: var(--ok-bg);
+  --color-warn-bg: var(--warn-bg);
+  --color-late-bg: var(--late-bg);
+  --color-ok-ink: var(--ok-ink);
+  --color-warn-ink: var(--warn-ink);
+  --color-late-ink: var(--late-ink);
+  /* Uma família só: Satoshi. font-display segue existindo como apelido. */
+  --font-display: "Satoshi", ui-sans-serif, sans-serif;
   --font-sans: "Satoshi", ui-sans-serif, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Raios: só 4, 12 e 24px (os degraus intermediários do Tailwind caem num dos três) */
+  --radius-xs: 4px;
+  --radius-sm: 4px;
+  --radius-md: 12px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
+  --radius-2xl: 24px;
+  --radius-3xl: 24px;
+  /* Sombras: no máximo um fio de 1px */
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --shadow-2xl: 0 1px 0 rgba(0, 0, 0, 0.06);
 }
 
-/*
- * Fundo Aurora pintado no próprio html, ao longo da página inteira (rola junto):
- * azul/ciano do logo no topo → violeta no meio → roxo claro do logo MM System
- * Creator no fim. Sem camada fixa nem animação: o navegador pinta uma vez e a
- * rolagem não paga nada por quadro (camada fixa de tela inteira travava a
- * rolagem numa Intel UHD 620).
- */
+/* Papel liso: cor chapada, sem degradê nem camada fixa */
 html {
   background-color: var(--bg);
-  background-image:
-    radial-gradient(1100px 700px at 8% 0, rgba(0, 200, 240, 0.16), transparent 70%),
-    radial-gradient(1000px 800px at 95% 6%, rgba(84, 36, 240, 0.30), transparent 70%),
-    radial-gradient(1200px 1000px at 15% 45%, rgba(109, 61, 240, 0.16), transparent 70%),
-    radial-gradient(1300px 1100px at 90% 100%, rgba(169, 139, 255, 0.34), transparent 70%),
-    linear-gradient(180deg, #070c22 0%, #0a0a26 35%, #110c30 70%, #1d1545 100%);
-  background-repeat: no-repeat;
   min-height: 100%;
   color: var(--ink);
   font-family: var(--font-sans);
@@ -79,15 +123,18 @@ html {
 }
 body {
   margin: 0;
-  background: transparent;
   overflow-x: clip;
 }
 ::selection { background: var(--accent); color: #fff; }
 
 :focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 6px;
+}
+
+/* Dados (preço, código, hora) em JetBrains Mono com números tabulares */
+@layer utilities {
+  .font-mono { font-variant-numeric: tabular-nums; }
 }
 
 /* Rolagem nativa; âncoras com rolagem suave (desligada para quem pede menos movimento) */
@@ -102,25 +149,6 @@ html { scroll-behavior: smooth; }
     linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth)) no-repeat;
 }
 
-/* Grade técnica bem sutil do fundo do hero */
-.grid-bg {
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
-}
-
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-.marquee-track { animation: marquee 40s linear infinite; }
-.marquee-track[data-reverse] { animation-direction: reverse; }
-.marquee:hover .marquee-track { animation-play-state: paused; }
-@media (prefers-reduced-motion: reduce) {
-  .marquee-track, .marquee-track[data-reverse] { animation: none; transform: none; }
-}
 
 @keyframes live-dot {
   0%, 100% { opacity: 1; }
@@ -136,7 +164,7 @@ html { scroll-behavior: smooth; }
   /* Área de toque de 44px; o trilho visível continua fino (6px) */
   height: 44px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--accent) var(--pct), var(--line) var(--pct)) center / 100% 6px no-repeat;
+  background: linear-gradient(to right, var(--accent) var(--pct), var(--line-strong) var(--pct)) center / 100% 6px no-repeat;
   cursor: pointer;
 }
 .range-comanda::-webkit-slider-thumb {
@@ -145,8 +173,8 @@ html { scroll-behavior: smooth; }
   height: 26px;
   border-radius: 999px;
   background: var(--ink);
-  border: 6px solid var(--accent-strong);
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 6px solid var(--accent);
+  
   transition: transform .2s cubic-bezier(.32,.72,0,1);
 }
 .range-comanda::-moz-range-thumb {
@@ -154,7 +182,7 @@ html { scroll-behavior: smooth; }
   height: 16px;
   border-radius: 999px;
   background: var(--ink);
-  border: 6px solid var(--accent-strong);
+  border: 6px solid var(--accent);
 }
 .range-comanda:active::-webkit-slider-thumb { transform: scale(1.12); }
 
@@ -180,3 +208,30 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { .printer-led[data-busy] { animation: none; } }
 
 #calc-title { scroll-margin-top: 9rem; }
+
+
+/* Faixa escura da cena "a vida de um pedido": só texto, linhas e acento mudam; cartões de papel seguem claros */
+.band-scope {
+  --ink: var(--band-ink);
+  --ink-soft: var(--band-soft);
+  --line: var(--band-line);
+  --accent-text: #7db4ff;
+}
+
+/* Interação de cartão: sobe 2px e a borda vira azul (foco de atenção). Sem movimento reduzido, só a cor muda. */
+.card-lift {
+  transition: translate .2s cubic-bezier(.32,.72,0,1), border-color .2s cubic-bezier(.32,.72,0,1);
+}
+.card-lift:hover { border-color: var(--accent); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .card-lift:hover { translate: 0 -2px; }
+}
+
+/* Palavra-chave de título (componente Kw): destaque só pela cor, sem sublinhado nem marca-texto */
+.kw { color: var(--hero); background: none; }
+.kw-ok { color: var(--ok); }
+/* Sobre a faixa escura: texto mostarda */
+.kw-band { color: var(--mark); }
+
+/* O anel de foco azul some sobre superfície escura: branco dentro do painel do topo */
+.on-band :focus-visible { outline-color: #fff; }

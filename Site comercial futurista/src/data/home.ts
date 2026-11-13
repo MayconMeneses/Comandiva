@@ -1,5 +1,8 @@
 import { asset } from "../lib/asset";
 import { ENTRY_PRICE_CENTS } from "./pricing";
+import { LAUNCH_DISCOUNT, PLANS } from "./plans";
+
+const brl = (cents: number) => `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
 /**
  * Textos das seções da Home, tirados de ../Site comercial/src/pages/Home.tsx
@@ -15,8 +18,8 @@ export const SAVINGS = {
   defaultCents: 2_000_000,
 };
 
-export const COMPARISON = [
-  { label: "Comissão por pedido", us: "R$ 0, mensalidade fixa", them: "Até 30% por venda" },
+export const COMPARISON: { label: string; us: string; them: string; win?: boolean }[] = [
+  { label: "Comissão por pedido", us: "R$ 0, mensalidade fixa", them: "Até 30% por venda", win: true },
   { label: "Marca exibida pro cliente", us: "A sua", them: "A do aplicativo" },
   { label: "Dados de contato do seu cliente", us: "Seus, pra sempre", them: "Do aplicativo" },
   { label: "Personalização do cardápio/visual", us: "Total", them: "Definida pelo aplicativo" },
@@ -108,6 +111,14 @@ export const SUPORTE = [
 ];
 
 export const FAQ = [
+  {
+    question: "Quanto custa e tem comissão por pedido?",
+    answer: `A mensalidade é fixa: ${PLANS.map(p => `${p.name} ${brl(p.priceCents)}`).join(", ")}. Não há comissão por pedido. No lançamento, a mensalidade tem ${LAUNCH_DISCOUNT * 100}% de desconto nos 2 primeiros meses.`,
+  },
+  {
+    question: "Existe alguma cobrança além da mensalidade?",
+    answer: `O Mercado Pago informa as próprias taxas de Pix e cartão. A manutenção é inclusa nos planos Profissional e Premium; no Entrada, é sob consulta (${brl(PLANS[0].maintenanceCents ?? 0)} por acionamento).`,
+  },
   {
     question: "Preciso saber mexer em sistema?",
     answer:

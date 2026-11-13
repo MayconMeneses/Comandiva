@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import { PARA_QUEM } from "../data/home";
 import { SectionHeading } from "./ui/SectionHeading";
 import { reveal } from "../lib/motion";
+import { ArrowIcon } from "./ui/Icons";
+import { Marked } from "./ui/Kw";
 
 const ICONS = [
   // salão e mesas
@@ -22,23 +24,29 @@ export function ParaQuem() {
       <SectionHeading
         id="para-quem-title"
         eyebrow="Para quem é"
-        title="Serve pro seu restaurante, seja qual for o formato"
+        title={<Marked text="Serve pro seu restaurante, seja qual for o formato" phrase="seja qual for o formato" />}
         lead="Salão, delivery, começando agora ou com equipe grande: o sistema se adapta."
       />
-      <div className="mx-auto mt-14 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mx-auto mt-12 grid max-w-6xl gap-3">
         {PARA_QUEM.map((item, i) => (
-          <motion.article key={item.title} {...reveal(i * 0.06)} className="flex flex-col rounded-[1.75rem] border border-line bg-bg-raised p-6">
-            <svg viewBox="0 0 24 24" className="h-7 w-7 text-accent-text" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d={ICONS[i]} />
-            </svg>
-            <h3 className="mt-5 font-display text-lg font-semibold leading-tight">{item.title}</h3>
-            <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-soft">{item.description}</p>
-            <Link href="/planos" className="mt-3 inline-flex min-h-11 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-accent-text hover:text-ink">
-              Indicado: {item.plan} <span aria-hidden="true">→</span>
+          <motion.li
+            key={item.title}
+            {...reveal(i * 0.05)}
+            className="card-lift grid items-start gap-x-8 gap-y-2 rounded-2xl border border-line bg-bg-raised p-6 md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1.4fr)_12rem]"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-hero text-white">
+              <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d={ICONS[i]} />
+              </svg>
+            </span>
+            <h3 className="font-display text-lg font-semibold leading-tight">{item.title}</h3>
+            <p className="text-sm leading-relaxed text-ink-soft">{item.description}</p>
+            <Link href="/planos" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent hover:text-ink md:justify-end">
+              Indicado: {item.plan} <ArrowIcon />
             </Link>
-          </motion.article>
+          </motion.li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

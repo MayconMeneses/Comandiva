@@ -1,6 +1,7 @@
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { BOARD_COLUMNS, BOARD_STEPS, FEATURED_ORDER } from "../data/board";
 import { EASE } from "../lib/motion";
+import { CheckIcon } from "./ui/Icons";
 import { OrderCard } from "./pedido/OrderCard";
 
 /**
@@ -13,17 +14,17 @@ export function KitchenBoard({ stepIndex }: { stepIndex: number }) {
   const delivered = current.column === null;
 
   return (
-    <div className="h-full rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
-      <div className="h-full overflow-hidden rounded-[calc(2rem-0.375rem)] bg-[#f6f1e8] p-3 shadow-[inset_0_1px_1px_rgba(255,255,255,.6)] sm:p-4">
+    <div className="h-full rounded-2xl border border-line bg-bg-raised">
+      <div className="h-full overflow-hidden rounded-2xl bg-bg-alt p-3 sm:p-4">
         <LayoutGroup>
           <div className="grid gap-3 md:grid-cols-3">
             {BOARD_COLUMNS.map((col, ci) => {
               const active = current.column === ci || (delivered && ci === 2);
               return (
-                <div key={col.title} className={`flex-col gap-2.5 rounded-2xl border border-[#e8e0d2] p-2.5 ${col.bg} ${active ? "flex" : "hidden md:flex"}`}>
+                <div key={col.title} className={`flex-col gap-2.5 rounded-xl border border-[#e8e0d2] p-2.5 ${col.bg} ${active ? "flex" : "hidden md:flex"}`}>
                   <div className="px-1 pt-1">
                     <p className="font-display text-sm font-semibold text-ticket-ink">{col.title}</p>
-                    <p className="text-[11px] text-ticket-soft">{col.hint}</p>
+                    <p className="text-xs text-ticket-soft">{col.hint}</p>
                   </div>
                   {current.column === ci && <OrderCard order={FEATURED_ORDER} featured stepIndex={stepIndex} />}
                   <AnimatePresence>
@@ -33,9 +34,9 @@ export function KitchenBoard({ stepIndex }: { stepIndex: number }) {
                         animate={{ opacity: 1, scale: 1, rotate: -2 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.5, ease: EASE }}
-                        className="rounded-xl border-2 border-dashed border-ok px-3 py-2.5 text-center font-mono text-[11px] font-medium uppercase tracking-wider text-ok"
+                        className="rounded-xl border-2 border-dashed border-ok px-3 py-2.5 text-center font-mono text-xs font-medium uppercase tracking-wider text-ok"
                       >
-                        ✓ {FEATURED_ORDER.name} · saiu para entrega
+                        <CheckIcon /> {FEATURED_ORDER.name} · saiu para entrega
                       </motion.p>
                     )}
                   </AnimatePresence>

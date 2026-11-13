@@ -18,9 +18,9 @@ export function StepNav({ frame, onSelect }: { frame: number; onSelect: (i: numb
               aria-current={i === frame ? "step" : undefined}
               className={`group relative min-h-11 w-full rounded-xl py-2 pl-11 pr-3 text-left ${FOCUS}`}
             >
-              {i === frame && <motion.span layoutId="passo-ativo" className="absolute inset-0 rounded-xl bg-bg-raised" transition={{ duration: 0.5, ease: EASE }} />}
+              {i === frame && <motion.span layoutId="passo-ativo" className="absolute inset-0 rounded-xl bg-band-raised" transition={{ duration: 0.5, ease: EASE }} />}
               <span
-                className={`absolute left-3 top-3 grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${
+                className={`absolute left-3 top-3 grid h-5 w-5 place-items-center rounded-full font-mono text-xs ${
                   i <= frame ? "bg-accent text-white" : "border border-line text-ink-soft"
                 }`}
               >
@@ -46,7 +46,7 @@ export function StepNav({ frame, onSelect }: { frame: number; onSelect: (i: numb
               onClick={() => onSelect(i)}
               aria-label={`Passo ${i + 1}: ${s.title}`}
               aria-current={i === frame ? "step" : undefined}
-              className={`h-11 min-w-0 flex-1 rounded-lg font-mono text-xs ${FOCUS} ${i === frame ? "bg-accent text-white" : "border border-line text-ink-soft"}`}
+              className={`h-11 min-w-0 flex-1 rounded-xl font-mono text-xs ${FOCUS} ${i === frame ? "bg-accent text-white" : "border border-line text-ink-soft"}`}
             >
               {i + 1}
             </button>

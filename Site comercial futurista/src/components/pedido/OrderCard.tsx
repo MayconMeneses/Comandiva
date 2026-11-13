@@ -13,8 +13,8 @@ export function OrderCard({ order, featured = false, stepIndex }: { order: Board
       layoutId={featured ? "pedido-destaque" : undefined}
       layout={featured ? true : undefined}
       transition={{ duration: 0.7, ease: EASE }}
-      className={`rounded-2xl border bg-[#fffdf7] p-3.5 text-ticket-ink ${
-        featured ? "border-accent shadow-[0_0_0_3px_rgba(0,140,254,.25),0_24px_50px_-24px_rgba(0,0,0,.9)]" : "border-[#e8e0d2]"
+      className={`rounded-xl border bg-[#fffdf7] p-3.5 text-ticket-ink ${
+        featured ? "border-accent ring-2 ring-accent/30" : "border-[#e8e0d2]"
       }`}
     >
       <div className="flex items-center justify-between">
@@ -37,7 +37,7 @@ export function OrderCard({ order, featured = false, stepIndex }: { order: Board
       <p className="mt-2.5 border-t border-[#efe6d8] pt-2 text-xs text-ticket-soft">{order.items}</p>
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <span className="shrink-0 text-[11px] font-medium text-ticket-soft">{order.mode}</span>
-        <span className="whitespace-nowrap rounded-full bg-[#b8452b] px-2.5 py-1 text-[11px] font-semibold text-white">{state.action} ›</span>
+        <span className="whitespace-nowrap rounded-full bg-[#b8452b] px-2.5 py-1 text-[11px] font-semibold text-white">{state.action}</span>
       </div>
     </motion.article>
   );

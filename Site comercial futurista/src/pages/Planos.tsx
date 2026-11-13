@@ -30,7 +30,7 @@ const EASE = [0.32, 0.72, 0, 1] as const;
 const reveal = {
   initial: { opacity: 0, y: 24 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.2 },
+  viewport: { once: true, amount: "some" as const },
   transition: { duration: 0.8, ease: EASE },
 };
 
@@ -43,9 +43,10 @@ export default function Planos() {
 
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-24 pt-14 sm:px-6 md:pt-20">
+    <div>
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-14 sm:px-6 md:pt-20">
       <motion.header {...reveal} className="mx-auto max-w-3xl text-center">
-        <p className="inline-flex rounded-full border border-line px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent-text">Planos</p>
+        <p className="text-sm font-medium text-accent-text">Planos</p>
         <h1 className="mt-5 font-display text-[clamp(2.2rem,5vw,4rem)] font-semibold leading-[0.98] tracking-[-0.02em] text-balance">
           Escolha o plano do seu restaurante
         </h1>
@@ -53,7 +54,7 @@ export default function Planos() {
           7 dias de teste grátis assim que seu sistema estiver pronto (em até 10 dias úteis), sem cartão de crédito. Sem comissão por
           pedido: a mensalidade cobre o sistema e a hospedagem, ponto final.
         </p>
-        <p className="mx-auto mt-4 w-fit rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-sm text-accent-text">
+        <p className="mx-auto mt-4 w-fit rounded-full border border-warm/40 bg-tint px-4 py-1.5 text-sm text-warm-ink">
           Lançamento: 20% de desconto na mensalidade nos 2 primeiros meses
         </p>
       </motion.header>
@@ -69,25 +70,30 @@ export default function Planos() {
         </div>
         <PlanFinder answers={answers} onChange={setAnswers} />
       </motion.section>
+      </div>
 
-      <section className="mt-14" aria-label="Planos">
-        <PlanCards plans={plans} groups={groups} recommended={recommended} />
-        <p className="mt-6 text-center text-sm text-ink-soft">
-          Pode trocar de plano quando quiser, direto no seu painel, sem multa. Pagamento pelo Mercado Pago.
-        </p>
-      </section>
+      <div className="bg-band text-band-ink">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-24">
+          <section aria-label="Planos">
+            <PlanCards plans={plans} groups={groups} recommended={recommended} />
+            <p className="mt-8 text-center text-sm text-band-soft">
+              Pode trocar de plano quando quiser, direto no seu painel, sem multa. Pagamento pelo Mercado Pago.
+            </p>
+          </section>
 
-      <motion.section {...reveal} className="mt-24" aria-labelledby="compare-title">
-        <h2 id="compare-title" className="text-center font-display text-[clamp(1.8rem,3.5vw,2.75rem)] font-semibold tracking-[-0.02em]">
-          Compare tudo, lado a lado
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-sm text-ink-soft">
-          Todo plano mostra o sistema inteiro; o que muda é o que já vem liberado.
-        </p>
-        <div className="mt-10">
-          <CompareTable plans={plans} groups={groups} recommended={recommended} />
+          <motion.section {...reveal} className="mt-24" aria-labelledby="compare-title">
+            <h2 id="compare-title" className="text-center font-display text-[clamp(1.8rem,3.5vw,2.75rem)] font-semibold tracking-[-0.02em] text-band-ink">
+              Compare tudo, lado a lado
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-center text-sm text-band-soft">
+              Todo plano mostra o sistema inteiro; o que muda é o que já vem liberado.
+            </p>
+            <div className="mt-10">
+              <CompareTable plans={plans} groups={groups} recommended={recommended} />
+            </div>
+          </motion.section>
         </div>
-      </motion.section>
+      </div>
     </div>
   );
 }

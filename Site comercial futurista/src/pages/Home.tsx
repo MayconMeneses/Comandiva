@@ -1,7 +1,8 @@
 import { Hero } from "../components/Hero";
-import { Marquee } from "../components/Marquee";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useRef } from "react";
 import { usePageMeta, publicUrl, SITE_ORIGIN } from "../lib/seo";
+import { StickyCta } from "../components/StickyCta";
+import { HeroTickets } from "../components/hero/HeroTickets";
 import { FAQ } from "../data/home";
 import { ENTRY_PRICE_DECIMAL } from "../data/pricing";
 
@@ -30,13 +31,17 @@ const STRUCTURED_DATA = {
 
 export default function Home({ ready }: { ready: boolean }) {
   usePageMeta("/", { jsonLd: STRUCTURED_DATA });
+  const heroRef = useRef<HTMLDivElement>(null);
   return (
     <>
-      <Hero ready={ready} />
-      <Marquee />
+      <div ref={heroRef}>
+        <Hero ready={ready} />
+      </div>
+      <HeroTickets ready={ready} />
       <Suspense fallback={<div className="min-h-[100dvh]" />}>
         <HomeBelowFold />
       </Suspense>
+      <StickyCta heroRef={heroRef} />
     </>
   );
 }

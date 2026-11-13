@@ -12,7 +12,7 @@ export function Field({ id, label, hint, ...props }: { id: string; label: string
         id={id}
         name={id}
         {...props}
-        className="mt-1.5 block h-12 w-full rounded-xl border border-line bg-bg px-4 text-ink placeholder:text-ink-soft/60 focus:border-accent-text focus:outline-none"
+        className="mt-1.5 block h-12 w-full rounded-xl border border-ink-soft/70 bg-bg-raised px-4 text-ink placeholder:text-ink-soft/70 focus:border-accent"
       />
     </div>
   );

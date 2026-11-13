@@ -36,6 +36,7 @@ Testado no build de produção (`npm run build` + `vite preview`, porta 5181), C
 - Lighthouse "llms.txt" reprovado: o arquivo existe só no Master; não faz parte das 20 regras.
 
 ## Tema Aurora (2026-10-14)
+- **Substituído em 2026-11-11 (decisão do dono):** tema claro "balcão de cozinha" (papel liso #f3eee4, tinta #1b1712, um azul de ação #0a63d8, uma única faixa escura para a cena do pedido, só Satoshi + JetBrains Mono). O Aurora abaixo vale como histórico.
 - Fundo fixo em degradê (azul do logo → violeta → roxo claro do logo MM System Creator) trocando com a rolagem; granulado em PNG pequeno (filtro SVG de ruído na tela inteira foi trocado por custar caro na pintura).
 - Contraste: cinza da vitrine ilustrativa do comparativo escurecido para #66615b (6,1:1).
 - Imagem de compartilhamento, theme-color e manifest atualizados para o novo fundo.
@@ -108,3 +109,8 @@ Lista de um vídeo sobre sites feitos com IA, conferida contra o código e o sit
 
 ## Rolagem lateral a 320 px (2026-10-21)
 A assinatura de Maycon (SVG em "Suporte") passava da largura da coluna em telas de 320 px e criava rolagem lateral (já no ar). Corrigido com `max-w-full`. Conferido sem rolagem lateral em 320, 360, 390, 768 e 1440 px na Home, Planos, Termos, Privacidade e Cadastro.
+## Tema claro "balcão de cozinha" (2026-11-12)
+- Decisão do dono (2026-11-11): papel de comanda liso substitui o fundo escuro Aurora. Uma única faixa escura (#14110d) na cena "a vida de um pedido", inclusive na versão sem rolagem presa (movimento reduzido ou até 360 px).
+- Verificado em preview local do build: axe wcag2a/2aa/21a/21aa com 0 violações na home (topo, 5 pontos da cena e fim, também com movimento reduzido), /planos, /termos, /privacidade, /cadastro/essencial, /cardapio, /sucesso e 404; sem rolagem horizontal em 320/390/1440 com e sem movimento reduzido; console sem erros. Celular simulado (CPU 4x, Fast 4G): LCP 1,45 s, CLS 0,01.
+- 2026-11-12 (E1): paleta A (azul + tomate) com fundos que alternam --bg/--bg-alt, faixa azul-noite na cena 'Veja por dentro' e interações de cartão/linha com propósito (com movimento reduzido ficam só as mudanças de cor); decisão do dono para dar vida e contraste.
+

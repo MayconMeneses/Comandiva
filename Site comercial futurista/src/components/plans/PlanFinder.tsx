@@ -19,7 +19,7 @@ function Segmented<T extends string | boolean>({
   return (
     <fieldset>
       <legend className="text-sm font-medium text-ink">{question}</legend>
-      <div className="mt-2.5 inline-flex flex-wrap gap-1 rounded-full border border-line bg-bg p-1">
+      <div className="mt-2.5 inline-flex flex-wrap gap-1 rounded-xl border border-line bg-bg p-1">
         {options.map(opt => {
           const active = opt.value === value;
           return (
@@ -34,13 +34,13 @@ function Segmented<T extends string | boolean>({
               {active && (
                 <motion.span
                   layoutId={`seg-${id}`}
-                  className="absolute inset-0 rounded-full bg-ink"
+                  className="absolute inset-0 rounded-xl bg-accent"
                   transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
                 />
               )}
               <span
-                className={`relative block rounded-full px-4 py-2 text-sm font-medium transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-text ${
-                  active ? "text-bg" : "text-ink-soft hover:text-ink"
+                className={`relative block rounded-xl px-4 py-2 text-sm font-medium transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-text ${
+                  active ? "text-white" : "text-ink-soft hover:text-ink"
                 }`}
               >
                 {opt.label}
@@ -60,8 +60,8 @@ function Segmented<T extends string | boolean>({
  */
 export function PlanFinder({ answers, onChange }: { answers: FinderAnswers; onChange: (a: FinderAnswers) => void }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
-      <div className="grid gap-6 rounded-[calc(2rem-0.375rem)] bg-bg-raised p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,.06)] sm:p-8 md:grid-cols-3">
+    <div className="rounded-3xl border border-line bg-bg-raised">
+      <div className="grid gap-6 p-6 sm:p-8 md:grid-cols-3">
         <Segmented
           id="mesas"
           question="Seu restaurante atende em mesas?"

@@ -22,8 +22,8 @@ export function PhoneStage({ beat, progress, enter, statusIndex }: { beat: numbe
       animate={{ left: docked ? "0%" : "50%", x: docked ? "0%" : "-50%", scale: docked ? 0.62 : 1, opacity: hidden ? 0 : 1 }}
       transition={{ duration: 0.7, ease: EASE }}
     >
-      <motion.div style={{ opacity: fade, y: rise }} className="w-[14.5rem] rounded-[2rem] border border-white/15 bg-[#0d0f14] p-1.5 shadow-[0_30px_60px_-30px_rgba(0,0,0,.9)]">
-        <div className="flex h-[21rem] flex-col overflow-hidden rounded-[1.6rem] bg-[#fffdf8] md:h-[24.5rem]">
+      <motion.div style={{ opacity: fade, y: rise }} className="w-[14.5rem] rounded-[2rem] border border-band-line bg-[#0d0f14] p-1.5">
+        <div className="flex h-[21rem] flex-col overflow-hidden rounded-3xl bg-[#fffdf8] md:h-[24.5rem]">
           {beat <= 1 ? <PhoneMenu progress={progress} /> : beat === 2 ? <PhoneCheckout /> : <PhoneTracking statusIndex={statusIndex} />}
         </div>
       </motion.div>

@@ -26,7 +26,7 @@ export function SupportFounder() {
     <section className="px-4 py-28 sm:px-6" aria-labelledby="suporte-title">
       <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
         <motion.div {...reveal()}>
-          <p className="inline-flex rounded-full border border-line px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent-text">
+          <p className="text-sm font-medium text-accent-text">
             Suporte e quem criou
           </p>
           <h2 id="suporte-title" className="mt-4 font-display text-[clamp(2rem,4.5vw,3.5rem)] font-semibold leading-[1] tracking-[-0.02em] text-balance">
@@ -39,13 +39,13 @@ export function SupportFounder() {
           </p>
           <div className="mt-8">
             <Signature name="Maycon Meneses" className="h-20 w-auto max-w-full text-ink sm:h-24" />
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Maycon Meneses · Ideias · Sistemas · Soluções</p>
+            <p className="mt-1 font-mono text-xs text-ink-soft">Maycon Meneses · Ideias · Sistemas · Soluções</p>
           </div>
         </motion.div>
 
         <ul className="grid gap-3 self-center">
           {SUPORTE.map((item, i) => (
-            <motion.li key={item.title} {...reveal(0.1 + i * 0.1)} className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-1.5">
+            <motion.li key={item.title} {...reveal(0.1 + i * 0.1)} className="rounded-xl border border-line bg-bg-raised">
               <div className="flex gap-4 rounded-[calc(1.5rem-0.375rem)] bg-bg-raised p-5">
                 <span className="font-mono text-xs text-accent-text">{String(i + 1).padStart(2, "0")}</span>
                 <div>

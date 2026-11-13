@@ -30,13 +30,13 @@ export function PhoneCheckout() {
         <p className="text-[12px] font-semibold text-[#f1d7aa]">Pague com Pix agora</p>
         <p className="mt-0.5 text-[9px] leading-snug text-[#cdbfac]">Confirmação automática: o pedido atualiza sozinho assim que você pagar.</p>
         <div className="mt-2 flex items-center gap-2">
-          <svg viewBox={`-1 -1 ${QR_SIZE + 2} ${QR_SIZE + 2}`} className="h-[4.75rem] w-[4.75rem] shrink-0 rounded-lg bg-white p-0.5" aria-hidden="true" focusable="false" shapeRendering="crispEdges">
+          <svg viewBox={`-1 -1 ${QR_SIZE + 2} ${QR_SIZE + 2}`} className="h-[4.75rem] w-[4.75rem] shrink-0 rounded-xl bg-white p-0.5" aria-hidden="true" focusable="false" shapeRendering="crispEdges">
             <path d={QR_D} fill="#241b16" fillRule="evenodd" />
           </svg>
           <div className="min-w-0 flex-1">
             <p className="text-[9px] text-[#cdbfac]">Pix copia e cola</p>
-            <code className="mt-0.5 block truncate rounded-md bg-[#fffaf3] px-1.5 py-1 text-[9px] text-[#241b16]">00020126demonstracao</code>
-            <span className="mt-1 inline-block rounded-md border border-[#493c2f] px-2 py-0.5 text-[9px] text-[#f1d7aa]">Copiar</span>
+            <code className="mt-0.5 block truncate rounded-sm bg-[#fffaf3] px-1.5 py-1 text-[9px] text-[#241b16]">00020126demonstracao</code>
+            <span className="mt-1 inline-block rounded-sm border border-[#493c2f] px-2 py-0.5 text-[9px] text-[#f1d7aa]">Copiar</span>
           </div>
         </div>
       </div>
@@ -50,12 +50,12 @@ export function PhoneTracking({ statusIndex }: { statusIndex: number }) {
     <div className="flex h-full flex-col bg-[#fffdf8] p-3 text-[#231d18]">
       <p className="text-[9px] font-bold uppercase tracking-[.14em] text-[#b8452b]">Pedido em andamento</p>
       <p className="mt-1 font-display text-lg font-bold leading-tight">{STATUS_FLOW[statusIndex]}</p>
-      <p className="mt-0.5 font-mono text-[9px] text-[#8a7a68]">{FEATURED_ORDER.code}</p>
+      <p className="mt-0.5 font-mono text-[9px] text-[#6b5b49]">{FEATURED_ORDER.code}</p>
       <ol className="mt-3 space-y-2">
         {STATUS_FLOW.slice(0, statusIndex + 1).map((s, i) => (
           <li key={s} className="flex items-center gap-2 text-[11px]">
             <span className={`h-2.5 w-2.5 rounded-full ${i === statusIndex ? "bg-[#b8452b]" : "bg-[#e2d6c5]"}`} aria-hidden="true" />
-            <span className={i === statusIndex ? "font-semibold" : "text-[#8a7a68]"}>{s}</span>
+            <span className={i === statusIndex ? "font-semibold" : "text-[#6b5b49]"}>{s}</span>
           </li>
         ))}
       </ol>

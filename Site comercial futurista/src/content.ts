@@ -8,12 +8,23 @@
 export const HERO = {
   eyebrow: "Sistema para restaurantes",
   titleLines: ["Seu restaurante", "com sistema próprio."],
+  /** Linha do título e trecho que recebe a cor de destaque. */
+  titleKeyword: ["com sistema próprio.", "sistema próprio."] as const,
   titleMuted: "Não com o app do concorrente do lado.",
+  /** Selo acima do título. Mesma condição de Planos.tsx e data/home.ts ("Sem comissão por pedido"). */
+  badge: "Sem comissão por pedido",
   lead:
     "Cardápio digital, pedidos, entregas e relatórios com a marca do seu restaurante. Sem pagar comissão por venda, sem dividir vitrine com ninguém.",
   primaryCta: "Ver planos e começar",
   secondaryCta: "Ver por dentro",
-  checks: ["7 dias grátis", "Sem cartão de crédito", "Cancele quando quiser"],
+  /** Selos de risco zero. Fontes: Planos.tsx:54, Termos.tsx:34-35, data/home.ts:30,54,120. */
+  checks: ["7 dias grátis", "Sem cartão de crédito", "Sem comissão por pedido", "Cancele quando quiser"],
+  previewTitle: "Veja o seu restaurante aqui",
+  previewLabel: "Nome do seu restaurante",
+  previewPlaceholder: "Ex.: Cantina do Bairro",
+  previewEmpty: "Seu restaurante",
+  previewNote: "Demonstração: o nome fica só na sua tela, nada é enviado nem guardado.",
+  ticketsTitle: "O pedido entra no painel. A comissão fica em R$ 0.",
 };
 
 /** Pedidos de demonstração: os mesmos dados fictícios dos prints reais do painel. */
@@ -28,13 +39,3 @@ export const DEMO_ORDERS = [
 /** Taxa usada só na simulação do hero; o site atual fala em "até 30%". */
 export const APP_FEE_RATE = 0.3;
 
-export const MARQUEE_ITEMS = [
-  "Zero comissão por pedido",
-  "Pix e cartão via Mercado Pago",
-  "Mesas com QR Code",
-  "Cardápio com a sua marca",
-  "Fila da cozinha sem papel",
-  "Aguenta internet ruim",
-  "7 dias grátis, sem cartão",
-  "Cliente fala direto com quem fez o sistema",
-];

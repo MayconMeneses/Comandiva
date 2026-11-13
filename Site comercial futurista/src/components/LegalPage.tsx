@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export function LegalPage({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
   return (
     <article className="mx-auto max-w-2xl px-4 pb-24 pt-16 sm:px-6" aria-labelledby="legal-title">
-      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent-text">Comandiva</p>
+      <p className="text-sm font-medium text-accent-text">Comandiva</p>
       <h1 id="legal-title" className="mt-3 font-display text-4xl font-semibold tracking-tight">
         {title}
       </h1>

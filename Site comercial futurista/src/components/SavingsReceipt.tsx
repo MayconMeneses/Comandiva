@@ -5,6 +5,7 @@ import { SectionHeading } from "./ui/SectionHeading";
 import { ReceiptPrinter } from "./ui/ReceiptPrinter";
 import { Stamp } from "./ui/Stamp";
 import { EASE, reveal } from "../lib/motion";
+import { Marked } from "./ui/Kw";
 
 const brl0 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const brl2 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -43,12 +44,12 @@ function Receipt({ title, tag, children, received, tone, stamp }: { title: strin
     <div className={`ticket-edge paper-texture relative px-5 pb-20 pt-5 font-mono text-[12px] uppercase tracking-wide ${tone === "app" ? "grayscale-[.35] brightness-[.93]" : ""}`}>
       <div className="flex items-center justify-between border-b border-dashed border-ticket-soft/50 pb-3 text-ticket-ink">
         <span className="font-display text-base font-semibold normal-case tracking-tight">{title}</span>
-        <span className="text-ticket-soft">{tag}</span>
+        <span className="rounded-full bg-tint px-2 py-0.5 font-medium normal-case text-warm-ink">{tag}</span>
       </div>
       <div className="space-y-2.5 pt-4">{children}</div>
       <div className="mt-5 border-t-2 border-dashed border-ticket-ink/70 pt-4 text-ticket-ink">
-        <p className="text-[10px] text-ticket-soft">Você recebe no mês</p>
-        <p className={`mt-1 font-display text-[1.75rem] font-semibold normal-case leading-none tracking-tight ${tone === "app" ? "text-[#b91c1c]" : "text-ok"}`}>
+        <p className="text-xs text-ticket-soft">Você recebe no mês</p>
+        <p className={`mt-1 font-display text-[2.5rem] font-extrabold normal-case leading-none tracking-tight ${tone === "app" ? "text-late-ink" : "text-ok"}`}>
           <Rolling cents={received} fmt={brl2} />
         </p>
       </div>
@@ -92,7 +93,7 @@ export function SavingsReceipt() {
       <SectionHeading
         id="calc-title"
         eyebrow="Faça a conta"
-        title="Quanto fica no seu bolso no fim do mês?"
+        title={<Marked text="Quanto fica no seu bolso no fim do mês?" phrase="no seu bolso" />}
         lead="Arraste até o faturamento mensal do seu restaurante e compare os dois extratos."
       />
 
@@ -100,7 +101,7 @@ export function SavingsReceipt() {
         <label htmlFor="faturamento" className="block text-center text-sm font-medium text-ink-soft">
           Faturamento mensal em pedidos
         </label>
-        <p className="mt-2 text-center font-display text-[clamp(2.5rem,6vw,4.5rem)] font-semibold leading-none tracking-tight" aria-hidden="true">
+        <p className="mt-2 text-center font-display text-[clamp(2.5rem,6vw,4.5rem)] font-semibold leading-none tracking-tight text-hero" aria-hidden="true">
           <Rolling cents={revenue} />
         </p>
         <input
@@ -115,7 +116,7 @@ export function SavingsReceipt() {
           className="range-comanda mt-3 w-full"
           style={{ ["--pct" as string]: `${pct}%` }}
         />
-        <div className="mt-2 flex justify-between font-mono text-[11px] text-ink-soft">
+        <div className="mt-2 flex justify-between font-mono text-xs text-ink-soft">
           <span>R$ 3 mil</span>
           <span>R$ 100 mil</span>
         </div>
@@ -129,7 +130,7 @@ export function SavingsReceipt() {
                 <Rolling cents={revenue} />
               </Line>
               <Line label="Comissão até 30%" strong>
-                <span className="text-[#b91c1c]">
+                <span className="text-late-ink">
                   −<Rolling cents={commission} />
                 </span>
               </Line>
@@ -162,7 +163,7 @@ export function SavingsReceipt() {
       <motion.div {...reveal(0.1)} className="mx-auto mt-12 max-w-2xl text-center">
         <p className="text-lg text-ink-soft">
           Com a Comandiva ficam{" "}
-          <strong className="font-display text-2xl font-semibold text-accent-text">
+          <strong className="rounded-[10px] bg-ok px-3 py-[0.15rem] font-display text-2xl font-semibold text-white">
             +<Rolling cents={diff} fmt={brl2} />
           </strong>{" "}
           a mais no seu bolso por mês, ou <span className="text-ink">

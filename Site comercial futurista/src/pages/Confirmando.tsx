@@ -46,8 +46,8 @@ export default function Confirmando() {
 
   return (
     <section className="grid min-h-[70dvh] place-items-center px-4 py-24" aria-labelledby="confirmando-title">
-      <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5 text-center">
-        <div className="rounded-[calc(2rem-0.375rem)] bg-bg-raised p-8">
+      <div className="w-full max-w-md rounded-2xl border border-line bg-bg-raised text-center">
+        <div className="rounded-2xl bg-bg-raised p-8">
           <div aria-hidden="true" className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-accent/20 border-t-accent motion-reduce:animate-none" />
           <h1 id="confirmando-title" className="mt-5 font-display text-2xl font-semibold">
             Confirmando seu pagamento…
@@ -57,7 +57,7 @@ export default function Confirmando() {
             pra gente.
           </p>
           {!valid && (
-            <p role="alert" className="mt-4 text-sm text-[#ff9a9a]">
+            <p role="alert" className="mt-4 text-sm text-late-ink">
               Não encontramos a referência do seu pagamento.
             </p>
           )}

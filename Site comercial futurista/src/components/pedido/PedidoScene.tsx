@@ -22,11 +22,11 @@ export default function PedidoScene() {
   const last = frame === FRAMES.length - 1;
 
   return (
-    <section id="por-dentro" ref={ref} className="relative h-[400vh] max-[768px]:h-[260vh]" aria-labelledby="por-dentro-title">
+    <section id="por-dentro" ref={ref} className="band-scope relative h-[400vh] bg-band text-ink max-[768px]:h-[260vh]" aria-labelledby="por-dentro-title">
       <div className="sticky top-0 flex min-h-[100dvh] items-center overflow-hidden py-14 md:py-20">
         <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.7fr)] lg:gap-10">
           <div>
-            <p className="inline-flex rounded-full border border-line px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent-text">Veja por dentro</p>
+            <p className="text-sm font-medium text-accent-text">Veja por dentro</p>
             <h2 id="por-dentro-title" className="mt-3 font-display text-[clamp(1.6rem,3.2vw,2.6rem)] font-semibold leading-[1] tracking-[-0.02em] text-balance">
               A vida de um pedido, do cardápio ao fim do mês
             </h2>
@@ -50,7 +50,7 @@ export default function PedidoScene() {
           </div>
         </div>
 
-        <p className="absolute bottom-3 left-0 right-0 text-center font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+        <p className="absolute bottom-3 left-0 right-0 text-center font-mono text-xs text-ink-soft">
           Recriação do painel real · dados de demonstração
         </p>
       </div>

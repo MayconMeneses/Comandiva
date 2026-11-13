@@ -5,6 +5,7 @@ import { signup, ApiError } from "../lib/api";
 import { track } from "../lib/track";
 import { usePageMeta } from "../lib/seo";
 import { Field } from "../components/ui/Field";
+import { ArrowIcon } from "../components/ui/Icons";
 
 /**
  * Cadastro do restaurante. Chama `public.signup` no Master — é o servidor
@@ -61,8 +62,8 @@ export default function Cadastro() {
 
   return (
     <section className="mx-auto max-w-lg px-4 pb-24 pt-14 sm:px-6" aria-labelledby="cadastro-title">
-      <Link href="/planos" className="text-sm text-ink-soft hover:text-ink">
-        ← Voltar para os planos
+      <Link href="/planos" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
+        <ArrowIcon className="h-4 w-4 rotate-180" /> Voltar para os planos
       </Link>
 
       <form
@@ -77,10 +78,10 @@ export default function Cadastro() {
             track("signup_step");
           }
         }}
-        className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5"
+        className="mt-6 rounded-2xl border border-line bg-bg-raised"
       >
-        <div className="rounded-[calc(2rem-0.375rem)] bg-bg-raised p-6 sm:p-8">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent-text">Assinar {plan.name}</p>
+        <div className="rounded-2xl bg-bg-raised p-6 sm:p-8">
+          <p className="text-sm font-medium text-accent-text">Assinar {plan.name}</p>
           <h1 id="cadastro-title" className="mt-2 font-display text-3xl font-semibold tracking-tight">
             Cadastre seu restaurante
           </h1>
@@ -113,7 +114,7 @@ export default function Cadastro() {
               name="consent"
               type="checkbox"
               required
-              className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-[#0a84ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-text"
+              className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-[#0a63d8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-text"
             />
             <label htmlFor="consent" className="text-sm leading-relaxed text-ink-soft">
               Li e concordo com os{" "}
@@ -129,7 +130,7 @@ export default function Cadastro() {
           </div>
 
           {error && (
-            <p role="alert" className="mt-4 rounded-xl border border-[#ff7a7a]/30 bg-[#ff7a7a]/10 p-3 text-sm text-[#ff9a9a]">
+            <p role="alert" className="mt-4 rounded-xl border border-late-ink/30 bg-late-ink/10 p-3 text-sm text-late-ink">
               {error}
             </p>
           )}
@@ -137,7 +138,7 @@ export default function Cadastro() {
           <button
             type="submit"
             disabled={sending}
-            className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent-strong font-semibold text-white transition-colors hover:bg-[#0076e0] disabled:opacity-60"
+            className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent-strong font-semibold text-white transition-colors hover:brightness-90 disabled:opacity-60"
           >
             {sending ? "Enviando…" : "Enviar informações"}
           </button>

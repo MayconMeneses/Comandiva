@@ -56,7 +56,7 @@ export function Preloader({ onDone }: { onDone: () => void }) {
           transition={{ duration: 0.5, ease: [0.76, 0, 0.24, 1] }}
         >
           <motion.div
-            className="ticket-edge w-[min(18rem,80vw)] bg-ticket px-5 pb-7 pt-5 font-mono text-[11px] uppercase tracking-wider text-ticket-ink"
+            className="ticket-edge w-[min(18rem,80vw)] bg-ticket px-5 pb-7 pt-5 font-mono text-xs uppercase tracking-wider text-ticket-ink"
             initial={{ clipPath: "inset(0 0 100% 0)", y: -24 }}
             animate={{ clipPath: "inset(0 0 0% 0)", y: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}

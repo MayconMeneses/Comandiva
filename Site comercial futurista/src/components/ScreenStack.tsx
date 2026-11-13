@@ -14,9 +14,9 @@ function StackCard({ index, progress }: { index: number; progress: MotionValue<n
     <div className="sticky flex h-[100dvh] items-center justify-center" style={{ top: `${index * 14}px` }}>
       <motion.figure
         style={{ scale, transformOrigin: "50% 0%" }}
-        className="w-full max-w-5xl rounded-[2rem] border border-white/10 bg-bg-raised p-1.5 shadow-[0_-20px_60px_-30px_rgba(0,0,0,.9)]"
+        className="w-full max-w-5xl rounded-[2rem] border border-line bg-bg-raised p-1.5"
       >
-        <div className="grid overflow-hidden rounded-[calc(2rem-0.375rem)] bg-bg md:grid-cols-[1fr_1.7fr]">
+        <div className="grid overflow-hidden rounded-2xl bg-bg md:grid-cols-[1fr_1.7fr]">
           <figcaption className="flex flex-col justify-between gap-4 p-6 sm:p-8">
             <span className="font-mono text-xs text-accent-text">
               {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
@@ -26,7 +26,7 @@ function StackCard({ index, progress }: { index: number; progress: MotionValue<n
               <p className="mt-3 text-sm text-ink-soft">{tela.caption}</p>
             </div>
           </figcaption>
-          <div className="flex items-center bg-[#f6f1e8] p-2 sm:p-3">
+          <div className="flex items-center bg-bg-alt p-2 sm:p-3">
             <img src={tela.src} width={tela.w} height={tela.h} loading="lazy" decoding="async" alt={tela.alt} className="max-h-[52dvh] w-full rounded-xl object-contain" />
           </div>
         </div>
