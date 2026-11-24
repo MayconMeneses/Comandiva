@@ -11,7 +11,9 @@ overrides:
   # continuava exposta em runtime real aqui (path-to-regexp e body-parser
   # já vinham patcheados por causa do express@4.22.2, mais novo que o do
   # app principal; ver auditoria V-36).
-  qs: "6.16.0"
+  # 2026-11-24: qs <=6.16.0 (stringify com arrayFormat comma) e body-parser <1.20.9 (DoS) -> 6.16.2 / 1.20.9.
+  qs: "6.16.2"
+  body-parser: "1.20.9"
   # esbuild <=0.24.2 vulnerável (CORS do dev server) puxado só pela cadeia
   # depreciada drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils
   # (drizzle-kit já usa esbuild ^0.25.4 direto — isso força a MESMA versão
