@@ -1,0 +1,18 @@
+# Avisa (por PR) quando sai correção de segurança ou versão nova das dependências.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/Master"
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: "/Sistema de restaurante"
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: "/Site comercial futurista"
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule: { interval: monthly }
