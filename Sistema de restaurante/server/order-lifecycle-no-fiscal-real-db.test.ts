@@ -1,7 +1,8 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
-import { addonGroups, deliveryRoutes, fiscalDocuments, orderItems, orders, printJobs, products, tableSessions } from "../drizzle/schema";
+import { eq, inArray } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { categories, deliveryRoutes, fiscalDocuments, orderItems, orders, printJobs, products, restaurantSettings, restaurantTables, tableSessions } from "../drizzle/schema";
 import { getDb } from "./db/client";
+import { createTable } from "./db";
 import { orderRouter } from "./routers/order";
 import { adminTablesRouter } from "./routers/admin/tables";
 import { adminOrdersRouter } from "./routers/admin/orders";
@@ -16,14 +17,50 @@ import type { TrpcContext } from "./_core/context";
  */
 describe.skipIf(!process.env.DATABASE_URL)("ciclo de vida do pedido — sem nota fiscal (MySQL real)", () => {
   const createdOrderIds: number[] = [];
+  // Dados próprios do teste (issue #2): o banco do CI só tem as migrations, sem
+  // cardápio nem mesas de demonstração. Tudo é criado aqui e apagado no fim.
+  const fixture = { categoryId: 0, productId: 0, tableId: 0, settingsId: 0 };
+
+  beforeAll(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("getDb() retornou null — checar DATABASE_URL.");
+    const now = Date.now();
+    // Configuração da loja é linha única: só cria se o banco não tiver nenhuma
+    // (banco vazio do CI) e nunca altera uma que já exista.
+    const [existingSettings] = await db.select({ id: restaurantSettings.id }).from(restaurantSettings).limit(1);
+    if (!existingSettings) {
+      const [settings] = await db
+        .insert(restaurantSettings)
+        .values({ storeName: "Loja de teste (CI)", isAcceptingOrders: true, minimumOrderCents: 0, createdAt: now, updatedAt: now })
+        .$returningId();
+      fixture.settingsId = settings.id;
+    }
+    const [category] = await db.insert(categories).values({ name: `Teste ciclo de vida ${now}`, createdAt: now, updatedAt: now }).$returningId();
+    fixture.categoryId = category.id;
+    const [product] = await db
+      .insert(products)
+      .values({ categoryId: category.id, name: `Produto simples de teste ${now}`, priceCents: 2500, available: true, createdAt: now, updatedAt: now })
+      .$returningId();
+    fixture.productId = product.id;
+    fixture.tableId = await createTable({ label: `Mesa de teste (ciclo) ${now}`, sector: "Teste", capacity: 4 });
+  });
 
   afterAll(async () => {
     const db = await getDb();
-    if (!db || !createdOrderIds.length) return;
+    if (!db) return;
     // order_status_history é append-only (trigger) — fica órfão, sem problema.
-    await db.delete(printJobs).where(inArray(printJobs.orderId, createdOrderIds));
-    await db.delete(orderItems).where(inArray(orderItems.orderId, createdOrderIds));
-    await db.delete(orders).where(inArray(orders.id, createdOrderIds));
+    if (createdOrderIds.length) {
+      await db.delete(printJobs).where(inArray(printJobs.orderId, createdOrderIds));
+      await db.delete(orderItems).where(inArray(orderItems.orderId, createdOrderIds));
+      await db.delete(orders).where(inArray(orders.id, createdOrderIds));
+    }
+    if (fixture.tableId) {
+      await db.delete(tableSessions).where(eq(tableSessions.tableId, fixture.tableId));
+      await db.delete(restaurantTables).where(eq(restaurantTables.id, fixture.tableId));
+    }
+    if (fixture.productId) await db.delete(products).where(eq(products.id, fixture.productId));
+    if (fixture.categoryId) await db.delete(categories).where(eq(categories.id, fixture.categoryId));
+    if (fixture.settingsId) await db.delete(restaurantSettings).where(eq(restaurantSettings.id, fixture.settingsId));
   });
 
   const publicCtx = { user: null, req: { ip: "127.0.0.1", headers: {} }, res: {} } as unknown as TrpcContext;
@@ -35,11 +72,8 @@ describe.skipIf(!process.env.DATABASE_URL)("ciclo de vida do pedido — sem nota
   async function pickSimpleProduct() {
     const db = await getDb();
     if (!db) throw new Error("getDb() retornou null — checar DATABASE_URL.");
-    const rows = await db.select().from(products).where(and(eq(products.available, true), sql`${products.archivedAt} IS NULL`));
-    const groups = await db.select({ productId: addonGroups.productId }).from(addonGroups).where(eq(addonGroups.active, true));
-    const withGroups = new Set(groups.map(group => group.productId));
-    const simple = rows.find(row => !withGroups.has(row.id));
-    if (!simple) throw new Error("Sem produto disponível e sem complementos no banco local pra testar.");
+    const [simple] = await db.select().from(products).where(eq(products.id, fixture.productId));
+    if (!simple) throw new Error("Produto de teste não foi criado no beforeAll.");
     return simple;
   }
 
@@ -106,8 +140,8 @@ describe.skipIf(!process.env.DATABASE_URL)("ciclo de vida do pedido — sem nota
     const tables = adminTablesRouter.createCaller(adminCtx);
     const list = await tables.tables();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const entry = (list as any[]).find(row => !row.session);
-    expect(entry, "nenhuma mesa livre no banco local").toBeTruthy();
+    const entry = (list as any[]).find(row => row.table?.id === fixture.tableId && !row.session);
+    expect(entry, "mesa de teste não está livre").toBeTruthy();
     const free = entry.table;
     const { sessionId } = await tables.seatTable({ tableId: free.id, partySize: 2 });
     const product = await pickSimpleProduct();
