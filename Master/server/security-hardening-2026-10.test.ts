@@ -160,7 +160,6 @@ describe("limite do corpo das requisições", () => {
     const app = express();
     registerBodyParsers(app);
     app.post("/api/trpc/:proc", (_req, res) => res.json({ ok: true }));
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     app.use((error: { status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => res.status(error.status ?? 500).json({ error: true }));
     server = createServer(app);
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));

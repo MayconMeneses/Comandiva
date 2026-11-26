@@ -5,18 +5,24 @@ name: CI Master
 # (scripts/sync-site-comercial.mjs).
 on:
   push:
-    branches: [main]
+    branches: [main, site-comercial-futurista]
     paths:
       - "Master/**"
       - "Site comercial/**"
+      - "Site comercial futurista/**"
       - ".github/workflows/master.yml"
   pull_request:
-    branches: [main]
+    branches: [main, site-comercial-futurista]
     paths:
       - "Master/**"
       - "Site comercial/**"
+      - "Site comercial futurista/**"
       - ".github/workflows/master.yml"
   workflow_dispatch:
+
+# Token do GitHub só com leitura (o CI não publica nada).
+permissions:
+  contents: read
 
 jobs:
   master:
@@ -51,6 +57,11 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: Master/pnpm-lock.yaml
+      # O Master copia o build do site futurista (scripts/sync-site-comercial.mjs);
+      # sem este passo, check/test/build rodariam sem ele.
+      - name: Build do site comercial futurista
+        working-directory: Site comercial futurista
+        run: npm ci && npm run build
       - run: pnpm install --frozen-lockfile
       # Auditoria de vulnerabilidades — zero críticas desde a rodada de
       # atualização de 2026-09 (vitest/vite/drizzle-kit/tailwind bumpados;

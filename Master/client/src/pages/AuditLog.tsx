@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 
 type AuditRow = { id: number; createdAt: number; actorLabel: string; action: string; entityType: string | null; entityId: number | null };
 
-const ENTITY_TYPE_OPTIONS = ["", "restaurant"] as const;
+type EntityTypeFilter = "" | "restaurant";
 
 export default function AuditLog() {
   const [action, setAction] = useState("");
-  const [entityType, setEntityType] = useState<(typeof ENTITY_TYPE_OPTIONS)[number]>("");
+  const [entityType, setEntityType] = useState<EntityTypeFilter>("");
   const [cursor, setCursor] = useState<number | undefined>(undefined);
   const [rows, setRows] = useState<AuditRow[]>([]);
   const query = trpc.masterPanel.auditLog.list.useQuery({
@@ -23,7 +23,7 @@ export default function AuditLog() {
   useEffect(() => {
     if (!query.data) return;
     setRows(previous => (cursor ? [...previous, ...query.data] : query.data));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Só reage a dados novos: incluir `cursor` acumularia a mesma página de novo.
   }, [query.data]);
 
   const loadMore = () => {

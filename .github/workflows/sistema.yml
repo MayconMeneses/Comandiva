@@ -2,16 +2,20 @@ name: CI Sistema de restaurante
 
 on:
   push:
-    branches: [main]
+    branches: [main, site-comercial-futurista]
     paths:
       - "Sistema de restaurante/**"
       - ".github/workflows/sistema.yml"
   pull_request:
-    branches: [main]
+    branches: [main, site-comercial-futurista]
     paths:
       - "Sistema de restaurante/**"
       - ".github/workflows/sistema.yml"
   workflow_dispatch:
+
+# Token do GitHub só com leitura (o CI não publica nada).
+permissions:
+  contents: read
 
 jobs:
   app-principal:
@@ -39,15 +43,12 @@ jobs:
           --health-retries=10
     steps:
       - uses: actions/checkout@v4
-      # Versão fixa (10.34.5), igual ao "packageManager" do package.json da
-      # raiz. Bumpada
-      # de 10.4.1 em 2026-09 junto da correção do CVE alto do próprio pnpm
-      # (ver step de auditoria abaixo) — se o "packageManager" mudar nesse
-      # package.json de novo, atualizar aqui junto, senão o CI quebra por
-      # incompatibilidade de formato do lockfile.
+      # Versão fixa, igual ao "packageManager" do package.json (pnpm@11.24.0).
+      # Se o "packageManager" mudar, atualizar aqui junto: versão diferente
+      # quebra o CI por incompatibilidade de formato do lockfile.
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.34.5
+          version: 11.24.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -83,8 +84,8 @@ jobs:
       - name: Build imagem Docker (app principal)
         run: docker build -f infra/Dockerfile .
       # DATABASE_URL aqui (mesmo serviço mysql:8.4 já de pé pro job inteiro,
-      # já migrado no step acima) é só pro teste de idempotência de pedido
-      # (server/order-idempotency-real-db.test.ts) — precisa de MySQL de
+      # já migrado no step acima) é só pros testes *-real-db.test.ts
+      # (idempotência, travas de linha, ciclo de vida do pedido) — precisa de MySQL de
       # verdade pra provar que um erro de chave duplicada dentro de uma
       # transação não a invalida (comportamento específico do InnoDB, mock
       # não prova isso). O resto da suíte não usa banco nenhum.

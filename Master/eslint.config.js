@@ -5,7 +5,17 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**", "drizzle/**", "**/*.d.ts"],
+    // client/comercial-futurista = build já minificado do site futurista, copiado pelo sync.
+    ignores: ["dist/**", "node_modules/**", "drizzle/**", "**/*.d.ts", "client/comercial-futurista/**"],
   },
   ...tsPlugin.configs["flat/recommended"],
+  {
+    rules: {
+      // Prefixo "_" = descartado de propósito (ex.: tirar apiKeyHash de um objeto com rest).
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", ignoreRestSiblings: true },
+      ],
+    },
+  },
 ];
