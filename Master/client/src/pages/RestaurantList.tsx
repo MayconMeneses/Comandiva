@@ -7,16 +7,16 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Link } from "wouter";
 
-const STATUS_OPTIONS = ["", "active", "suspended", "cancelled"] as const;
-const PLAN_OPTIONS = ["", "essencial", "profissional", "premium"] as const;
-const NEW_PLAN_OPTIONS = ["essencial", "profissional", "premium"] as const;
+type NewPlanKey = "essencial" | "profissional" | "premium";
+type StatusFilter = "" | "active" | "suspended" | "cancelled";
+type PlanFilter = "" | NewPlanKey;
 
 const CANCELLED_HIDE_DAYS = 10;
 const PAGE_SIZE = 25;
 
 export default function RestaurantList() {
-  const [status, setStatus] = useState<(typeof STATUS_OPTIONS)[number]>("");
-  const [planKey, setPlanKey] = useState<(typeof PLAN_OPTIONS)[number]>("");
+  const [status, setStatus] = useState<StatusFilter>("");
+  const [planKey, setPlanKey] = useState<PlanFilter>("");
   // Cancelados somem da lista sozinhos 10 dias depois (ver
   // listRestaurantsForPanel) — nunca apagados, só escondidos por padrão
   // pra não acumular; esse toggle reexibe pra quem precisar consultar.
@@ -43,7 +43,7 @@ export default function RestaurantList() {
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [newPlanKey, setNewPlanKey] = useState<(typeof NEW_PLAN_OPTIONS)[number]>("essencial");
+  const [newPlanKey, setNewPlanKey] = useState<NewPlanKey>("essencial");
   const [copied, setCopied] = useState(false);
 
   const create = trpc.masterPanel.restaurants.create.useMutation({
